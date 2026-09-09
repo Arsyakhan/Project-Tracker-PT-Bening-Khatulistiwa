@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { api } from '../lib/api'; // Sesuaikan jalur impor jika diperlukan ('../../lib/api')
-import ProjectTable from '../components/ProjectTable';
+import { api } from '../../lib/api'; 
+import ProjectTable from '../../components/ProjectTable';
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState(null);
