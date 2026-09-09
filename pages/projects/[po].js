@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import { api } from '../../lib/api';
+import { api } from '../../lib/api'; // Sesuaikan jika path-nya '../lib/api'
 import StageGauge from '../../components/StageGauge';
 
 export default function ProjectDetailPage() {
@@ -38,7 +38,8 @@ export default function ProjectDetailPage() {
     setError(null);
     try {
       await api.updateProject({
-        poNumber: project.poNumber,
+        poNumber: po, // Kirim PO lama sebagai referensi pencarian baris
+        newPoNumber: project.poNumber, // Kirim PO baru (jika diedit)
         projectName: project.projectName,
         client: project.client,
         technology: project.technology,
@@ -55,7 +56,13 @@ export default function ProjectDetailPage() {
         targetFinishDate: project.targetFinishDate
       });
       setSavedMsg('Tersimpan ke spreadsheet.');
-      await load();
+      
+      // Jika PO diubah, kita harus redirect URL agar halaman tidak error
+      if (po !== project.poNumber) {
+        router.replace(`/projects/${encodeURIComponent(project.poNumber)}`);
+      } else {
+        await load();
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -96,8 +103,13 @@ export default function ProjectDetailPage() {
 
   return (
     <div className="flex flex-col gap-6 max-w-3xl">
-      <div>
-        <span className="text-xs font-data text-inkmute">{project.poNumber}</span>
+      <div className="flex flex-col gap-1">
+        <input 
+          className="text-xs font-data text-inkmute bg-transparent border-b border-dashed border-transparent hover:border-line focus:border-blueprint outline-none w-fit pb-1 transition-colors" 
+          value={project.poNumber} 
+          onChange={(e) => update('poNumber', e.target.value)} 
+          title="Klik untuk mengedit PO Number"
+        />
         <input 
           className="font-display text-2xl font-semibold text-ink bg-transparent border-b-2 border-transparent hover:border-line focus:border-blueprint outline-none w-full pb-1 transition-colors" 
           value={project.projectName} 
@@ -155,37 +167,19 @@ export default function ProjectDetailPage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-line pt-4 mt-2">
           <Row label="Deskripsi Pesanan (Teknologi)">
-            <textarea 
-              className="input" 
-              rows={4} 
-              value={project.deskripsiPesanan || ''} 
-              onChange={(e) => update('deskripsiPesanan', e.target.value)} 
-            />
+            <textarea className="input" rows={4} value={project.deskripsiPesanan || ''} onChange={(e) => update('deskripsiPesanan', e.target.value)} />
           </Row>
           <Row label="Spesifikasi & Detail Teknologi">
-            <textarea 
-              className="input" 
-              rows={4} 
-              value={project.spesifikasiTeknologi || ''} 
-              onChange={(e) => update('spesifikasiTeknologi', e.target.value)} 
-            />
+            <textarea className="input" rows={4} value={project.spesifikasiTeknologi || ''} onChange={(e) => update('spesifikasiTeknologi', e.target.value)} />
           </Row>
         </div>
 
         <div className="flex items-center gap-3 mt-2">
-          <button
-            onClick={saveProject}
-            disabled={saving || deleting}
-            className="bg-blueprint hover:bg-blueprintdark text-white rounded-md px-4 py-2 text-sm font-medium disabled:opacity-60"
-          >
+          <button onClick={saveProject} disabled={saving || deleting} className="bg-blueprint hover:bg-blueprintdark text-white rounded-md px-4 py-2 text-sm font-medium disabled:opacity-60">
             {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
           </button>
           
-          <button
-            onClick={handleDelete}
-            disabled={saving || deleting}
-            className="bg-rust hover:bg-red-800 text-white rounded-md px-4 py-2 text-sm font-medium disabled:opacity-60"
-          >
+          <button onClick={handleDelete} disabled={saving || deleting} className="bg-rust hover:bg-red-800 text-white rounded-md px-4 py-2 text-sm font-medium disabled:opacity-60">
             {deleting ? 'Menghapus...' : 'Hapus Project'}
           </button>
 
@@ -226,14 +220,7 @@ export default function ProjectDetailPage() {
       )}
 
       <style jsx global>{`
-        .input {
-          border: 1px solid #D7E0E3;
-          border-radius: 6px;
-          padding: 8px 10px;
-          font-size: 14px;
-          background: white;
-          width: 100%;
-        }
+        .input { border: 1px solid #D7E0E3; border-radius: 6px; padding: 8px 10px; font-size: 14px; background: white; width: 100%; }
       `}</style>
     </div>
   );
