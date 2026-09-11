@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import { api } from '../../lib/api';
+import { api } from '../lib/api';
 
 const emptyForm = {
   poNumber: '', projectName: '', client: '', technology: '', pic: '',
   currentStage: 'PO', status: 'In Progress', priority: 'Medium',
-  tanggalPO: '', tanggalDP: '', deadlineDelivery: '', targetFinishDate: '', 
+  tanggalPO: '', tanggalDP: '', deliveryDate: '', targetFinishDate: '', 
   remarks: '', deskripsiPesanan: '', spesifikasiTeknologi: ''
 };
 
@@ -80,8 +80,8 @@ export default function NewProjectPage() {
         <Row label="Tanggal DP">
           <input type="date" className="input" value={form.tanggalDP} onChange={(e) => update('tanggalDP', e.target.value)} />
         </Row>
-        <Row label="Deadline Delivery">
-          <input type="date" className="input" value={form.deadlineDelivery} onChange={(e) => update('deadlineDelivery', e.target.value)} />
+        <Row label="Delivery Date">
+          <input type="date" className="input" value={form.deliveryDate} onChange={(e) => update('deliveryDate', e.target.value)} />
         </Row>
         <Row label="Remarks">
           <textarea className="input" rows={3} value={form.remarks} onChange={(e) => update('remarks', e.target.value)} />
@@ -89,39 +89,19 @@ export default function NewProjectPage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-line pt-4 mt-2">
           <Row label="Deskripsi Pesanan (Teknologi)">
-            <textarea 
-              className="input" 
-              rows={4} 
-              value={form.deskripsiPesanan} 
-              onChange={(e) => update('deskripsiPesanan', e.target.value)} 
-            />
+            <textarea className="input" rows={4} value={form.deskripsiPesanan} onChange={(e) => update('deskripsiPesanan', e.target.value)} />
           </Row>
           <Row label="Spesifikasi & Detail Teknologi">
-            <textarea 
-              className="input" 
-              rows={4} 
-              value={form.spesifikasiTeknologi} 
-              onChange={(e) => update('spesifikasiTeknologi', e.target.value)} 
-            />
+            <textarea className="input" rows={4} value={form.spesifikasiTeknologi} onChange={(e) => update('spesifikasiTeknologi', e.target.value)} />
           </Row>
         </div>
 
-        <button
-          disabled={saving}
-          className="mt-4 bg-blueprint hover:bg-blueprintdark text-white rounded-md py-2.5 font-medium disabled:opacity-60"
-        >
+        <button disabled={saving} className="mt-4 bg-blueprint hover:bg-blueprintdark text-white rounded-md py-2.5 font-medium disabled:opacity-60">
           {saving ? 'Menyimpan...' : 'Simpan Project'}
         </button>
       </form>
       <style jsx global>{`
-        .input {
-          border: 1px solid #D7E0E3;
-          border-radius: 6px;
-          padding: 8px 10px;
-          font-size: 14px;
-          background: white;
-          width: 100%;
-        }
+        .input { border: 1px solid #D7E0E3; border-radius: 6px; padding: 8px 10px; font-size: 14px; background: white; width: 100%; }
       `}</style>
     </div>
   );
