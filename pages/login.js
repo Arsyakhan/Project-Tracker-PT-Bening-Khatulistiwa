@@ -11,7 +11,7 @@ export default function Login() {
     e.preventDefault();
     
     // UBAH PASSWORD DI SINI
-    if (password === 'admin123') {
+    if (password === 'bening123') {
       // Set cookie penanda login yang berlaku selama 1 hari (86400 detik)
       document.cookie = "isLoggedIn=true; path=/; max-age=1000";
       router.push('/'); // Arahkan ke dashboard
