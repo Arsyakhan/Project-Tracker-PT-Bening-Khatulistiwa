@@ -42,8 +42,11 @@ export default function ProjectTable({ projects }) {
                 {p.deliveryDate ? (
                   <div className="flex flex-col">
                     <span className="text-ink">{p.deliveryDate}</span>
-                    {p.stageProgress >= 90 ? (
-                      <span className="text-xs text-teal font-medium">Terkirim / Selesai</span>
+                    {/* Logika pemisahan Selesai vs Terkirim */}
+                    {p.stageProgress >= 100 ? (
+                      <span className="text-xs text-teal font-medium">Selesai</span>
+                    ) : p.stageProgress >= 90 ? (
+                      <span className="text-xs text-blueprint font-medium">Terkirim</span>
                     ) : (
                       <span className={`text-xs ${p.daysRemaining < 0 ? 'text-rust' : 'text-inkmute'}`}>
                         {p.daysRemaining < 0 ? `Terlewat ${Math.abs(p.daysRemaining)} hari` : `${p.daysRemaining} hari lagi`}
