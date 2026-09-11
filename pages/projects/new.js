@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import { api } from '../lib/api';
+import { api } from '../../lib/api'; // <-- Ini yang tadinya error, sudah diperbaiki menjadi ../../
 
 const emptyForm = {
   poNumber: '', projectName: '', client: '', technology: '', pic: '',
