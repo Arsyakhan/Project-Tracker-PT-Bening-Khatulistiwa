@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import { api } from '../../lib/api'; // Sesuaikan jika path-nya '../lib/api'
+import { api } from '../../lib/api';
 import StageGauge from '../../components/StageGauge';
 
 export default function ProjectDetailPage() {
@@ -38,8 +38,8 @@ export default function ProjectDetailPage() {
     setError(null);
     try {
       await api.updateProject({
-        poNumber: po, // Kirim PO lama sebagai referensi pencarian baris
-        newPoNumber: project.poNumber, // Kirim PO baru (jika diedit)
+        poNumber: po,
+        newPoNumber: project.poNumber,
         projectName: project.projectName,
         client: project.client,
         technology: project.technology,
@@ -52,12 +52,10 @@ export default function ProjectDetailPage() {
         spesifikasiTeknologi: project.spesifikasiTeknologi,
         tanggalPO: project.tanggalPO,
         tanggalDP: project.tanggalDP,
-        deadlineDelivery: project.deadlineDelivery,
+        deliveryDate: project.deliveryDate,
         targetFinishDate: project.targetFinishDate
       });
       setSavedMsg('Tersimpan ke spreadsheet.');
-      
-      // Jika PO diubah, kita harus redirect URL agar halaman tidak error
       if (po !== project.poNumber) {
         router.replace(`/projects/${encodeURIComponent(project.poNumber)}`);
       } else {
@@ -153,8 +151,8 @@ export default function ProjectDetailPage() {
           <Row label="Tanggal DP">
             <input type="date" className="input" value={project.tanggalDP || ''} onChange={(e) => update('tanggalDP', e.target.value)} />
           </Row>
-          <Row label="Deadline Delivery">
-            <input type="date" className="input" value={project.deadlineDelivery || ''} onChange={(e) => update('deadlineDelivery', e.target.value)} />
+          <Row label="Delivery Date">
+            <input type="date" className="input" value={project.deliveryDate || ''} onChange={(e) => update('deliveryDate', e.target.value)} />
           </Row>
           <Row label="Target Finish Date">
             <input type="date" className="input" value={project.targetFinishDate || ''} onChange={(e) => update('targetFinishDate', e.target.value)} />
@@ -178,11 +176,9 @@ export default function ProjectDetailPage() {
           <button onClick={saveProject} disabled={saving || deleting} className="bg-blueprint hover:bg-blueprintdark text-white rounded-md px-4 py-2 text-sm font-medium disabled:opacity-60">
             {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
           </button>
-          
           <button onClick={handleDelete} disabled={saving || deleting} className="bg-rust hover:bg-red-800 text-white rounded-md px-4 py-2 text-sm font-medium disabled:opacity-60">
             {deleting ? 'Menghapus...' : 'Hapus Project'}
           </button>
-
           {savedMsg && <span className="text-teal text-sm">{savedMsg}</span>}
         </div>
       </section>
