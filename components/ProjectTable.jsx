@@ -42,9 +42,13 @@ export default function ProjectTable({ projects }) {
                 {p.deliveryDate ? (
                   <div className="flex flex-col">
                     <span className="text-ink">{p.deliveryDate}</span>
-                    <span className={`text-xs ${p.daysRemaining < 0 ? 'text-rust' : 'text-inkmute'}`}>
-                      {p.daysRemaining < 0 ? `Terlewat ${Math.abs(p.daysRemaining)} hari` : `${p.daysRemaining} hari lagi`}
-                    </span>
+                    {p.stageProgress >= 90 ? (
+                      <span className="text-xs text-teal font-medium">Terkirim / Selesai</span>
+                    ) : (
+                      <span className={`text-xs ${p.daysRemaining < 0 ? 'text-rust' : 'text-inkmute'}`}>
+                        {p.daysRemaining < 0 ? `Terlewat ${Math.abs(p.daysRemaining)} hari` : `${p.daysRemaining} hari lagi`}
+                      </span>
+                    )}
                   </div>
                 ) : (
                   <span className="text-inkmute">-</span>
