@@ -1,38 +1,38 @@
 export default function Timeline({ projects }) {
-  if (!projects) return null;
-
-  // Ambil project aktif yang punya deadline, urutkan dari tanggal terdekat
+  // Sort by deliveryDate ascending, exclude projects without deliveryDate
   const upcoming = [...projects]
-    .filter(p => p.stageProgress < 100 && p.deadlineDelivery)
-    .sort((a, b) => new Date(a.deadlineDelivery) - new Date(b.deadlineDelivery))
-    .slice(0, 6);
+    .filter(p => p.deliveryDate)
+    .sort((a, b) => new Date(a.deliveryDate) - new Date(b.deliveryDate));
 
   return (
-    <div className="bg-panel border border-line rounded-lg p-5 h-72 overflow-y-auto">
-      <span className="text-xs uppercase tracking-wide text-inkmute font-medium">
-        Timeline & Deadline Terdekat
-      </span>
-      <div className="mt-5 flex flex-col gap-4 relative">
-        {/* Garis vertikal timeline */}
-        <div className="absolute left-[7px] top-2 bottom-2 w-[2px] bg-line"></div>
+    <div className="bg-panel border border-line rounded-lg p-6 h-full flex flex-col">
+      <h2 className="font-display font-semibold text-inkmute text-xs uppercase tracking-wider mb-5">
+        Timeline & Delivery Date Terdekat
+      </h2>
+      
+      <div className="flex flex-col gap-5 overflow-y-auto pr-2 flex-grow">
+        {upcoming.map((p, i) => (
+          <div key={i} className="flex gap-4 relative">
+            {/* Garis penghubung vertikal */}
+            {i !== upcoming.length - 1 && (
+              <div className="absolute left-[5px] top-4 bottom-[-1.25rem] w-px bg-rust/30"></div>
+            )}
+            
+            {/* Titik indikator */}
+            <div className="w-3 h-3 rounded-full bg-rust mt-1.5 shrink-0 z-10 relative"></div>
+            
+            {/* Konten Timeline */}
+            <div className="flex flex-col -mt-0.5">
+              <span className="text-ink font-medium text-sm">{p.projectName}</span>
+              <span className="text-rust text-sm mt-0.5">
+                Delivery Date: {p.deliveryDate} ({p.daysRemaining} hari lagi)
+              </span>
+            </div>
+          </div>
+        ))}
 
-        {upcoming.length === 0 ? (
-          <div className="text-sm text-inkmute pl-6">Tidak ada deadline terdekat.</div>
-        ) : (
-          upcoming.map((p) => {
-            const days = p.daysRemaining;
-            const isWarning = days !== '' && days <= 14; // Merah jika deadline <= 14 hari
-
-            return (
-              <div key={p.poNumber} className="relative pl-6">
-                <div className={`absolute left-0 top-1.5 w-4 h-4 rounded-full border-4 border-panel ${isWarning ? 'bg-rust' : 'bg-blueprint'}`}></div>
-                <div className="text-sm font-medium text-ink truncate" title={p.projectName}>{p.projectName}</div>
-                <div className={`text-xs mt-0.5 font-medium ${isWarning ? 'text-rust' : 'text-blueprint'}`}>
-                  Deadline: {p.deadlineDelivery} {days !== '' && `(${days} hari lagi)`}
-                </div>
-              </div>
-            );
-          })
+        {upcoming.length === 0 && (
+          <div className="text-inkmute text-sm mt-2">Tidak ada jadwal pengiriman terdekat.</div>
         )}
       </div>
     </div>
