@@ -11,7 +11,7 @@ export default function Login() {
 
   const handleLogin = (e) => {
     e.preventDefault();
-    if (password === 'admin123') {
+    if (password === 'bening123') {
       document.cookie = "isLoggedIn=true; path=/";
       router.push('/');
     } else {
