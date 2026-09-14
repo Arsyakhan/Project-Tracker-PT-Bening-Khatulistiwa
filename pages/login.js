@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
+import Image from 'next/image'; // Memanggil fitur kompresi pintar dari Next.js
 
 export default function Login() {
   const [password, setPassword] = useState('');
@@ -10,7 +11,7 @@ export default function Login() {
 
   const handleLogin = (e) => {
     e.preventDefault();
-    if (password === 'bening123') {
+    if (password === 'admin123') {
       document.cookie = "isLoggedIn=true; path=/";
       router.push('/');
     } else {
@@ -25,14 +26,19 @@ export default function Login() {
       </Head>
       <div className="min-h-screen flex bg-canvas">
         
-        {/* Sisi Kiri: Gambar Background Pengolahan Air */}
-        <div 
-          className="hidden lg:flex lg:w-1/2 bg-cover bg-center relative" 
-          style={{ backgroundImage: "url('/wastewater-treatment-upd.webp')" }}
-        >
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0C2D48] via-[#0C2D48]/60 to-transparent"></div>
+        {/* Sisi Kiri: Gambar Background yang sudah dikompres otomatis oleh Next.js */}
+        <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
+          <Image 
+            src="/wastewater-treatment-upd.webp"
+            alt="Water Treatment Background"
+            fill
+            style={{ objectFit: 'cover', objectPosition: 'center' }}
+            priority={true} // Perintah khusus agar gambar ini didownload paling pertama (anti lelet)
+            quality={70} // Kompresi kualitas gambar ke 70% agar ukurannya jauh lebih kecil
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0C2D48] via-[#0C2D48]/60 to-transparent z-10"></div>
           
-          <div className="relative z-10 flex flex-col justify-end p-12 text-white h-full">
+          <div className="relative z-20 flex flex-col justify-end p-12 text-white h-full w-full">
             <h1 className="font-display text-4xl font-bold mb-3 drop-shadow-md">Water Treatment Excellence</h1>
             <p className="text-white/90 text-lg max-w-md drop-shadow-md font-medium">
               Sistem manajemen terintegrasi untuk melacak progress fabrikasi, engineering, dan delivery project.
@@ -41,7 +47,7 @@ export default function Login() {
         </div>
 
         {/* Sisi Kanan: Form Login dengan Logo */}
-        <div className="w-full lg:w-1/2 flex items-center justify-center p-6">
+        <div className="w-full lg:w-1/2 flex items-center justify-center p-6 relative z-20">
           <div className="w-full max-w-sm">
             <div className="text-center lg:text-left mb-8 flex flex-col items-center lg:items-start">
               <img src="/logo-bk2.png" alt="Logo PT Bening Khatulistiwa" className="h-10 w-auto mb-4 object-contain mix-blend-multiply" />
