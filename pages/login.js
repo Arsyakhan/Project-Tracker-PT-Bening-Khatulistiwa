@@ -44,7 +44,6 @@ export default function Login() {
         <div className="w-full lg:w-1/2 flex items-center justify-center p-6">
           <div className="w-full max-w-sm">
             <div className="text-center lg:text-left mb-8 flex flex-col items-center lg:items-start">
-              {/* Nama file logo sudah disesuaikan menjadi logo-bk2.png */}
               <img src="/logo-bk2.png" alt="Logo PT Bening Khatulistiwa" className="h-10 w-auto mb-4 object-contain mix-blend-multiply" />
               <h2 className="font-display text-3xl font-bold text-ink">Project Tracker</h2>
               <p className="text-inkmute text-sm mt-1">Silakan masuk untuk melanjutkan</p>
