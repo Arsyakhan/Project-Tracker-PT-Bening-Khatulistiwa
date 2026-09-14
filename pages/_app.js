@@ -15,7 +15,8 @@ export default function App({ Component, pageProps }) {
   return (
     <>
       <Head>
-        <link rel="icon" href="/logo bk2.png" />
+        {/* Nama file logo sudah disesuaikan menjadi logo-bk2.png */}
+        <link rel="icon" href="/logo-bk2.png" />
         <title>Project Tracker - Bening Khatulistiwa</title>
       </Head>
       <div className="min-h-screen bg-canvas">
@@ -25,8 +26,9 @@ export default function App({ Component, pageProps }) {
               
               {/* Bagian Logo di Navbar */}
               <Link href="/" className="flex items-center gap-3 group">
+                {/* Nama file logo sudah disesuaikan menjadi logo-bk2.png */}
                 <img 
-                  src="/logo bk2.png" 
+                  src="/logo-bk2.png" 
                   alt="Logo Bening Khatulistiwa" 
                   className="h-7 w-auto object-contain mix-blend-multiply group-hover:opacity-80 transition-opacity"
                 />
