@@ -2,14 +2,15 @@ import '../styles/globals.css';
 import Link from 'next/link';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
+import { SessionProvider, useSession, signOut } from 'next-auth/react';
 
-export default function App({ Component, pageProps }) {
+function Shell({ Component, pageProps }) {
   const router = useRouter();
+  const { data: session } = useSession();
   const isLoginPage = router.pathname === '/login';
 
   const handleLogout = () => {
-    document.cookie = "isLoggedIn=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-    router.push('/login');
+    signOut({ callbackUrl: '/login' });
   };
 
   // Fungsi pintar untuk mendeteksi apakah URL saat ini sama dengan link menu
@@ -26,12 +27,12 @@ export default function App({ Component, pageProps }) {
           <header className="border-b border-line bg-panel sticky top-0 z-50 shadow-sm">
             {/* Mengubah max-w-6xl menjadi 7xl agar tabel di bawahnya punya ruang lebih lebar */}
             <div className="max-w-7xl mx-auto px-6 py-3 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-              
+
               {/* Bagian Logo */}
               <Link href="/" className="flex items-center gap-3 group">
-                <img 
-                  src="/logo-bk2.png" 
-                  alt="Logo Bening Khatulistiwa" 
+                <img
+                  src="/logo-bk2.png"
+                  alt="Logo Bening Khatulistiwa"
                   className="h-8 w-auto object-contain mix-blend-multiply group-hover:opacity-80 transition-opacity"
                 />
                 <span className="font-display font-semibold text-lg text-blueprint border-l-2 border-line pl-3">
@@ -41,35 +42,35 @@ export default function App({ Component, pageProps }) {
 
               {/* Navigasi Utama */}
               <nav className="flex flex-wrap items-center gap-1.5 text-sm">
-                
+
                 {/* Menu dengan deteksi Active State */}
-                <Link 
-                  href="/" 
+                <Link
+                  href="/"
                   className={`px-3 py-2 rounded-md font-medium transition-all duration-200 ${isActive('/') ? 'bg-blueprint/10 text-blueprint' : 'text-inkmute hover:bg-canvas hover:text-ink'}`}
                 >
                   Dashboard
                 </Link>
-                
-                <Link 
-                  href="/projects" 
+
+                <Link
+                  href="/projects"
                   className={`px-3 py-2 rounded-md font-medium transition-all duration-200 ${isActive('/projects') ? 'bg-blueprint/10 text-blueprint' : 'text-inkmute hover:bg-canvas hover:text-ink'}`}
                 >
                   Semua Project
                 </Link>
-                
-                <Link 
-                  href="/engineering-docs" 
+
+                <Link
+                  href="/engineering-docs"
                   className={`px-3 py-2 rounded-md font-medium transition-all duration-200 ${isActive('/engineering-docs') ? 'bg-blueprint/10 text-blueprint' : 'text-inkmute hover:bg-canvas hover:text-ink'}`}
                 >
                   Engineering Docs
                 </Link>
-                
+
                 {/* Garis Pembatas */}
                 <div className="w-px h-5 bg-line mx-2 hidden md:block"></div>
-                
+
                 {/* Tombol Project Baru (Desain Solid Button dengan Ikon Plus) */}
-                <Link 
-                  href="/projects/new" 
+                <Link
+                  href="/projects/new"
                   className="flex items-center gap-1.5 px-4 py-2 bg-blueprint hover:bg-blueprintdark text-white font-medium rounded-md shadow-sm transition-all duration-200 mr-1"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
@@ -77,10 +78,20 @@ export default function App({ Component, pageProps }) {
                   </svg>
                   Project Baru
                 </Link>
-                
+
+                {/* Info user yang sedang login */}
+                {session?.user?.email && (
+                  <span className="hidden lg:flex items-center gap-2 px-3 py-2 text-inkmute text-xs">
+                    {session.user.image && (
+                      <img src={session.user.image} alt="" className="w-5 h-5 rounded-full" />
+                    )}
+                    {session.user.email}
+                  </span>
+                )}
+
                 {/* Tombol Keluar (Desain Teks Merah dengan Ikon Logout) */}
-                <button 
-                  onClick={handleLogout} 
+                <button
+                  onClick={handleLogout}
                   className="px-3 py-2 text-rust hover:bg-rust/10 font-medium rounded-md transition-all duration-200 flex items-center gap-1.5"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
@@ -92,11 +103,19 @@ export default function App({ Component, pageProps }) {
             </div>
           </header>
         )}
-        
+
         <main className={isLoginPage ? "" : "max-w-7xl mx-auto px-6 py-8"}>
           <Component {...pageProps} />
         </main>
       </div>
     </>
+  );
+}
+
+export default function App({ Component, pageProps: { session, ...pageProps } }) {
+  return (
+    <SessionProvider session={session}>
+      <Shell Component={Component} pageProps={pageProps} />
+    </SessionProvider>
   );
 }
