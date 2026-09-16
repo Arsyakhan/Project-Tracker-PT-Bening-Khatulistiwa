@@ -17,7 +17,7 @@ function colorFor(progress) {
   return '#1C4E73';
 }
 
-export default function StageGauge({ progress = 0, showLabel = true, compact = false }) {
+export default function StageGauge({ progress = 0, showLabel = true, compact = false, activeStage }) {
   const color = colorFor(progress);
   return (
     <div className="w-full">
@@ -43,6 +43,11 @@ export default function StageGauge({ progress = 0, showLabel = true, compact = f
           <span>0%</span>
           <span className="font-medium" style={{ color }}>{progress}%</span>
           <span>100%</span>
+        </div>
+      )}
+      {showLabel && activeStage && (
+        <div className="mt-1 text-xs text-inkmute">
+          Tahap saat ini: <span className="font-medium text-ink">{activeStage}</span>
         </div>
       )}
     </div>
