@@ -5,11 +5,13 @@ import StatusPie from '../components/StatusPie';
 import ProgressChart from '../components/ProgressChart';
 import Timeline from '../components/Timeline';
 import ProjectTable from '../components/ProjectTable';
+import { SkeletonStatCards, SkeletonPanel, SkeletonTable } from '../components/Skeleton';
 
 export default function Dashboard() {
   const [projects, setProjects] = useState(null);
   const [dashboard, setDashboard] = useState(null);
   const [error, setError] = useState(null);
+  const [activeTab, setActiveTab] = useState('preDelivery');
 
   async function load() {
     try {
@@ -32,13 +34,31 @@ export default function Dashboard() {
   }
 
   if (!projects) {
-    return <div className="text-inkmute">Memuat data dari spreadsheet...</div>;
+    return (
+      <div className="flex flex-col gap-6">
+        <h1 className="font-display text-2xl font-semibold text-ink">Dashboard Progress</h1>
+        <SkeletonStatCards />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <SkeletonPanel />
+          <SkeletonPanel />
+          <SkeletonPanel />
+        </div>
+        <SkeletonTable rows={4} />
+      </div>
+    );
   }
 
   // Membagi project ke dalam 3 kategori
   const preDeliveryProjects = projects.filter((p) => p.stageProgress < 90);
   const deliveredProjects = projects.filter((p) => p.stageProgress >= 90 && p.stageProgress < 100);
   const completedProjects = projects.filter((p) => p.stageProgress >= 100);
+
+  const tabs = [
+    { key: 'preDelivery', label: 'Pre-Delivery', data: preDeliveryProjects },
+    { key: 'delivered', label: 'Delivered', data: deliveredProjects },
+    { key: 'completed', label: 'Completed', data: completedProjects },
+  ];
+  const activeData = tabs.find((t) => t.key === activeTab)?.data || [];
 
   return (
     <div className="flex flex-col gap-6">
@@ -51,35 +71,39 @@ export default function Dashboard() {
         <StatCard label="Completed" value={dashboard.completed} accent="#4A7291" />
       </div>
 
-      {/* Layout 3 Kolom untuk Widget Chart & Timeline */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Layout Widget Chart & Timeline - 1 kolom mobile, 2 kolom tablet, 3 kolom desktop */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <div className="col-span-1">
           <StatusPie dashboard={dashboard} />
         </div>
         <div className="col-span-1">
           <ProgressChart projects={projects} />
         </div>
-        <div className="col-span-1">
+        <div className="col-span-1 md:col-span-2 lg:col-span-1">
           <Timeline projects={projects} />
         </div>
       </div>
 
-      {/* Daftar Project yang Dibagi 3 Kategori */}
-      <div className="flex flex-col gap-8 mt-4">
-        <div className="flex flex-col gap-3">
-          <h2 className="font-display text-lg font-semibold text-ink">A. Pre-Delivery Projects</h2>
-          <ProjectTable projects={preDeliveryProjects} />
+      {/* Daftar Project - dikelompokkan lewat tab, bukan ditumpuk semua */}
+      <div className="flex flex-col gap-3 mt-4">
+        <div className="flex flex-wrap gap-1.5 border-b border-line">
+          {tabs.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`px-4 py-2.5 text-sm font-medium rounded-t-md transition-colors border-b-2 -mb-px ${
+                activeTab === tab.key
+                  ? 'border-blueprint text-blueprint'
+                  : 'border-transparent text-inkmute hover:text-ink'
+              }`}
+            >
+              {tab.label}
+              <span className="ml-1.5 text-xs opacity-70">({tab.data.length})</span>
+            </button>
+          ))}
         </div>
 
-        <div className="flex flex-col gap-3">
-          <h2 className="font-display text-lg font-semibold text-ink">B. Delivered Projects</h2>
-          <ProjectTable projects={deliveredProjects} />
-        </div>
-
-        <div className="flex flex-col gap-3">
-          <h2 className="font-display text-lg font-semibold text-ink">C. Completed Projects</h2>
-          <ProjectTable projects={completedProjects} />
-        </div>
+        <ProjectTable projects={activeData} />
       </div>
     </div>
   );
