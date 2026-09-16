@@ -3,6 +3,7 @@ import Link from 'next/link';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { SessionProvider, useSession, signOut } from 'next-auth/react';
+import { ToastProvider } from '../components/Toast';
 
 function Shell({ Component, pageProps }) {
   const router = useRouter();
@@ -115,7 +116,9 @@ function Shell({ Component, pageProps }) {
 export default function App({ Component, pageProps: { session, ...pageProps } }) {
   return (
     <SessionProvider session={session}>
-      <Shell Component={Component} pageProps={pageProps} />
+      <ToastProvider>
+        <Shell Component={Component} pageProps={pageProps} />
+      </ToastProvider>
     </SessionProvider>
   );
 }
