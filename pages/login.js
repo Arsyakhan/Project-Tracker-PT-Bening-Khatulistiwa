@@ -1,23 +1,18 @@
-import { useState } from 'react';
+import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import Image from 'next/image'; // Memanggil fitur kompresi pintar dari Next.js
+import Image from 'next/image';
 
 export default function Login() {
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
   const router = useRouter();
+  const { error } = router.query;
 
-  const handleLogin = (e) => {
-    e.preventDefault();
-    if (password === 'bening123') {
-      document.cookie = "isLoggedIn=true; path=/";
-      router.push('/');
-    } else {
-      setError('Password salah! Silakan coba lagi.');
-    }
-  };
+  const errorMessage =
+    error === 'AccessDenied'
+      ? 'Email Google kamu belum terdaftar untuk mengakses Project Tracker ini. Hubungi admin untuk didaftarkan.'
+      : error
+      ? 'Gagal login. Silakan coba lagi.'
+      : '';
 
   return (
     <>
@@ -25,19 +20,19 @@ export default function Login() {
         <title>Login - Bening Khatulistiwa Tracker</title>
       </Head>
       <div className="min-h-screen flex bg-canvas">
-        
-        {/* Sisi Kiri: Gambar Background yang sudah dikompres otomatis oleh Next.js */}
+
+        {/* Sisi Kiri: Gambar Background */}
         <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
-          <Image 
+          <Image
             src="/wastewater-treatment-upd.webp"
             alt="Water Treatment Background"
             fill
             style={{ objectFit: 'cover', objectPosition: 'center' }}
-            priority={true} // Perintah khusus agar gambar ini didownload paling pertama (anti lelet)
-            quality={70} // Kompresi kualitas gambar ke 70% agar ukurannya jauh lebih kecil
+            priority={true}
+            quality={70}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-[#0C2D48] via-[#0C2D48]/60 to-transparent z-10"></div>
-          
+
           <div className="relative z-20 flex flex-col justify-end p-12 text-white h-full w-full">
             <h1 className="font-display text-4xl font-bold mb-3 drop-shadow-md">Water Treatment Excellence</h1>
             <p className="text-white/90 text-lg max-w-md drop-shadow-md font-medium">
@@ -46,50 +41,37 @@ export default function Login() {
           </div>
         </div>
 
-        {/* Sisi Kanan: Form Login dengan Logo */}
+        {/* Sisi Kanan: Login pakai Google */}
         <div className="w-full lg:w-1/2 flex items-center justify-center p-6 relative z-20">
           <div className="w-full max-w-sm">
             <div className="text-center lg:text-left mb-8 flex flex-col items-center lg:items-start">
               <img src="/logo-bk2.png" alt="Logo PT Bening Khatulistiwa" className="h-10 w-auto mb-4 object-contain mix-blend-multiply" />
               <h2 className="font-display text-3xl font-bold text-ink">Project Tracker</h2>
-              <p className="text-inkmute text-sm mt-1">Silakan masuk untuk melanjutkan</p>
+              <p className="text-inkmute text-sm mt-1">Masuk pakai akun Google yang terdaftar</p>
             </div>
-            
-            {error && (
+
+            {errorMessage && (
               <div className="bg-rust/10 text-rust text-sm p-3 rounded-md mb-5 text-center font-medium">
-                {error}
+                {errorMessage}
               </div>
             )}
-            
-            <form onSubmit={handleLogin} className="flex flex-col gap-5">
-              <div className="relative">
-                <input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Masukkan kata sandi..."
-                  className="border border-line rounded-md px-4 py-3 pr-12 text-sm outline-none focus:border-blueprint w-full bg-panel"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-                <button
-                  type="button"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-inkmute hover:text-blueprint focus:outline-none"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? (
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" /></svg>
-                  ) : (
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                  )}
-                </button>
-              </div>
-              <button
-                type="submit"
-                className="bg-blueprint hover:bg-blueprintdark text-white rounded-md py-3 text-sm font-medium transition-colors shadow-sm"
-              >
-                Masuk Portal
-              </button>
-            </form>
+
+            <button
+              onClick={() => signIn('google', { callbackUrl: '/' })}
+              className="w-full flex items-center justify-center gap-3 border border-line bg-white hover:bg-canvas text-ink rounded-md py-3 text-sm font-medium transition-colors shadow-sm"
+            >
+              <svg className="w-5 h-5" viewBox="0 0 48 48">
+                <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"/>
+                <path fill="#FF3D00" d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z"/>
+                <path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238A11.91 11.91 0 0124 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"/>
+                <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 01-4.087 5.571l.003-.002 6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"/>
+              </svg>
+              Masuk dengan Google
+            </button>
+
+            <p className="text-inkmute text-xs mt-5 text-center lg:text-left">
+              Hanya email yang sudah didaftarkan admin yang bisa mengakses dashboard ini.
+            </p>
           </div>
         </div>
       </div>
