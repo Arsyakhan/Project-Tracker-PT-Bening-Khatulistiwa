@@ -18,6 +18,10 @@ export const authOptions = {
   ],
   session: {
     strategy: 'jwt',
+    maxAge: 8 * 60 * 60, // sesi otomatis habis setelah 8 jam
+  },
+  jwt: {
+    maxAge: 8 * 60 * 60,
   },
   pages: {
     signIn: '/login',
