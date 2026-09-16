@@ -22,5 +22,7 @@ export function middleware(req) {
 
 // Terapkan middleware ini ke seluruh halaman kecuali file aset (gambar, favicon, API internal)
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
+  matcher: [
+    '/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|jpeg|webp|gif|svg|ico|avif)$).*)',
+  ],
 };
