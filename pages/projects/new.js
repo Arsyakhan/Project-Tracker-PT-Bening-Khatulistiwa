@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import { api } from '../../lib/api'; // <-- Ini yang tadinya error, sudah diperbaiki menjadi ../../
+import { api } from '../../lib/api';
+import { useToast } from '../../components/Toast';
 
 const emptyForm = {
   poNumber: '', projectName: '', client: '', technology: '', pic: '',
@@ -11,12 +12,12 @@ const emptyForm = {
 
 export default function NewProjectPage() {
   const router = useRouter();
+  const { showToast } = useToast();
   const [meta, setMeta] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState(null);
 
-  useEffect(() => { api.getMeta().then(setMeta).catch((e) => setError(e.message)); }, []);
+  useEffect(() => { api.getMeta().then(setMeta).catch((e) => showToast(e.message, 'error')); }, []);
 
   function update(field, value) {
     setForm((f) => ({ ...f, [field]: value }));
@@ -25,16 +26,16 @@ export default function NewProjectPage() {
   async function handleSubmit(e) {
     e.preventDefault();
     if (!form.poNumber || !form.projectName) {
-      setError('PO Number dan Project Name wajib diisi.');
+      showToast('PO Number dan Project Name wajib diisi.', 'error');
       return;
     }
     setSaving(true);
-    setError(null);
     try {
       await api.addProject(form);
+      showToast('Project baru berhasil ditambahkan.', 'success');
       router.push('/projects');
     } catch (err) {
-      setError(err.message);
+      showToast(err.message, 'error');
       setSaving(false);
     }
   }
@@ -42,7 +43,6 @@ export default function NewProjectPage() {
   return (
     <div className="max-w-2xl flex flex-col gap-5">
       <h1 className="font-display text-2xl font-semibold text-ink">Project Baru</h1>
-      {error && <div className="text-rust text-sm bg-panel border border-line rounded-md p-3">{error}</div>}
       <form onSubmit={handleSubmit} className="bg-panel border border-line rounded-lg p-6 flex flex-col gap-4">
         <Row label="PO Number *">
           <input required className="input" value={form.poNumber} onChange={(e) => update('poNumber', e.target.value)} />
