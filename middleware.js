@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server';
+import { getToken } from 'next-auth/jwt';
 
-export function middleware(req) {
-  // Cek apakah browser memiliki cookie penanda login
-  const isLoggedIn = req.cookies.get('isLoggedIn')?.value;
+export async function middleware(req) {
+  // Cek sesi NextAuth yang sesungguhnya (JWT ter-signature, tidak bisa
+  // dipalsukan dari console browser seperti cookie isLoggedIn sebelumnya)
+  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  const isLoggedIn = !!token;
   const url = req.nextUrl.clone();
 
   // Jika belum login dan mencoba mengakses halaman selain /login, arahkan ke /login
