@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { api } from '../lib/api';
 import { SkeletonTable } from '../components/Skeleton';
+import PageHead from '../components/PageHead';
 
 export default function EngineeringDocs() {
   const [projects, setProjects] = useState(null);
@@ -52,7 +53,8 @@ export default function EngineeringDocs() {
 
   return (
     <div className="flex flex-col gap-6">
-      
+      <PageHead title="Engineering Documents" />
+
       {/* Header & Filter Area */}
       <div className="flex flex-col xl:flex-row justify-between items-start xl:items-end gap-5 bg-panel p-5 rounded-xl border border-line shadow-sm">
         <div>
