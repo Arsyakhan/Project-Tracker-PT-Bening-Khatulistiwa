@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import { useSession } from 'next-auth/react';
 import { api } from '../../lib/api';
 import { useToast } from '../../components/Toast';
+import PageHead from '../../components/PageHead';
 
 const emptyForm = {
   poNumber: '', projectName: '', client: '', technology: '', pic: '',
@@ -44,6 +45,7 @@ export default function NewProjectPage() {
 
   return (
     <div className="max-w-2xl flex flex-col gap-5">
+      <PageHead title="Project Baru" />
       <h1 className="font-display text-2xl font-semibold text-ink">Project Baru</h1>
       <form onSubmit={handleSubmit} className="bg-panel border border-line rounded-lg p-6 flex flex-col gap-4">
         <Row label="PO Number *">
