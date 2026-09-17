@@ -59,25 +59,32 @@ function Shell({ Component, pageProps }) {
 
   const sidebarContent = (
     <div className="flex flex-col h-full">
-      <Link href="/" className="flex items-center gap-2.5 px-5 py-5 group" onClick={() => setMobileNavOpen(false)}>
+      <Link
+        href="/"
+        className="flex items-center gap-2.5 px-5 py-5 border-b border-line group"
+        onClick={() => setMobileNavOpen(false)}
+      >
         <img
           src="/logo-bk2.png"
           alt="Logo Bening Khatulistiwa"
-          className="h-8 w-auto object-contain mix-blend-multiply group-hover:opacity-80 transition-opacity"
+          className="h-8 w-8 object-contain mix-blend-multiply flex-shrink-0 group-hover:opacity-80 transition-opacity"
         />
-        <span className="font-display font-semibold text-base text-blueprint leading-tight">
-          Project<br />Tracker
+        <span className="font-display font-bold text-[15px] text-blueprint leading-none whitespace-nowrap tracking-tight">
+          Project Tracker
         </span>
       </Link>
 
-      <nav className="flex flex-col gap-1 px-3 flex-1">
+      <nav className="flex flex-col gap-0.5 px-3 pt-4 flex-1">
+        <span className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-wider text-inkmute/60">Menu</span>
         {NAV_ITEMS.map((item) => (
           <Link
             key={item.href}
             href={item.href}
             onClick={() => setMobileNavOpen(false)}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-md font-medium text-sm transition-all duration-200 ${
-              isActive(item.href) ? 'bg-blueprint/10 text-blueprint' : 'text-inkmute hover:bg-canvas hover:text-ink'
+            className={`flex items-center gap-3 pl-3 pr-3 py-2.5 border-l-[3px] font-medium text-sm transition-all duration-150 ${
+              isActive(item.href)
+                ? 'border-blueprint bg-blueprint/[0.06] text-blueprint'
+                : 'border-transparent text-inkmute hover:bg-canvas hover:text-ink'
             }`}
           >
             {item.icon}
@@ -88,7 +95,7 @@ function Shell({ Component, pageProps }) {
         <Link
           href="/projects/new"
           onClick={() => setMobileNavOpen(false)}
-          className="flex items-center gap-2 px-3 py-2.5 mt-3 bg-blueprint hover:bg-blueprintdark text-white font-medium text-sm rounded-md shadow-sm transition-all duration-200"
+          className="flex items-center justify-center gap-2 px-3 py-2.5 mt-4 mx-1 bg-blueprint hover:bg-blueprintdark text-white font-medium text-sm rounded-lg shadow-sm transition-all duration-200"
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -97,18 +104,18 @@ function Shell({ Component, pageProps }) {
         </Link>
       </nav>
 
-      <div className="border-t border-line px-3 py-4 flex flex-col gap-1">
+      <div className="px-3 py-4 border-t border-line flex flex-col gap-2">
         {session?.user?.email && (
-          <div className="flex items-center gap-2.5 px-2 py-2">
+          <div className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg bg-canvas border border-line/60">
             {session.user.image && (
-              <img src={session.user.image} alt="" className="w-7 h-7 rounded-full flex-shrink-0" />
+              <img src={session.user.image} alt="" className="w-7 h-7 rounded-full flex-shrink-0 ring-2 ring-white" />
             )}
-            <span className="text-xs text-inkmute truncate">{session.user.email}</span>
+            <span className="text-xs text-ink font-medium truncate">{session.user.email}</span>
           </div>
         )}
         <button
           onClick={handleLogout}
-          className="flex items-center gap-3 px-3 py-2.5 text-rust hover:bg-rust/10 font-medium text-sm rounded-md transition-all duration-200"
+          className="flex items-center gap-3 px-3 py-2.5 text-rust hover:bg-rust/10 font-medium text-sm rounded-lg transition-all duration-200"
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5">
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
@@ -131,7 +138,7 @@ function Shell({ Component, pageProps }) {
       ) : (
         <div className="min-h-screen bg-canvas md:flex">
           {/* Sidebar - desktop: selalu tampil & fixed; mobile: panel geser dari kiri */}
-          <aside className="hidden md:flex md:flex-col md:w-60 md:flex-shrink-0 md:fixed md:inset-y-0 md:left-0 bg-panel border-r border-line z-30">
+          <aside className="hidden md:flex md:flex-col md:w-60 md:flex-shrink-0 md:fixed md:inset-y-0 md:left-0 bg-panel border-r border-line shadow-[1px_0_6px_-2px_rgba(12,45,72,0.08)] z-30">
             {sidebarContent}
           </aside>
 
@@ -146,7 +153,7 @@ function Shell({ Component, pageProps }) {
           <header className="md:hidden sticky top-0 z-20 bg-panel border-b border-line flex items-center justify-between px-4 py-3">
             <Link href="/" className="flex items-center gap-2">
               <img src="/logo-bk2.png" alt="Logo" className="h-7 w-auto object-contain mix-blend-multiply" />
-              <span className="font-display font-semibold text-blueprint">Project Tracker</span>
+              <span className="font-display font-bold text-blueprint text-[15px] tracking-tight">Project Tracker</span>
             </Link>
             <button onClick={() => setMobileNavOpen(true)} className="p-2 text-ink" aria-label="Buka menu">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-6 h-6">
@@ -155,8 +162,8 @@ function Shell({ Component, pageProps }) {
             </button>
           </header>
 
-          <main className="flex-1 md:pl-60 px-4 py-6 md:px-8 md:py-8 min-w-0">
-            <div className="max-w-7xl mx-auto">
+          <main className="flex-1 md:pl-60 min-w-0">
+            <div className="max-w-6xl mx-auto px-5 py-6 md:px-10 md:py-10">
               <Component {...pageProps} />
             </div>
           </main>
