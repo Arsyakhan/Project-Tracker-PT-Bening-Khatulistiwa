@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/router';
+import { useSession } from 'next-auth/react';
 import { api } from '../../lib/api';
 import StageGauge from '../../components/StageGauge';
 import ConfirmModal from '../../components/ConfirmModal';
@@ -15,6 +16,7 @@ const TABS = [
 export default function ProjectDetailPage() {
   const router = useRouter();
   const { po } = router.query;
+  const { data: session } = useSession();
   const { showToast } = useToast();
 
   const [meta, setMeta] = useState(null);
@@ -71,7 +73,8 @@ export default function ProjectDetailPage() {
         tanggalPO: project.tanggalPO,
         tanggalDP: project.tanggalDP,
         deliveryDate: project.deliveryDate,
-        targetFinishDate: project.targetFinishDate
+        targetFinishDate: project.targetFinishDate,
+        user: session?.user?.email
       });
       showToast('Tersimpan ke spreadsheet.', 'success');
       if (po !== project.poNumber) {
@@ -91,7 +94,7 @@ export default function ProjectDetailPage() {
     setDeleting(true);
     setError(null);
     try {
-      await api.deleteProject({ poNumber: project.poNumber });
+      await api.deleteProject({ poNumber: project.poNumber, user: session?.user?.email });
       router.push('/');
     } catch (err) {
       setError(err.message);
@@ -106,7 +109,7 @@ export default function ProjectDetailPage() {
     const newLinks = { ...project.checklist.links, [item]: linkVal };
     setProject((p) => ({ ...p, checklist: { ...p.checklist, items: newItems, links: newLinks } }));
     try {
-      const result = await api.updateChecklist({ poNumber: project.poNumber, items: { [item]: statusVal }, links: { [item]: linkVal } });
+      const result = await api.updateChecklist({ poNumber: project.poNumber, items: { [item]: statusVal }, links: { [item]: linkVal }, user: session?.user?.email });
       setProject((p) => ({ ...p, engineeringDocProgress: result.progress, checklist: { ...p.checklist, progress: result.progress } }));
       setInitialSnapshot((snap) => {
         // sinkronkan snapshot supaya checklist (auto-save) tidak dianggap "belum disimpan"
