@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { api } from '../lib/api';
 import { SkeletonTable } from '../components/Skeleton';
+import PageHead from '../components/PageHead';
 
 const ACTION_BADGE = {
   'Tambah': 'bg-teal/10 text-teal border-teal/20',
@@ -69,6 +70,7 @@ export default function ActivityLogPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      <PageHead title="Activity Log" />
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
         <div>
           <h1 className="font-display text-2xl font-semibold text-ink">Activity Log</h1>
