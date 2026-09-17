@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/router';
+import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { api } from '../../lib/api';
 import StageGauge from '../../components/StageGauge';
 import ConfirmModal from '../../components/ConfirmModal';
 import { useToast } from '../../components/Toast';
+import PageHead from '../../components/PageHead';
 
 const TABS = [
   { key: 'ringkasan', label: 'Ringkasan' },
@@ -58,30 +60,23 @@ export default function ProjectDetailPage() {
     setError(null);
     try {
       await api.updateProject({
-        poNumber: po,
-        newPoNumber: project.poNumber,
+        poNumber: project.poNumber,
         projectName: project.projectName,
         client: project.client,
         technology: project.technology,
         pic: project.pic,
-        currentStage: project.currentStage,
-        status: project.status,
         priority: project.priority,
+        status: project.status,
         remarks: project.remarks,
-        deskripsiPesanan: project.deskripsiPesanan,
-        spesifikasiTeknologi: project.spesifikasiTeknologi,
         tanggalPO: project.tanggalPO,
         tanggalDP: project.tanggalDP,
         deliveryDate: project.deliveryDate,
         targetFinishDate: project.targetFinishDate,
-        user: session?.user?.email
+        currentStage: project.currentStage,
+        user: session?.user?.email,
       });
-      showToast('Tersimpan ke spreadsheet.', 'success');
-      if (po !== project.poNumber) {
-        router.replace(`/projects/${encodeURIComponent(project.poNumber)}`);
-      } else {
-        await load();
-      }
+      showToast('Perubahan berhasil disimpan.', 'success');
+      await load();
     } catch (err) {
       setError(err.message);
       showToast(`Gagal menyimpan: ${err.message}`, 'error');
@@ -92,10 +87,10 @@ export default function ProjectDetailPage() {
 
   async function handleDelete() {
     setDeleting(true);
-    setError(null);
     try {
       await api.deleteProject({ poNumber: project.poNumber, user: session?.user?.email });
-      router.push('/');
+      showToast('Project berhasil dihapus.', 'success');
+      router.push('/projects');
     } catch (err) {
       setError(err.message);
       showToast(`Gagal menghapus: ${err.message}`, 'error');
@@ -129,6 +124,18 @@ export default function ProjectDetailPage() {
 
   return (
     <div className="flex flex-col gap-6 max-w-3xl pb-24">
+      <PageHead title={project.projectName} />
+
+      <Link
+        href="/projects"
+        className="flex items-center gap-1.5 text-sm text-inkmute hover:text-blueprint transition-colors w-fit -mb-2"
+      >
+        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+        </svg>
+        Semua Project
+      </Link>
+
       <div className="flex flex-col gap-1">
         <div className="flex items-center gap-2">
           <input
