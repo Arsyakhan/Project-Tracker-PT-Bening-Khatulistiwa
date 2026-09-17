@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
+import { useSession } from 'next-auth/react';
 import { api } from '../../lib/api';
 import { useToast } from '../../components/Toast';
 
@@ -12,6 +13,7 @@ const emptyForm = {
 
 export default function NewProjectPage() {
   const router = useRouter();
+  const { data: session } = useSession();
   const { showToast } = useToast();
   const [meta, setMeta] = useState(null);
   const [form, setForm] = useState(emptyForm);
@@ -31,7 +33,7 @@ export default function NewProjectPage() {
     }
     setSaving(true);
     try {
-      await api.addProject(form);
+      await api.addProject({ ...form, user: session?.user?.email });
       showToast('Project baru berhasil ditambahkan.', 'success');
       router.push('/projects');
     } catch (err) {
