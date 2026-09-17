@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import '../styles/globals.css';
 import Link from 'next/link';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { SessionProvider, useSession, signOut } from 'next-auth/react';
 import { ToastProvider } from '../components/Toast';
+import CommandPalette from '../components/CommandPalette';
+import TopLoadingBar from '../components/TopLoadingBar';
 
 const NAV_ITEMS = [
   {
@@ -50,6 +52,20 @@ function Shell({ Component, pageProps }) {
   const { data: session } = useSession();
   const isLoginPage = router.pathname === '/login';
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+
+  useEffect(() => {
+    if (isLoginPage) return;
+    function handleShortcut(e) {
+      const isK = e.key === 'k' || e.key === 'K';
+      if ((e.metaKey || e.ctrlKey) && isK) {
+        e.preventDefault();
+        setPaletteOpen(true);
+      }
+    }
+    window.addEventListener('keydown', handleShortcut);
+    return () => window.removeEventListener('keydown', handleShortcut);
+  }, [isLoginPage]);
 
   const handleLogout = () => {
     signOut({ callbackUrl: '/login' });
@@ -74,7 +90,20 @@ function Shell({ Component, pageProps }) {
         </span>
       </Link>
 
-      <nav className="flex flex-col gap-0.5 px-3 pt-4 flex-1">
+      <div className="px-3 pt-4">
+        <button
+          onClick={() => setPaletteOpen(true)}
+          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg border border-line bg-canvas hover:bg-line/40 text-inkmute text-sm transition-colors"
+        >
+          <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <span className="flex-1 text-left">Cari...</span>
+          <kbd className="text-[10px] border border-line rounded px-1.5 py-0.5 bg-panel">Ctrl K</kbd>
+        </button>
+      </div>
+
+      <nav className="flex flex-col gap-0.5 px-3 pt-3 flex-1">
         <span className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-wider text-inkmute/60">Menu</span>
         {NAV_ITEMS.map((item) => (
           <Link
@@ -132,6 +161,9 @@ function Shell({ Component, pageProps }) {
         <link rel="icon" href="/logo-bk2.png" />
         <title>Project Tracker - Bening Khatulistiwa</title>
       </Head>
+
+      <TopLoadingBar />
+      {!isLoginPage && <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />}
 
       {isLoginPage ? (
         <Component {...pageProps} />
