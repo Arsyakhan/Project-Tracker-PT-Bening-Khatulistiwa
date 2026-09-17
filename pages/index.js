@@ -6,6 +6,7 @@ import ProgressChart from '../components/ProgressChart';
 import Timeline from '../components/Timeline';
 import ProjectTable from '../components/ProjectTable';
 import { SkeletonStatCards, SkeletonPanel, SkeletonTable } from '../components/Skeleton';
+import PageHead from '../components/PageHead';
 
 export default function Dashboard() {
   const [projects, setProjects] = useState(null);
@@ -62,6 +63,7 @@ export default function Dashboard() {
 
   return (
     <div className="flex flex-col gap-6">
+      <PageHead title="Dashboard" />
       <h1 className="font-display text-2xl font-semibold text-ink">Dashboard Progress</h1>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
