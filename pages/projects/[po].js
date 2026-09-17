@@ -157,7 +157,7 @@ export default function ProjectDetailPage() {
       </section>
 
       {/* Navigasi Tab */}
-      <div className="flex flex-wrap gap-1.5 border-b border-line sticky top-[57px] bg-canvas z-10 -mx-1 px-1">
+      <div className="flex flex-wrap gap-1.5 border-b border-line sticky top-[57px] md:top-0 bg-canvas z-10 -mx-1 px-1">
         {TABS.map((tab) => (
           <button
             key={tab.key}
