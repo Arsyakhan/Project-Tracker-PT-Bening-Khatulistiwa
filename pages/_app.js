@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import '../styles/globals.css';
 import Link from 'next/link';
 import Head from 'next/head';
@@ -5,17 +6,118 @@ import { useRouter } from 'next/router';
 import { SessionProvider, useSession, signOut } from 'next-auth/react';
 import { ToastProvider } from '../components/Toast';
 
+const NAV_ITEMS = [
+  {
+    href: '/',
+    label: 'Dashboard',
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+      </svg>
+    ),
+  },
+  {
+    href: '/projects',
+    label: 'Semua Project',
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+      </svg>
+    ),
+  },
+  {
+    href: '/engineering-docs',
+    label: 'Engineering Docs',
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+      </svg>
+    ),
+  },
+  {
+    href: '/activity',
+    label: 'Aktivitas',
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    ),
+  },
+];
+
 function Shell({ Component, pageProps }) {
   const router = useRouter();
   const { data: session } = useSession();
   const isLoginPage = router.pathname === '/login';
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const handleLogout = () => {
     signOut({ callbackUrl: '/login' });
   };
 
-  // Fungsi pintar untuk mendeteksi apakah URL saat ini sama dengan link menu
   const isActive = (path) => router.pathname === path;
+
+  const sidebarContent = (
+    <div className="flex flex-col h-full">
+      <Link href="/" className="flex items-center gap-2.5 px-5 py-5 group" onClick={() => setMobileNavOpen(false)}>
+        <img
+          src="/logo-bk2.png"
+          alt="Logo Bening Khatulistiwa"
+          className="h-8 w-auto object-contain mix-blend-multiply group-hover:opacity-80 transition-opacity"
+        />
+        <span className="font-display font-semibold text-base text-blueprint leading-tight">
+          Project<br />Tracker
+        </span>
+      </Link>
+
+      <nav className="flex flex-col gap-1 px-3 flex-1">
+        {NAV_ITEMS.map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            onClick={() => setMobileNavOpen(false)}
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-md font-medium text-sm transition-all duration-200 ${
+              isActive(item.href) ? 'bg-blueprint/10 text-blueprint' : 'text-inkmute hover:bg-canvas hover:text-ink'
+            }`}
+          >
+            {item.icon}
+            {item.label}
+          </Link>
+        ))}
+
+        <Link
+          href="/projects/new"
+          onClick={() => setMobileNavOpen(false)}
+          className="flex items-center gap-2 px-3 py-2.5 mt-3 bg-blueprint hover:bg-blueprintdark text-white font-medium text-sm rounded-md shadow-sm transition-all duration-200"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+          </svg>
+          Project Baru
+        </Link>
+      </nav>
+
+      <div className="border-t border-line px-3 py-4 flex flex-col gap-1">
+        {session?.user?.email && (
+          <div className="flex items-center gap-2.5 px-2 py-2">
+            {session.user.image && (
+              <img src={session.user.image} alt="" className="w-7 h-7 rounded-full flex-shrink-0" />
+            )}
+            <span className="text-xs text-inkmute truncate">{session.user.email}</span>
+          </div>
+        )}
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-3 px-3 py-2.5 text-rust hover:bg-rust/10 font-medium text-sm rounded-md transition-all duration-200"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+          </svg>
+          Keluar
+        </button>
+      </div>
+    </div>
+  );
 
   return (
     <>
@@ -23,99 +125,43 @@ function Shell({ Component, pageProps }) {
         <link rel="icon" href="/logo-bk2.png" />
         <title>Project Tracker - Bening Khatulistiwa</title>
       </Head>
-      <div className="min-h-screen bg-canvas">
-        {!isLoginPage && (
-          <header className="border-b border-line bg-panel sticky top-0 z-50 shadow-sm">
-            {/* Mengubah max-w-6xl menjadi 7xl agar tabel di bawahnya punya ruang lebih lebar */}
-            <div className="max-w-7xl mx-auto px-6 py-3 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
 
-              {/* Bagian Logo */}
-              <Link href="/" className="flex items-center gap-3 group">
-                <img
-                  src="/logo-bk2.png"
-                  alt="Logo Bening Khatulistiwa"
-                  className="h-8 w-auto object-contain mix-blend-multiply group-hover:opacity-80 transition-opacity"
-                />
-                <span className="font-display font-semibold text-lg text-blueprint border-l-2 border-line pl-3">
-                  Project Tracker
-                </span>
-              </Link>
+      {isLoginPage ? (
+        <Component {...pageProps} />
+      ) : (
+        <div className="min-h-screen bg-canvas md:flex">
+          {/* Sidebar - desktop: selalu tampil & fixed; mobile: panel geser dari kiri */}
+          <aside className="hidden md:flex md:flex-col md:w-60 md:flex-shrink-0 md:fixed md:inset-y-0 md:left-0 bg-panel border-r border-line z-30">
+            {sidebarContent}
+          </aside>
 
-              {/* Navigasi Utama */}
-              <nav className="flex flex-wrap items-center gap-1.5 text-sm">
-
-                {/* Menu dengan deteksi Active State */}
-                <Link
-                  href="/"
-                  className={`px-3 py-2 rounded-md font-medium transition-all duration-200 ${isActive('/') ? 'bg-blueprint/10 text-blueprint' : 'text-inkmute hover:bg-canvas hover:text-ink'}`}
-                >
-                  Dashboard
-                </Link>
-
-                <Link
-                  href="/projects"
-                  className={`px-3 py-2 rounded-md font-medium transition-all duration-200 ${isActive('/projects') ? 'bg-blueprint/10 text-blueprint' : 'text-inkmute hover:bg-canvas hover:text-ink'}`}
-                >
-                  Semua Project
-                </Link>
-
-                <Link
-                  href="/engineering-docs"
-                  className={`px-3 py-2 rounded-md font-medium transition-all duration-200 ${isActive('/engineering-docs') ? 'bg-blueprint/10 text-blueprint' : 'text-inkmute hover:bg-canvas hover:text-ink'}`}
-                >
-                  Engineering Docs
-                </Link>
-
-                <Link
-                  href="/activity"
-                  className={`px-3 py-2 rounded-md font-medium transition-all duration-200 ${isActive('/activity') ? 'bg-blueprint/10 text-blueprint' : 'text-inkmute hover:bg-canvas hover:text-ink'}`}
-                >
-                  Aktivitas
-                </Link>
-
-                {/* Garis Pembatas */}
-                <div className="w-px h-5 bg-line mx-2 hidden md:block"></div>
-
-                {/* Tombol Project Baru (Desain Solid Button dengan Ikon Plus) */}
-                <Link
-                  href="/projects/new"
-                  className="flex items-center gap-1.5 px-4 py-2 bg-blueprint hover:bg-blueprintdark text-white font-medium rounded-md shadow-sm transition-all duration-200 mr-1"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                  </svg>
-                  Project Baru
-                </Link>
-
-                {/* Info user yang sedang login */}
-                {session?.user?.email && (
-                  <span className="hidden lg:flex items-center gap-2 px-3 py-2 text-inkmute text-xs">
-                    {session.user.image && (
-                      <img src={session.user.image} alt="" className="w-5 h-5 rounded-full" />
-                    )}
-                    {session.user.email}
-                  </span>
-                )}
-
-                {/* Tombol Keluar (Desain Teks Merah dengan Ikon Logout) */}
-                <button
-                  onClick={handleLogout}
-                  className="px-3 py-2 text-rust hover:bg-rust/10 font-medium rounded-md transition-all duration-200 flex items-center gap-1.5"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
-                  </svg>
-                  Keluar
-                </button>
-              </nav>
+          {mobileNavOpen && (
+            <div className="md:hidden fixed inset-0 z-40 flex">
+              <div className="w-64 bg-panel border-r border-line shadow-xl">{sidebarContent}</div>
+              <div className="flex-1 bg-ink/40 backdrop-blur-sm" onClick={() => setMobileNavOpen(false)} />
             </div>
-          </header>
-        )}
+          )}
 
-        <main className={isLoginPage ? "" : "max-w-7xl mx-auto px-6 py-8"}>
-          <Component {...pageProps} />
-        </main>
-      </div>
+          {/* Top bar mobile - cuma logo + tombol hamburger */}
+          <header className="md:hidden sticky top-0 z-20 bg-panel border-b border-line flex items-center justify-between px-4 py-3">
+            <Link href="/" className="flex items-center gap-2">
+              <img src="/logo-bk2.png" alt="Logo" className="h-7 w-auto object-contain mix-blend-multiply" />
+              <span className="font-display font-semibold text-blueprint">Project Tracker</span>
+            </Link>
+            <button onClick={() => setMobileNavOpen(true)} className="p-2 text-ink" aria-label="Buka menu">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-6 h-6">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+              </svg>
+            </button>
+          </header>
+
+          <main className="flex-1 md:pl-60 px-4 py-6 md:px-8 md:py-8 min-w-0">
+            <div className="max-w-7xl mx-auto">
+              <Component {...pageProps} />
+            </div>
+          </main>
+        </div>
+      )}
     </>
   );
 }
