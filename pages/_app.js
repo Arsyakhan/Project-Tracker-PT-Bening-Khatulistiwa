@@ -66,6 +66,13 @@ function Shell({ Component, pageProps }) {
                   Engineering Docs
                 </Link>
 
+                <Link
+                  href="/activity"
+                  className={`px-3 py-2 rounded-md font-medium transition-all duration-200 ${isActive('/activity') ? 'bg-blueprint/10 text-blueprint' : 'text-inkmute hover:bg-canvas hover:text-ink'}`}
+                >
+                  Aktivitas
+                </Link>
+
                 {/* Garis Pembatas */}
                 <div className="w-px h-5 bg-line mx-2 hidden md:block"></div>
 
