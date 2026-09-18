@@ -51,6 +51,30 @@ export default function ProjectDetailPage() {
     return JSON.stringify(project) !== initialSnapshot;
   }, [project, initialSnapshot]);
 
+  // Peringatan kalau coba nutup tab/refresh sementara ada perubahan belum disimpan
+  useEffect(() => {
+    function handleBeforeUnload(e) {
+      if (!isDirty) return;
+      e.preventDefault();
+      e.returnValue = '';
+    }
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isDirty]);
+
+  // Peringatan yang sama kalau pindah ke halaman lain di dalam web ini
+  useEffect(() => {
+    function handleRouteChangeStart() {
+      if (isDirty && !window.confirm('Ada perubahan yang belum disimpan. Yakin mau pindah halaman?')) {
+        router.events.emit('routeChangeError');
+        // eslint-disable-next-line no-throw-literal
+        throw 'routeChange aborted: unsaved changes';
+      }
+    }
+    router.events.on('routeChangeStart', handleRouteChangeStart);
+    return () => router.events.off('routeChangeStart', handleRouteChangeStart);
+  }, [isDirty, router]);
+
   function update(field, value) {
     setProject((p) => ({ ...p, [field]: value }));
   }
