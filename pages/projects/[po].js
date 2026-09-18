@@ -31,7 +31,6 @@ export default function ProjectDetailPage() {
   const [activeTab, setActiveTab] = useState('ringkasan');
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
-  // State buat modal "perubahan belum disimpan" pas mau pindah halaman di dalam app
   const [leaveModalOpen, setLeaveModalOpen] = useState(false);
   const [pendingUrl, setPendingUrl] = useState(null);
   const bypassGuardRef = useRef(false);
@@ -57,9 +56,6 @@ export default function ProjectDetailPage() {
     return JSON.stringify(project) !== initialSnapshot;
   }, [project, initialSnapshot]);
 
-  // Peringatan kalau coba nutup tab/refresh sementara ada perubahan belum disimpan.
-  // Ini WAJIB pakai dialog native browser — nggak bisa diganti modal custom,
-  // semua browser modern maksa nampilin dialog generik mereka sendiri di sini.
   useEffect(() => {
     function handleBeforeUnload(e) {
       if (!isDirty) return;
@@ -70,8 +66,6 @@ export default function ProjectDetailPage() {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [isDirty]);
 
-  // Peringatan yang sama tapi buat pindah halaman DI DALAM app (Link, sidebar, dst) —
-  // ini yang sekarang pakai ConfirmModal custom, bukan window.confirm() lagi.
   useEffect(() => {
     function handleRouteChangeStart(url) {
       if (bypassGuardRef.current) {
@@ -169,7 +163,6 @@ export default function ProjectDetailPage() {
       const result = await api.updateChecklist({ poNumber: project.poNumber, items: { [item]: statusVal }, links: { [item]: linkVal }, user: session?.user?.email });
       setProject((p) => ({ ...p, engineeringDocProgress: result.progress, checklist: { ...p.checklist, progress: result.progress } }));
       setInitialSnapshot((snap) => {
-        // sinkronkan snapshot supaya checklist (auto-save) tidak dianggap "belum disimpan"
         const parsed = JSON.parse(snap);
         parsed.checklist = { ...parsed.checklist, items: newItems, links: newLinks, progress: result.progress };
         parsed.engineeringDocProgress = result.progress;
@@ -384,7 +377,7 @@ export default function ProjectDetailPage() {
       <ConfirmModal
         open={leaveModalOpen}
         title="Ada perubahan belum disimpan"
-        description="Kalau kamu pindah halaman sekarang, perubahan yang belum di-\"Simpan Perubahan\" akan hilang."
+        description={'Kalau kamu pindah halaman sekarang, perubahan yang belum di-"Simpan Perubahan" akan hilang.'}
         confirmText="Ya, Tinggalkan Halaman"
         cancelText="Tetap di Sini"
         danger={true}
