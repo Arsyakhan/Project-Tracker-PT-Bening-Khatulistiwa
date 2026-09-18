@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import { useSession } from 'next-auth/react';
 import Head from 'next/head';
@@ -31,6 +31,11 @@ export default function ProjectDetailPage() {
   const [activeTab, setActiveTab] = useState('ringkasan');
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
+  // State buat modal "perubahan belum disimpan" pas mau pindah halaman di dalam app
+  const [leaveModalOpen, setLeaveModalOpen] = useState(false);
+  const [pendingUrl, setPendingUrl] = useState(null);
+  const bypassGuardRef = useRef(false);
+
   async function load() {
     if (!po) return;
     try {
@@ -52,7 +57,9 @@ export default function ProjectDetailPage() {
     return JSON.stringify(project) !== initialSnapshot;
   }, [project, initialSnapshot]);
 
-  // Peringatan kalau coba nutup tab/refresh sementara ada perubahan belum disimpan
+  // Peringatan kalau coba nutup tab/refresh sementara ada perubahan belum disimpan.
+  // Ini WAJIB pakai dialog native browser — nggak bisa diganti modal custom,
+  // semua browser modern maksa nampilin dialog generik mereka sendiri di sini.
   useEffect(() => {
     function handleBeforeUnload(e) {
       if (!isDirty) return;
@@ -63,10 +70,17 @@ export default function ProjectDetailPage() {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [isDirty]);
 
-  // Peringatan yang sama kalau pindah ke halaman lain di dalam web ini
+  // Peringatan yang sama tapi buat pindah halaman DI DALAM app (Link, sidebar, dst) —
+  // ini yang sekarang pakai ConfirmModal custom, bukan window.confirm() lagi.
   useEffect(() => {
-    function handleRouteChangeStart() {
-      if (isDirty && !window.confirm('Ada perubahan yang belum disimpan. Yakin mau pindah halaman?')) {
+    function handleRouteChangeStart(url) {
+      if (bypassGuardRef.current) {
+        bypassGuardRef.current = false;
+        return;
+      }
+      if (isDirty && url !== router.asPath) {
+        setPendingUrl(url);
+        setLeaveModalOpen(true);
         router.events.emit('routeChangeError');
         // eslint-disable-next-line no-throw-literal
         throw 'routeChange aborted: unsaved changes';
@@ -75,6 +89,19 @@ export default function ProjectDetailPage() {
     router.events.on('routeChangeStart', handleRouteChangeStart);
     return () => router.events.off('routeChangeStart', handleRouteChangeStart);
   }, [isDirty, router]);
+
+  function confirmLeave() {
+    setLeaveModalOpen(false);
+    if (pendingUrl) {
+      bypassGuardRef.current = true;
+      router.push(pendingUrl);
+    }
+  }
+
+  function cancelLeave() {
+    setLeaveModalOpen(false);
+    setPendingUrl(null);
+  }
 
   function update(field, value) {
     setProject((p) => ({ ...p, [field]: value }));
@@ -120,8 +147,11 @@ export default function ProjectDetailPage() {
   async function handleDelete() {
     setDeleting(true);
     setError(null);
+    const deletedName = project.projectName;
     try {
       await api.deleteProject({ poNumber: project.poNumber, user: session?.user?.email });
+      showToast(`Project "${deletedName}" berhasil dihapus.`, 'success');
+      bypassGuardRef.current = true;
       router.push('/');
     } catch (err) {
       setError(err.message);
@@ -349,6 +379,17 @@ export default function ProjectDetailPage() {
         requireText={project.projectName}
         onConfirm={handleDelete}
         onCancel={() => setConfirmDeleteOpen(false)}
+      />
+
+      <ConfirmModal
+        open={leaveModalOpen}
+        title="Ada perubahan belum disimpan"
+        description="Kalau kamu pindah halaman sekarang, perubahan yang belum di-\"Simpan Perubahan\" akan hilang."
+        confirmText="Ya, Tinggalkan Halaman"
+        cancelText="Tetap di Sini"
+        danger={true}
+        onConfirm={confirmLeave}
+        onCancel={cancelLeave}
       />
 
       <style jsx global>{`
