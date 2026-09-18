@@ -24,8 +24,9 @@ export async function middleware(req) {
 }
 
 // Terapkan middleware ini ke seluruh halaman kecuali file aset (gambar, favicon, API internal)
+// serta file-file PWA (manifest, service worker) yang harus bisa diakses tanpa login
 export const config = {
   matcher: [
-    '/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|jpeg|webp|gif|svg|ico|avif)$).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico|manifest.json|sw.js|workbox-.*\\.js|worker-.*\\.js|.*\\.(?:png|jpg|jpeg|webp|gif|svg|ico|avif)$).*)',
   ],
 };
