@@ -7,6 +7,7 @@ import { api } from '../../lib/api';
 import StageGauge from '../../components/StageGauge';
 import ConfirmModal from '../../components/ConfirmModal';
 import { useToast } from '../../components/Toast';
+import { SkeletonProjectDetail } from '../../components/Skeleton';
 
 const TABS = [
   { key: 'ringkasan', label: 'Ringkasan' },
@@ -151,7 +152,7 @@ export default function ProjectDetailPage() {
   }
 
   if (error && !project) return <div className="text-rust">{error}</div>;
-  if (!project || !meta) return <div className="text-inkmute">Memuat...</div>;
+  if (!project || !meta) return <SkeletonProjectDetail />;
 
   return (
     <div className="flex flex-col gap-6 max-w-3xl pb-24">
