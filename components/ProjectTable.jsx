@@ -26,12 +26,12 @@ function SortIcon({ active, dir }) {
 // Fungsi untuk memberi warna badge secara otomatis berdasarkan nama tahapan
 const getStageBadge = (stage) => {
   const s = stage?.toLowerCase() || '';
-  if (s.includes('po') || s.includes('sos')) return 'bg-slate-100 text-slate-700 border-slate-200';
-  if (s.includes('procurement') || s.includes('collecting')) return 'bg-purple-50 text-purple-700 border-purple-200';
-  if (s.includes('fabrication')) return 'bg-blue-50 text-blue-700 border-blue-200';
-  if (s.includes('delivery')) return 'bg-orange-50 text-orange-700 border-orange-200';
-  if (s.includes('installation') || s.includes('commissioning')) return 'bg-teal-50 text-teal-700 border-teal-200';
-  return 'bg-gray-50 text-gray-700 border-gray-200';
+  if (s.includes('po') || s.includes('sos')) return 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700';
+  if (s.includes('procurement') || s.includes('collecting')) return 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950 dark:text-purple-300 dark:border-purple-800';
+  if (s.includes('fabrication')) return 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800';
+  if (s.includes('delivery')) return 'bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950 dark:text-orange-300 dark:border-orange-800';
+  if (s.includes('installation') || s.includes('commissioning')) return 'bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-950 dark:text-teal-300 dark:border-teal-800';
+  return 'bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700';
 };
 
 function DeliveryInfo({ p }) {
