@@ -113,12 +113,12 @@ export default function ProjectTable({ projects }) {
           </thead>
 
           <tbody className="divide-y divide-line">
-            {sortedProjects.map((p, idx) => (
-              <tr key={idx} className="hover:bg-canvas/40 transition-colors group">
+            {sortedProjects.map((p) => (
+              <tr key={p.id || p.poNumber} className="hover:bg-canvas/40 transition-colors group">
                 <td className="px-5 py-4 text-xs font-mono text-inkmute">{p.poNumber}</td>
 
                 <td className="px-5 py-4 font-medium whitespace-normal min-w-[250px]">
-                  <Link href={`/projects/${encodeURIComponent(p.poNumber)}`} className="text-blueprint group-hover:text-blueprintdark group-hover:underline transition-colors line-clamp-2 leading-snug">
+                  <Link href={`/projects/${encodeURIComponent(p.id)}`} className="text-blueprint group-hover:text-blueprintdark group-hover:underline transition-colors line-clamp-2 leading-snug">
                     {p.projectName}
                   </Link>
                 </td>
@@ -163,10 +163,10 @@ export default function ProjectTable({ projects }) {
 
       {/* Tampilan Card - Mobile */}
       <div className="md:hidden flex flex-col gap-3">
-        {sortedProjects.map((p, idx) => (
+        {sortedProjects.map((p) => (
           <Link
-            key={idx}
-            href={`/projects/${encodeURIComponent(p.poNumber)}`}
+            key={p.id || p.poNumber}
+            href={`/projects/${encodeURIComponent(p.id)}`}
             className="bg-panel rounded-xl border border-line shadow-sm p-4 flex flex-col gap-3 active:bg-canvas/40 transition-colors"
           >
             <div className="flex items-start justify-between gap-3">
