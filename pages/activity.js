@@ -142,12 +142,12 @@ export default function ActivityLogPage() {
                   </span>
                 </td>
                 <td className="px-5 py-3 text-sm min-w-[180px]">
-                  {l.poNumber ? (
-                    <Link href={`/projects/${encodeURIComponent(l.poNumber)}`} className="text-blueprint hover:underline">
+                  {l.projectId ? (
+                    <Link href={`/projects/${encodeURIComponent(l.projectId)}`} className="text-blueprint hover:underline">
                       {l.projectName || l.poNumber}
                     </Link>
                   ) : (
-                    <span className="text-inkmute">-</span>
+                    <span className="text-inkmute">{l.projectName || l.poNumber || '-'}</span>
                   )}
                 </td>
                 <td className="px-5 py-3 text-xs text-inkmute max-w-md break-words">{l.detail || '-'}</td>
@@ -167,12 +167,12 @@ export default function ActivityLogPage() {
               </span>
               <span className="text-[10px] text-inkmute">{formatTimestamp(l.timestamp)}</span>
             </div>
-            {l.poNumber ? (
-              <Link href={`/projects/${encodeURIComponent(l.poNumber)}`} className="text-blueprint font-medium text-sm hover:underline">
+            {l.projectId ? (
+              <Link href={`/projects/${encodeURIComponent(l.projectId)}`} className="text-blueprint font-medium text-sm hover:underline">
                 {l.projectName || l.poNumber}
               </Link>
             ) : (
-              <span className="text-inkmute text-sm">-</span>
+              <span className="text-inkmute text-sm">{l.projectName || l.poNumber || '-'}</span>
             )}
             <p className="text-xs text-inkmute break-words">{l.detail || '-'}</p>
             <p className="text-[11px] text-inkmute border-t border-line/60 pt-2">oleh {l.user || 'Tidak diketahui'}</p>
