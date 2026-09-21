@@ -27,10 +27,10 @@ export function ToastProvider({ children }) {
             key={toast.id}
             className={`pointer-events-auto flex items-start gap-2.5 px-4 py-3 rounded-lg shadow-lg border text-sm font-medium animate-toast-in w-full sm:w-auto sm:max-w-sm ${
               toast.type === 'error'
-                ? 'bg-white border-rust/30 text-rust'
+                ? 'bg-panel border-rust/30 text-rust'
                 : toast.type === 'info'
-                ? 'bg-white border-blueprint/30 text-blueprint'
-                : 'bg-white border-teal/30 text-teal'
+                ? 'bg-panel border-blueprint/30 text-blueprint'
+                : 'bg-panel border-teal/30 text-teal'
             }`}
           >
             {toast.type === 'error' ? (
