@@ -1,13 +1,28 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
-import { useSession } from 'next-auth/react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { api } from '../../lib/api';
+import { addRecentProject } from '../../lib/recentlyViewed';
 import StageGauge from '../../components/StageGauge';
 import ConfirmModal from '../../components/ConfirmModal';
 import { useToast } from '../../components/Toast';
 import { SkeletonProjectDetail } from '../../components/Skeleton';
+
+// Field yang diedit lewat tombol "Simpan Perubahan". Checklist disimpan otomatis & terpisah,
+// jadi TIDAK ikut menentukan status "Belum disimpan".
+const EDITABLE_FIELDS = [
+  'poNumber', 'projectName', 'client', 'technology', 'pic',
+  'currentStage', 'status', 'priority',
+  'tanggalPO', 'tanggalDP', 'deliveryDate', 'targetFinishDate',
+  'remarks', 'deskripsiPesanan', 'spesifikasiTeknologi',
+];
+
+function pickEditable(p) {
+  const out = {};
+  EDITABLE_FIELDS.forEach((f) => { out[f] = p?.[f] ?? ''; });
+  return out;
+}
 
 const TABS = [
   { key: 'ringkasan', label: 'Ringkasan' },
@@ -18,8 +33,7 @@ const TABS = [
 
 export default function ProjectDetailPage() {
   const router = useRouter();
-  const { po } = router.query;
-  const { data: session } = useSession();
+  const { id } = router.query;
   const { showToast } = useToast();
 
   const [meta, setMeta] = useState(null);
@@ -34,26 +48,33 @@ export default function ProjectDetailPage() {
   const [leaveModalOpen, setLeaveModalOpen] = useState(false);
   const [pendingUrl, setPendingUrl] = useState(null);
   const bypassGuardRef = useRef(false);
+  const projectRef = useRef(null);
+  // Request checklist dijalankan berurutan supaya respons tidak saling menimpa
+  const checklistQueueRef = useRef(Promise.resolve());
+
+  projectRef.current = project;
 
   async function load() {
-    if (!po) return;
+    if (!id) return;
     try {
       const [m, projects] = await Promise.all([api.getMeta(), api.getProjects()]);
       setMeta(m);
-      const found = projects.find((p) => String(p.poNumber) === String(po));
+      const found = projects.find((p) => String(p.id) === String(id));
       if (!found) { setError('Project tidak ditemukan.'); return; }
+      setError(null);
       setProject(found);
-      setInitialSnapshot(JSON.stringify(found));
+      setInitialSnapshot(JSON.stringify(pickEditable(found)));
+      addRecentProject({ id: found.id, poNumber: found.poNumber, projectName: found.projectName });
     } catch (err) {
       setError(err.message);
     }
   }
 
-  useEffect(() => { load(); }, [po]);
+  useEffect(() => { load(); }, [id]);
 
   const isDirty = useMemo(() => {
     if (!project || !initialSnapshot) return false;
-    return JSON.stringify(project) !== initialSnapshot;
+    return JSON.stringify(pickEditable(project)) !== initialSnapshot;
   }, [project, initialSnapshot]);
 
   useEffect(() => {
@@ -105,31 +126,10 @@ export default function ProjectDetailPage() {
     setSaving(true);
     setError(null);
     try {
-      await api.updateProject({
-        poNumber: po,
-        newPoNumber: project.poNumber,
-        projectName: project.projectName,
-        client: project.client,
-        technology: project.technology,
-        pic: project.pic,
-        currentStage: project.currentStage,
-        status: project.status,
-        priority: project.priority,
-        remarks: project.remarks,
-        deskripsiPesanan: project.deskripsiPesanan,
-        spesifikasiTeknologi: project.spesifikasiTeknologi,
-        tanggalPO: project.tanggalPO,
-        tanggalDP: project.tanggalDP,
-        deliveryDate: project.deliveryDate,
-        targetFinishDate: project.targetFinishDate,
-        user: session?.user?.email
-      });
+      // "user" tidak dikirim dari sini: server mengisinya dari sesi login.
+      await api.updateProject({ projectId: project.id, ...pickEditable(project) });
       showToast('Tersimpan ke spreadsheet.', 'success');
-      if (po !== project.poNumber) {
-        router.replace(`/projects/${encodeURIComponent(project.poNumber)}`);
-      } else {
-        await load();
-      }
+      await load();
     } catch (err) {
       setError(err.message);
       showToast(`Gagal menyimpan: ${err.message}`, 'error');
@@ -143,7 +143,7 @@ export default function ProjectDetailPage() {
     setError(null);
     const deletedName = project.projectName;
     try {
-      await api.deleteProject({ poNumber: project.poNumber, user: session?.user?.email });
+      await api.deleteProject({ projectId: project.id });
       showToast(`Project "${deletedName}" berhasil dihapus.`, 'success');
       bypassGuardRef.current = true;
       router.push('/');
@@ -155,23 +155,48 @@ export default function ProjectDetailPage() {
     }
   }
 
-  async function updateChecklistData(item, statusVal, linkVal) {
-    const newItems = { ...project.checklist.items, [item]: statusVal };
-    const newLinks = { ...project.checklist.links, [item]: linkVal };
-    setProject((p) => ({ ...p, checklist: { ...p.checklist, items: newItems, links: newLinks } }));
-    try {
-      const result = await api.updateChecklist({ poNumber: project.poNumber, items: { [item]: statusVal }, links: { [item]: linkVal }, user: session?.user?.email });
-      setProject((p) => ({ ...p, engineeringDocProgress: result.progress, checklist: { ...p.checklist, progress: result.progress } }));
-      setInitialSnapshot((snap) => {
-        const parsed = JSON.parse(snap);
-        parsed.checklist = { ...parsed.checklist, items: newItems, links: newLinks, progress: result.progress };
-        parsed.engineeringDocProgress = result.progress;
-        return JSON.stringify(parsed);
-      });
-    } catch (err) {
-      setError(err.message);
-      showToast(`Gagal update checklist: ${err.message}`, 'error');
-    }
+  function updateChecklistData(item, statusVal, linkVal) {
+    const current = projectRef.current;
+    if (!current?.checklist) return;
+    const projectId = current.id;
+    const prevStatus = current.checklist.items[item] || 'Not Started';
+    const prevLink = current.checklist.links?.[item] || '';
+
+    // Tampilan langsung berubah (optimistic)
+    setProject((p) => ({
+      ...p,
+      checklist: {
+        ...p.checklist,
+        items: { ...p.checklist.items, [item]: statusVal },
+        links: { ...p.checklist.links, [item]: linkVal },
+      },
+    }));
+
+    checklistQueueRef.current = checklistQueueRef.current.then(async () => {
+      try {
+        const result = await api.updateChecklist({
+          projectId,
+          items: { [item]: statusVal },
+          links: { [item]: linkVal },
+        });
+        setProject((p) => ({
+          ...p,
+          engineeringDocProgress: result.progress,
+          checklist: { ...p.checklist, progress: result.progress },
+        }));
+      } catch (err) {
+        // Gagal: kembalikan tampilan ke nilai yang tersimpan sebelumnya
+        setProject((p) => ({
+          ...p,
+          checklist: {
+            ...p.checklist,
+            items: { ...p.checklist.items, [item]: prevStatus },
+            links: { ...p.checklist.links, [item]: prevLink },
+          },
+        }));
+        showToast(`Gagal update checklist: ${err.message}`, 'error');
+      }
+    });
   }
 
   if (error && !project) return <div className="text-rust">{error}</div>;
@@ -306,6 +331,12 @@ export default function ProjectDetailPage() {
         </section>
       )}
 
+      {activeTab === 'checklist' && !project.checklist && (
+        <section className="bg-panel border border-line rounded-lg p-6 text-sm text-inkmute">
+          Checklist untuk project ini belum tersedia. Muat ulang halaman untuk membuatnya otomatis.
+        </section>
+      )}
+
       {activeTab === 'checklist' && project.checklist && (
         <section className="bg-panel border border-line rounded-lg p-6 flex flex-col gap-4">
           <div className="flex items-center justify-between">
@@ -313,10 +344,11 @@ export default function ProjectDetailPage() {
             <span className="font-data text-sm text-blueprint font-medium">{project.checklist.progress}%</span>
           </div>
           <StageGauge progress={project.checklist.progress} showLabel={false} compact />
-          <p className="text-xs text-inkmute -mt-2">Perubahan checklist tersimpan otomatis, tidak perlu klik "Simpan Perubahan".</p>
+          <p className="text-xs text-inkmute -mt-2">Status tersimpan otomatis saat diubah. Link tersimpan saat kamu selesai mengetik (klik di luar kolom atau tekan Enter).</p>
           <div className="grid grid-cols-1 gap-4 mt-2">
             {meta.checklistItems.map((item) => {
               const status = project.checklist.items[item] || 'Not Started';
+              const savedLink = project.checklist.links?.[item] || '';
               return (
                 <Row key={item} label={item}>
                   <div className="flex gap-3 items-center">
@@ -324,16 +356,14 @@ export default function ProjectDetailPage() {
                     <select
                       className="input w-1/3"
                       value={status}
-                      onChange={(e) => updateChecklistData(item, e.target.value, project.checklist.links?.[item] || '')}
+                      onChange={(e) => updateChecklistData(item, e.target.value, savedLink)}
                     >
                       {meta.checklistStatuses.map((s) => <option key={s} value={s}>{s}</option>)}
                     </select>
-                    <input
-                      type="url"
-                      placeholder="URL Dokumen / Drive Link..."
-                      className="input flex-1"
-                      value={project.checklist.links?.[item] || ''}
-                      onChange={(e) => updateChecklistData(item, project.checklist.items[item], e.target.value)}
+                    <ChecklistLinkInput
+                      value={savedLink}
+                      onCommit={(v) => updateChecklistData(item, status, v)}
+                      onInvalid={() => showToast('Link harus diawali http:// atau https://', 'error')}
                     />
                   </div>
                 </Row>
@@ -398,6 +428,39 @@ function Row({ label, children }) {
       <span className="text-inkmute font-medium">{label}</span>
       {children}
     </label>
+  );
+}
+
+// Link disimpan SEKALI saat selesai mengetik (blur / Enter), bukan tiap ketikan,
+// supaya tidak membanjiri backend dan link tidak tersimpan terpotong.
+function ChecklistLinkInput({ value, onCommit, onInvalid }) {
+  const [draft, setDraft] = useState(value);
+
+  useEffect(() => { setDraft(value); }, [value]);
+
+  function commit() {
+    const v = draft.trim();
+    if (v === value) { setDraft(value); return; }
+    if (v && !/^https?:\/\//i.test(v)) {
+      onInvalid?.();
+      setDraft(value);
+      return;
+    }
+    setDraft(v);
+    onCommit(v);
+  }
+
+  return (
+    <input
+      type="text"
+      inputMode="url"
+      placeholder="URL Dokumen / Drive Link..."
+      className="input flex-1"
+      value={draft}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur(); } }}
+    />
   );
 }
 
