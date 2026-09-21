@@ -170,8 +170,8 @@ function Shell({ Component, pageProps }) {
           <div className="flex flex-col gap-0.5">
             {recentProjects.map((p) => (
               <Link
-                key={p.poNumber}
-                href={`/projects/${encodeURIComponent(p.poNumber)}`}
+                key={p.id}
+                href={`/projects/${encodeURIComponent(p.id)}`}
                 onClick={() => setMobileNavOpen(false)}
                 title={p.projectName}
                 className="flex items-center gap-2 pl-3 pr-3 py-2 rounded-md text-xs text-inkmute hover:bg-canvas hover:text-ink transition-colors"
