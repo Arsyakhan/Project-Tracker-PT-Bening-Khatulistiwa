@@ -36,6 +36,7 @@ export default function EngineeringDocs() {
       Object.keys(p.checklist.items).forEach(docName => {
         docTypes.add(docName);
         allDocs.push({
+          id: p.id,
           poNumber: p.poNumber,
           projectName: p.projectName,
           docName: docName,
@@ -120,7 +121,7 @@ export default function EngineeringDocs() {
                 
                 {/* Project Name */}
                 <td className="px-5 py-4 font-medium min-w-[250px]">
-                  <Link href={`/projects/${encodeURIComponent(doc.poNumber)}`} className="text-blueprint group-hover:text-blueprintdark group-hover:underline transition-colors line-clamp-1">
+                  <Link href={`/projects/${encodeURIComponent(doc.id)}`} className="text-blueprint group-hover:text-blueprintdark group-hover:underline transition-colors line-clamp-1">
                     {doc.projectName}
                   </Link>
                 </td>
