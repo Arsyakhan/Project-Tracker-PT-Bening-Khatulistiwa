@@ -7,7 +7,7 @@ import PageHead from '../components/PageHead';
 const ACTION_BADGE = {
   'Tambah': 'bg-teal/10 text-teal border-teal/20',
   'Update': 'bg-blueprint/10 text-blueprint border-blueprint/20',
-  'Update Checklist': 'bg-purple-50 text-purple-700 border-purple-200',
+  'Update Checklist': 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950 dark:text-purple-300 dark:border-purple-800',
   'Hapus': 'bg-rust/10 text-rust border-rust/20',
 };
 
@@ -137,7 +137,7 @@ export default function ActivityLogPage() {
                 <td className="px-5 py-3 text-xs text-inkmute whitespace-nowrap">{formatTimestamp(l.timestamp)}</td>
                 <td className="px-5 py-3 text-sm text-ink whitespace-nowrap">{l.user || '-'}</td>
                 <td className="px-5 py-3">
-                  <span className={`px-2 py-0.5 rounded-md text-[11px] font-semibold border whitespace-nowrap ${ACTION_BADGE[l.action] || 'bg-gray-50 text-gray-700 border-gray-200'}`}>
+                  <span className={`px-2 py-0.5 rounded-md text-[11px] font-semibold border whitespace-nowrap ${ACTION_BADGE[l.action] || 'bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700'}`}>
                     {l.action}
                   </span>
                 </td>
@@ -162,7 +162,7 @@ export default function ActivityLogPage() {
         {filtered.map((l, idx) => (
           <div key={idx} className="bg-panel rounded-xl border border-line shadow-sm p-4 flex flex-col gap-2">
             <div className="flex items-center justify-between">
-              <span className={`px-2 py-0.5 rounded-md text-[10px] font-semibold border ${ACTION_BADGE[l.action] || 'bg-gray-50 text-gray-700 border-gray-200'}`}>
+              <span className={`px-2 py-0.5 rounded-md text-[10px] font-semibold border ${ACTION_BADGE[l.action] || 'bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700'}`}>
                 {l.action}
               </span>
               <span className="text-[10px] text-inkmute">{formatTimestamp(l.timestamp)}</span>
