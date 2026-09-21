@@ -7,6 +7,8 @@ import { SessionProvider, useSession, signOut } from 'next-auth/react';
 import { ToastProvider } from '../components/Toast';
 import CommandPalette from '../components/CommandPalette';
 import TopLoadingBar from '../components/TopLoadingBar';
+import { setStoredTheme } from '../lib/theme';
+import { getRecentProjects } from '../lib/recentlyViewed';
 
 const NAV_ITEMS = [
   {
@@ -53,6 +55,8 @@ function Shell({ Component, pageProps }) {
   const isLoginPage = router.pathname === '/login';
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [isDark, setIsDark] = useState(false);
+  const [recentProjects, setRecentProjects] = useState([]);
 
   useEffect(() => {
     if (isLoginPage) return;
@@ -66,6 +70,31 @@ function Shell({ Component, pageProps }) {
     window.addEventListener('keydown', handleShortcut);
     return () => window.removeEventListener('keydown', handleShortcut);
   }, [isLoginPage]);
+
+  // Sinkronkan status ikon dark mode dengan class yang sudah diterapkan _document.js
+  useEffect(() => {
+    setIsDark(document.documentElement.classList.contains('dark'));
+  }, []);
+
+  function toggleTheme() {
+    const next = isDark ? 'light' : 'dark';
+    setStoredTheme(next);
+    setIsDark(next === 'dark');
+  }
+
+  // Recently viewed: baca dari localStorage, refresh tiap ada project baru dibuka
+  useEffect(() => {
+    function refresh() {
+      setRecentProjects(getRecentProjects());
+    }
+    refresh();
+    window.addEventListener('recentProjectsUpdated', refresh);
+    window.addEventListener('storage', refresh);
+    return () => {
+      window.removeEventListener('recentProjectsUpdated', refresh);
+      window.removeEventListener('storage', refresh);
+    };
+  }, []);
 
   const handleLogout = () => {
     signOut({ callbackUrl: '/login' });
@@ -103,7 +132,7 @@ function Shell({ Component, pageProps }) {
         </button>
       </div>
 
-      <nav className="flex flex-col gap-0.5 px-3 pt-3 flex-1">
+      <nav className="flex flex-col gap-0.5 px-3 pt-3">
         <span className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-wider text-inkmute/60">Menu</span>
         {NAV_ITEMS.map((item) => (
           <Link
@@ -133,15 +162,58 @@ function Shell({ Component, pageProps }) {
         </Link>
       </nav>
 
+      {recentProjects.length > 0 && (
+        <div className="px-3 pt-4">
+          <span className="px-3 pb-2 block text-[10px] font-semibold uppercase tracking-wider text-inkmute/60">
+            Terakhir Dibuka
+          </span>
+          <div className="flex flex-col gap-0.5">
+            {recentProjects.map((p) => (
+              <Link
+                key={p.poNumber}
+                href={`/projects/${encodeURIComponent(p.poNumber)}`}
+                onClick={() => setMobileNavOpen(false)}
+                title={p.projectName}
+                className="flex items-center gap-2 pl-3 pr-3 py-2 rounded-md text-xs text-inkmute hover:bg-canvas hover:text-ink transition-colors"
+              >
+                <svg className="w-3.5 h-3.5 flex-shrink-0 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="truncate">{p.projectName || p.poNumber}</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="flex-1" />
+
       <div className="px-3 py-4 border-t border-line flex flex-col gap-2">
         {session?.user?.email && (
           <div className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg bg-canvas border border-line/60">
             {session.user.image && (
-              <img src={session.user.image} alt="" className="w-7 h-7 rounded-full flex-shrink-0 ring-2 ring-white" />
+              <img src={session.user.image} alt="" className="w-7 h-7 rounded-full flex-shrink-0 ring-2 ring-panel" />
             )}
             <span className="text-xs text-ink font-medium truncate">{session.user.email}</span>
           </div>
         )}
+
+        <button
+          onClick={toggleTheme}
+          className="flex items-center gap-3 px-3 py-2.5 text-inkmute hover:bg-canvas hover:text-ink font-medium text-sm rounded-lg transition-all duration-200"
+        >
+          {isDark ? (
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
+            </svg>
+          ) : (
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.72 9.72 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" />
+            </svg>
+          )}
+          {isDark ? 'Mode Terang' : 'Mode Gelap'}
+        </button>
+
         <button
           onClick={handleLogout}
           className="flex items-center gap-3 px-3 py-2.5 text-rust hover:bg-rust/10 font-medium text-sm rounded-lg transition-all duration-200"
@@ -183,8 +255,8 @@ function Shell({ Component, pageProps }) {
 
           {mobileNavOpen && (
             <div className="md:hidden fixed inset-0 z-40 flex">
-              <div className="w-64 bg-panel border-r border-line shadow-xl">{sidebarContent}</div>
-              <div className="flex-1 bg-ink/40 backdrop-blur-sm" onClick={() => setMobileNavOpen(false)} />
+              <div className="w-64 bg-panel border-r border-line shadow-xl overflow-y-auto">{sidebarContent}</div>
+              <div className="flex-1 bg-black/50 backdrop-blur-sm" onClick={() => setMobileNavOpen(false)} />
             </div>
           )}
 
