@@ -4,10 +4,39 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
+/* ---- Palet warna: light (default) ---- */
+:root {
+  --color-canvas: 232 243 247;      /* #E8F3F7 */
+  --color-panel: 255 255 255;       /* #FFFFFF */
+  --color-line: 198 221 230;        /* #C6DDE6 */
+  --color-ink: 12 45 72;            /* #0C2D48 */
+  --color-inkmute: 74 114 145;      /* #4A7291 */
+  --color-blueprint: 0 119 182;     /* #0077B6 */
+  --color-blueprintdark: 0 91 143;  /* #005B8F */
+  --color-teal: 0 150 136;          /* #009688 */
+  --color-amber: 217 138 0;         /* #D98A00 */
+  --color-rust: 217 72 72;          /* #D94848 */
+}
+
+/* ---- Palet warna: dark mode ---- */
+.dark {
+  --color-canvas: 13 22 30;         /* navy sangat gelap */
+  --color-panel: 22 34 45;          /* sedikit lebih terang dari canvas, buat card */
+  --color-line: 42 60 74;
+  --color-ink: 230 240 246;         /* teks terang */
+  --color-inkmute: 146 172 188;
+  --color-blueprint: 62 165 224;    /* dicerahkan biar kontras di latar gelap */
+  --color-blueprintdark: 92 183 232;/* hover jadi LEBIH terang, bukan lebih gelap, di dark mode */
+  --color-teal: 43 199 176;
+  --color-amber: 235 168 68;
+  --color-rust: 236 111 111;
+}
+
 html, body {
-  background: #E8F3F7; /* Latar biru air muda */
-  color: #0C2D48; /* Teks navy pekat */
+  background: rgb(var(--color-canvas));
+  color: rgb(var(--color-ink));
   font-family: 'Inter', sans-serif;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 h1, h2, h3, .font-display {
@@ -18,12 +47,27 @@ h1, h2, h3, .font-display {
   font-family: 'IBM Plex Mono', monospace;
 }
 
+/* Dipakai bersama di form-form (Project Baru, Detail Project) */
+.input {
+  border: 1px solid rgb(var(--color-line));
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 14px;
+  background: rgb(var(--color-panel));
+  color: rgb(var(--color-ink));
+  width: 100%;
+}
+.input:focus {
+  outline: none;
+  border-color: rgb(var(--color-blueprint));
+}
+
 /* Signature element: pipeline-style stage gauge with checkpoint ticks */
 .gauge-track {
   position: relative;
   height: 10px;
   border-radius: 2px;
-  background: #C6DDE6; /* Biru pucat agar senada dengan tema air */
+  background: rgb(var(--color-line));
   overflow: visible;
 }
 
@@ -38,11 +82,11 @@ h1, h2, h3, .font-display {
   top: -3px;
   width: 2px;
   height: 16px;
-  background: #9BAEB8;
+  background: rgb(var(--color-inkmute) / 0.5);
 }
 
 .gauge-tick.reached {
-  background: #0077B6; /* Aksen biru cerah */
+  background: rgb(var(--color-blueprint));
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -66,7 +110,7 @@ h1, h2, h3, .font-display {
   100% { background-position: 200% 0; }
 }
 .skeleton-shimmer {
-  background: linear-gradient(90deg, #D7E7EC 25%, #EAF3F6 37%, #D7E7EC 63%);
+  background: linear-gradient(90deg, rgb(var(--color-line)) 25%, rgb(var(--color-canvas)) 37%, rgb(var(--color-line)) 63%);
   background-size: 400% 100%;
   animation: shimmer 1.4s ease-in-out infinite;
 }
