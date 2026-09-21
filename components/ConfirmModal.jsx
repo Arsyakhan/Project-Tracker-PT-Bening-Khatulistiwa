@@ -23,7 +23,7 @@ export default function ConfirmModal({
 
   return (
     <div
-      className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-ink/40 backdrop-blur-sm"
+      className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
       onClick={onCancel}
     >
       <div
@@ -42,7 +42,7 @@ export default function ConfirmModal({
             </label>
             <input
               autoFocus
-              className="border border-line rounded-md px-3 py-2 text-sm outline-none focus:border-blueprint bg-white"
+              className="border border-line rounded-md px-3 py-2 text-sm outline-none focus:border-blueprint bg-panel text-ink"
               value={typed}
               onChange={(e) => setTyped(e.target.value)}
             />
