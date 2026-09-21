@@ -48,7 +48,7 @@ export default function CommandPalette({ open, onClose }) {
             type: 'project',
             label: p.projectName,
             sub: p.poNumber,
-            href: `/projects/${encodeURIComponent(p.poNumber)}`,
+            href: `/projects/${encodeURIComponent(p.id)}`,
           }));
 
     return [...projectMatches, ...actionMatches].slice(0, 10);
