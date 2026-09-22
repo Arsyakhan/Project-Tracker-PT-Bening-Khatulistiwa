@@ -8,6 +8,7 @@ const ACTION_BADGE = {
   'Tambah': 'bg-teal/10 text-teal border-teal/20',
   'Update': 'bg-blueprint/10 text-blueprint border-blueprint/20',
   'Update Checklist': 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950 dark:text-purple-300 dark:border-purple-800',
+  'Komentar': 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950 dark:text-indigo-300 dark:border-indigo-800',
   'Hapus': 'bg-rust/10 text-rust border-rust/20',
 };
 
