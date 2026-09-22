@@ -29,7 +29,18 @@ const TABS = [
   { key: 'jadwal', label: 'Jadwal' },
   { key: 'deskripsi', label: 'Deskripsi Teknis' },
   { key: 'checklist', label: 'Checklist Engineering' },
+  { key: 'komentar', label: 'Komentar' },
 ];
+
+const COMMENT_MAX_LENGTH = 2000;
+
+function formatCommentTime(iso) {
+  try {
+    return new Date(iso).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
+  } catch {
+    return iso;
+  }
+}
 
 export default function ProjectDetailPage() {
   const router = useRouter();
@@ -49,6 +60,11 @@ export default function ProjectDetailPage() {
   const [pendingUrl, setPendingUrl] = useState(null);
   const bypassGuardRef = useRef(false);
   const projectRef = useRef(null);
+  const [comments, setComments] = useState(null);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const [commentsError, setCommentsError] = useState(null);
+  const [commentDraft, setCommentDraft] = useState('');
+  const [postingComment, setPostingComment] = useState(false);
   // Request checklist dijalankan berurutan supaya respons tidak saling menimpa
   const checklistQueueRef = useRef(Promise.resolve());
 
@@ -71,6 +87,43 @@ export default function ProjectDetailPage() {
   }
 
   useEffect(() => { load(); }, [id]);
+
+  // Ganti project -> komentar project sebelumnya jangan ikut terbawa
+  useEffect(() => {
+    setComments(null);
+    setCommentsError(null);
+    setCommentDraft('');
+  }, [id]);
+
+  // Ambil komentar begitu tab dibuka (sekali per project, bukan tiap render)
+  useEffect(() => {
+    if (activeTab !== 'komentar') return;
+    const pid = project?.id;
+    if (!pid || comments !== null) return;
+    let cancelled = false;
+    setCommentsLoading(true);
+    setCommentsError(null);
+    api.getComments(pid)
+      .then((data) => { if (!cancelled) setComments(data); })
+      .catch((err) => { if (!cancelled) setCommentsError(err.message); })
+      .finally(() => { if (!cancelled) setCommentsLoading(false); });
+    return () => { cancelled = true; };
+  }, [activeTab, project?.id, comments]);
+
+  async function submitComment() {
+    const text = commentDraft.trim();
+    if (!text || postingComment) return;
+    setPostingComment(true);
+    try {
+      const saved = await api.addComment({ projectId: project.id, text });
+      setComments((prev) => [...(prev || []), saved]);
+      setCommentDraft('');
+    } catch (err) {
+      showToast(`Gagal mengirim komentar: ${err.message}`, 'error');
+    } finally {
+      setPostingComment(false);
+    }
+  }
 
   const isDirty = useMemo(() => {
     if (!project || !initialSnapshot) return false;
@@ -258,6 +311,9 @@ export default function ProjectDetailPage() {
             {tab.key === 'checklist' && (
               <span className="ml-1.5 text-xs opacity-70">{project.checklist?.progress ?? 0}%</span>
             )}
+            {tab.key === 'komentar' && comments && comments.length > 0 && (
+              <span className="ml-1.5 text-xs opacity-70">{comments.length}</span>
+            )}
           </button>
         ))}
       </div>
@@ -369,6 +425,63 @@ export default function ProjectDetailPage() {
                 </Row>
               );
             })}
+          </div>
+        </section>
+      )}
+
+      {activeTab === 'komentar' && (
+        <section className="bg-panel border border-line rounded-lg p-6 flex flex-col gap-4">
+          <h2 className="font-display font-semibold text-ink">Komentar</h2>
+
+          {commentsError && (
+            <p className="text-rust text-sm">{commentsError}</p>
+          )}
+          {commentsLoading && comments === null && (
+            <p className="text-inkmute text-sm">Memuat komentar...</p>
+          )}
+          {comments && comments.length === 0 && !commentsLoading && (
+            <p className="text-inkmute text-sm">Belum ada komentar. Jadi yang pertama menulis.</p>
+          )}
+          {comments && comments.length > 0 && (
+            <div className="flex flex-col gap-3 max-h-[420px] overflow-y-auto pr-1">
+              {comments.map((c, idx) => (
+                <div key={idx} className="flex flex-col gap-1 bg-canvas border border-line rounded-md p-3">
+                  <div className="flex items-center justify-between text-xs text-inkmute">
+                    <span className="font-medium text-ink">{c.user || 'Tidak diketahui'}</span>
+                    <span>{formatCommentTime(c.timestamp)}</span>
+                  </div>
+                  <p className="text-sm text-ink whitespace-pre-wrap break-words">{c.text}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="flex flex-col gap-2 pt-3 border-t border-line">
+            <textarea
+              className="input"
+              rows={3}
+              placeholder="Tulis komentar... (Ctrl+Enter untuk kirim)"
+              value={commentDraft}
+              maxLength={COMMENT_MAX_LENGTH}
+              disabled={postingComment}
+              onChange={(e) => setCommentDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                  e.preventDefault();
+                  submitComment();
+                }
+              }}
+            />
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] text-inkmute">{commentDraft.length}/{COMMENT_MAX_LENGTH}</span>
+              <button
+                onClick={submitComment}
+                disabled={postingComment || !commentDraft.trim()}
+                className="bg-blueprint hover:bg-blueprintdark text-white rounded-md px-4 py-2 text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {postingComment ? 'Mengirim...' : 'Kirim Komentar'}
+              </button>
+            </div>
           </div>
         </section>
       )}
