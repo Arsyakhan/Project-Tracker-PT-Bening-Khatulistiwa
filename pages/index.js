@@ -10,15 +10,16 @@ import PageHead from '../components/PageHead';
 
 export default function Dashboard() {
   const [projects, setProjects] = useState(null);
-  const [dashboard, setDashboard] = useState(null);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('preDelivery');
 
   async function load() {
     try {
-      const [p, d] = await Promise.all([api.getProjects(), api.getDashboard()]);
+      // Dulu di sini juga memanggil api.getDashboard(), yang di baliknya membaca
+      // ulang seluruh sheet lagi. Sekarang dihitung dari "projects" yang sudah
+      // diambil, jadi buka Dashboard cuma perlu 1x ambil data, bukan 2x.
+      const p = await api.getProjects();
       setProjects(p);
-      setDashboard(d);
     } catch (err) {
       setError(err.message);
     }
@@ -52,6 +53,13 @@ export default function Dashboard() {
   const preDeliveryProjects = projects.filter((p) => p.stageProgress < 90);
   const deliveredProjects = projects.filter((p) => p.stageProgress >= 90 && p.stageProgress < 100);
   const completedProjects = projects.filter((p) => p.stageProgress >= 100);
+
+  const dashboard = {
+    total: projects.length,
+    preDelivery: preDeliveryProjects.length,
+    delivered: deliveredProjects.length,
+    completed: completedProjects.length,
+  };
 
   const tabs = [
     { key: 'preDelivery', label: 'Pre-Delivery', data: preDeliveryProjects },
