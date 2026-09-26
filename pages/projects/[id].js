@@ -258,7 +258,7 @@ export default function ProjectDetailPage() {
   return (
     <div className="flex flex-col gap-6 max-w-3xl pb-24">
       <Head>
-        <title>{project.projectName ? `${project.projectName} — Project Tracker` : 'Detail Project — Project Tracker'}</title>
+        <title>{project.projectName ? `${project.projectName} — Bening Hub` : 'Detail Project — Bening Hub'}</title>
       </Head>
 
       <Link href="/projects" className="inline-flex items-center gap-1.5 text-xs text-inkmute hover:text-blueprint transition-colors w-fit -mb-2">
