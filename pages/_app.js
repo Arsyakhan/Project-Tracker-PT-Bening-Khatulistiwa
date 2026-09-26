@@ -115,7 +115,7 @@ function Shell({ Component, pageProps }) {
           className="h-8 w-8 object-contain mix-blend-multiply flex-shrink-0 group-hover:opacity-80 transition-opacity"
         />
         <span className="font-display font-bold text-[15px] text-blueprint leading-none whitespace-nowrap tracking-tight">
-          Project Tracker
+          Bening Hub
         </span>
       </Link>
 
@@ -237,8 +237,8 @@ function Shell({ Component, pageProps }) {
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content="Project Tracker" />
-        <title>Project Tracker - Bening Khatulistiwa</title>
+        <meta name="apple-mobile-web-app-title" content="Bening Hub" />
+        <title>Bening Hub - Bening Khatulistiwa</title>
       </Head>
 
       <TopLoadingBar />
@@ -264,7 +264,7 @@ function Shell({ Component, pageProps }) {
           <header className="md:hidden sticky top-0 z-20 bg-panel border-b border-line flex items-center justify-between px-4 py-3">
             <Link href="/" className="flex items-center gap-2">
               <img src="/logo-bk2.png" alt="Logo" className="h-7 w-auto object-contain mix-blend-multiply" />
-              <span className="font-display font-bold text-blueprint text-[15px] tracking-tight">Project Tracker</span>
+              <span className="font-display font-bold text-blueprint text-[15px] tracking-tight">Bening Hub</span>
             </Link>
             <button onClick={() => setMobileNavOpen(true)} className="p-2 text-ink" aria-label="Buka menu">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-6 h-6">
