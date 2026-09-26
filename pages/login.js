@@ -9,7 +9,7 @@ export default function Login() {
 
   const errorMessage =
     error === 'AccessDenied'
-      ? 'Email Google kamu belum terdaftar untuk mengakses Project Tracker ini. Hubungi admin untuk didaftarkan.'
+      ? 'Email Google kamu belum terdaftar untuk mengakses Bening Hub ini. Hubungi admin untuk didaftarkan.'
       : error
       ? 'Gagal login. Silakan coba lagi.'
       : '';
@@ -17,7 +17,7 @@ export default function Login() {
   return (
     <>
       <Head>
-        <title>Login - Bening Khatulistiwa Tracker</title>
+        <title>Login - Bening Hub</title>
       </Head>
       <div className="min-h-screen flex bg-canvas">
 
@@ -46,7 +46,7 @@ export default function Login() {
           <div className="w-full max-w-sm">
             <div className="text-center lg:text-left mb-8 flex flex-col items-center lg:items-start">
               <img src="/logo-bk2.png" alt="Logo PT Bening Khatulistiwa" className="h-10 w-auto mb-4 object-contain mix-blend-multiply" />
-              <h2 className="font-display text-3xl font-bold text-ink">Project Tracker</h2>
+              <h2 className="font-display text-3xl font-bold text-ink">Bening Hub</h2>
               <p className="text-inkmute text-sm mt-1">Masuk pakai akun Google yang terdaftar</p>
             </div>
 
