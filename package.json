@@ -1,5 +1,5 @@
 {
-  "name": "project-tracker-web",
+  "name": "bening-hub-web",
   "version": "1.0.0",
   "private": true,
   "scripts": {
@@ -12,8 +12,7 @@
     "next-auth": "^4.24.15",
     "next-pwa": "^5.6.0",
     "react": "18.3.1",
-    "react-dom": "18.3.1",
-    "recharts": "2.12.7"
+    "react-dom": "18.3.1"
   },
   "devDependencies": {
     "autoprefixer": "10.4.19",
