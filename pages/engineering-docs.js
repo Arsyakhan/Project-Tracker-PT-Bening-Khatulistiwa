@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { api } from '../lib/api';
+import { DOC_GENERATOR_ROUTE } from '../lib/docgen/schema';
 import { SkeletonTable } from '../components/Skeleton';
 import PageHead from '../components/PageHead';
 
@@ -163,6 +164,13 @@ export default function EngineeringDocs() {
                         <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
                       </svg>
                     </a>
+                  ) : DOC_GENERATOR_ROUTE[doc.docName] ? (
+                    <Link
+                      href={`/documents/${DOC_GENERATOR_ROUTE[doc.docName]}/new?projectId=${encodeURIComponent(doc.id)}`}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-blueprint/10 hover:bg-blueprint border border-blueprint/30 hover:border-blueprint text-blueprint hover:text-white transition-all"
+                    >
+                      + Buat Dokumen
+                    </Link>
                   ) : (
                     <span className="inline-flex items-center px-3 py-1.5 rounded-md text-xs font-medium text-line bg-transparent border border-transparent">
                       -
