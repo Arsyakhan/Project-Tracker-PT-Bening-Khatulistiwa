@@ -4,6 +4,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { api } from '../../lib/api';
 import { addRecentProject } from '../../lib/recentlyViewed';
+import { DOC_GENERATOR_ROUTE } from '../../lib/docgen/schema';
 import StageGauge from '../../components/StageGauge';
 import ConfirmModal from '../../components/ConfirmModal';
 import { useToast } from '../../components/Toast';
@@ -405,9 +406,10 @@ export default function ProjectDetailPage() {
             {meta.checklistItems.map((item) => {
               const status = project.checklist.items[item] || 'Not Started';
               const savedLink = project.checklist.links?.[item] || '';
+              const docSlug = DOC_GENERATOR_ROUTE[item];
               return (
                 <Row key={item} label={item}>
-                  <div className="flex gap-3 items-center">
+                  <div className="flex gap-3 items-center flex-wrap">
                     <ChecklistStatusIcon status={status} />
                     <select
                       className="input w-1/3"
@@ -421,6 +423,15 @@ export default function ProjectDetailPage() {
                       onCommit={(v) => updateChecklistData(item, status, v)}
                       onInvalid={() => showToast('Link harus diawali http:// atau https://', 'error')}
                     />
+                    {docSlug && (
+                      <Link
+                        href={`/documents/${docSlug}/new?projectId=${encodeURIComponent(project.id)}`}
+                        className="text-xs font-medium text-blueprint hover:underline whitespace-nowrap shrink-0"
+                        title={savedLink ? 'Buat ulang dokumen (link lama akan diganti)' : 'Buat dokumen otomatis dari data project ini'}
+                      >
+                        {savedLink ? 'Buat ulang' : '+ Buat Dokumen'}
+                      </Link>
+                    )}
                   </div>
                 </Row>
               );
