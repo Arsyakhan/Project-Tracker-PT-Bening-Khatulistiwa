@@ -19,6 +19,9 @@ database terpisah).
   daftar dokumen engineering lintas-project, dan log aktivitas
 - Checklist 7 dokumen engineering (BOM, P&ID, EWD, GAD, Commissioning Report, Manual Book,
   Handover Report) dengan progress % otomatis
+- **Generator Dokumen terintegrasi** (`/documents`): buat Commissioning Report & Handover Report
+  langsung dari halaman project -- PO Number/Nama Project/Client terisi otomatis, dan link hasilnya
+  otomatis tersimpan ke Checklist (status jadi "Under Review"). Lihat "Generator Dokumen" di bawah.
 - Komentar per project, log aktivitas otomatis untuk tiap perubahan
 - Mode gelap/terang, command palette (`Ctrl+K` / `Cmd+K`), bisa di-"install" sebagai PWA di HP/laptop
 - Token API tersembunyi di server (`/api/gas`) — browser tidak pernah melihatnya
@@ -72,6 +75,7 @@ Buka `.env.local`, isi semua variabel (lihat komentar di dalam file untuk penjel
 |---|---|
 | `GAS_API_URL` | Bagian 1, langkah 7 |
 | `GAS_API_TOKEN` | Bagian 1, langkah 5 |
+| `DOCGEN_COMMISSIONING_URL`, `DOCGEN_HANDOVER_URL` | Sudah terisi contohnya di `.env.local.example` -- lihat "Generator Dokumen" di bawah |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Lihat "Setup login Google" di bawah |
 | `ALLOWED_EMAILS` | Email yang boleh login, pisah koma |
 | `NEXTAUTH_SECRET` | Generate sendiri: `openssl rand -base64 32` |
@@ -114,11 +118,11 @@ Buka `http://localhost:3000` — kamu akan diarahkan ke halaman login dulu.
    ```
 3. Buat akun gratis di [vercel.com](https://vercel.com) — bisa langsung login pakai akun GitHub.
 4. Klik **Add New > Project**, pilih repository yang barusan kamu push.
-5. Sebelum klik Deploy, buka bagian **Environment Variables**, tambahkan ketujuh variabel yang
-   sama seperti di `.env.local` (`GAS_API_URL`, `GAS_API_TOKEN`, `GOOGLE_CLIENT_ID`,
-   `GOOGLE_CLIENT_SECRET`, `ALLOWED_EMAILS`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL` — untuk
-   `NEXTAUTH_URL` isi dengan domain Vercel yang akan kamu dapat, misal
-   `https://bening-hub-web.vercel.app`).
+5. Sebelum klik Deploy, buka bagian **Environment Variables**, tambahkan kesembilan variabel yang
+   sama seperti di `.env.local` (`GAS_API_URL`, `GAS_API_TOKEN`, `DOCGEN_COMMISSIONING_URL`,
+   `DOCGEN_HANDOVER_URL`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `ALLOWED_EMAILS`,
+   `NEXTAUTH_SECRET`, `NEXTAUTH_URL` — untuk `NEXTAUTH_URL` isi dengan domain Vercel yang akan kamu
+   dapat, misal `https://bening-hub-web.vercel.app`).
 6. Klik **Deploy**. Tunggu 1-2 menit — Vercel akan kasih kamu URL publik gratis yang bisa diakses
    tim kamu.
 7. Kembali ke Google Cloud Console, lengkapi **Authorized redirect URI** dengan domain Vercel yang
@@ -142,6 +146,8 @@ Buka `http://localhost:3000` — kamu akan diarahkan ke halaman login dulu.
 - **`pages/api/gas.js`** — satu-satunya bagian yang tahu `GAS_API_URL` & `GAS_API_TOKEN`. Semua
   halaman React memanggil `/api/gas`, bukan Apps Script langsung, dan route ini mewajibkan sesi
   login sebelum meneruskan request.
+- **`pages/api/docgen.js`** — proxy yang sama prinsipnya, tapi untuk Generator Dokumen (lihat
+  bagian "Generator Dokumen" di bawah).
 - Progress stage dihitung otomatis dari "Current Stage" memakai tabel bobot yang sama seperti di
   sheet Reference (PO 5% ... Hand Over 100%). Progress checklist dihitung dari rata-rata status
   tiap dokumen (Not Started=0%, Drafting=30%, Under Review=70%, Completed=100%), lalu otomatis
@@ -152,8 +158,32 @@ Buka `http://localhost:3000` — kamu akan diarahkan ke halaman login dulu.
   nyambung.
 - Halaman: **`/`** dashboard ringkasan, **`/projects`** daftar semua project, **`/projects/new`**
   tambah project, **`/projects/[id]`** detail (ringkasan, jadwal, deskripsi teknis, checklist,
-  komentar), **`/engineering-docs`** semua dokumen checklist lintas-project, **`/activity`** log
-  aktivitas, **`/login`** halaman masuk.
+  komentar), **`/engineering-docs`** semua dokumen checklist lintas-project, **`/documents`**
+  Generator Dokumen (Commissioning & Handover), **`/activity`** log aktivitas, **`/login`** halaman
+  masuk.
+
+## Generator Dokumen
+
+`/documents` menghasilkan Commissioning Report & Handover Report dari template Google Docs yang
+sama seperti tool lama kamu (repo `Dokumen-Generator-PT-Bening-Khatulistiwa`) -- **kedua script
+Apps Script di repo itu sengaja tidak diubah sama sekali**, masih memakai template & folder Drive
+yang sama seperti sebelumnya. Yang baru cuma cara memanggilnya:
+
+- Dulu: halaman HTML statis memanggil kedua URL Apps Script itu langsung dari browser (URL-nya
+  kelihatan siapa saja yang buka "View Source", tanpa login).
+- Sekarang: `pages/api/docgen.js` yang memanggil dari server, sesudah memastikan ada sesi login.
+  URL asli (`DOCGEN_COMMISSIONING_URL` / `DOCGEN_HANDOVER_URL`) tidak pernah dikirim ke browser.
+- Kalau form dibuka dari tombol "Buat Dokumen" di suatu project (bukan dari `/documents` langsung),
+  sesudah dokumennya jadi, `pages/api/docgen.js` otomatis memanggil `updateChecklist` (aksi yang
+  sama seperti dipakai `/api/gas`) untuk menyimpan link + mengubah status checklist itu jadi
+  "Under Review" -- tanpa perlu copy-paste link secara manual lagi.
+- Field yang dikenali kedua script itu (nama, satuan, dsb.) didefinisikan di `lib/docgen/schema.js`.
+  Kalau kamu ubah template Google Docs-nya (menambah/menghapus `{{PLACEHOLDER}}`), sesuaikan juga
+  field yang bersangkutan di file ini dan payload yang dikirim `pages/documents/*/new.js` --
+  tiga-tiganya (template, Code.gs script generator, dan schema.js ini) harus tetap sinkron.
+- Kalau suatu saat kamu redeploy ulang salah satu script Generator Dokumen (Deploy > New
+  deployment, bukan cuma edit versi lama), URL Web App-nya berubah -- update
+  `DOCGEN_COMMISSIONING_URL` / `DOCGEN_HANDOVER_URL` di Vercel & `.env.local`.
 
 ## Kalau nama sheet kamu berubah
 Buka `apps-script/Code.gs`, ubah dua baris di paling atas:
