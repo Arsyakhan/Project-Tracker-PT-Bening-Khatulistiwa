@@ -14,6 +14,14 @@ function draftKey(projectId) {
   return `bk_docgen_ho_draft_${projectId || 'standalone'}`;
 }
 
+function prefillFrom(project) {
+  return {
+    project_name: project.projectName || '',
+    buyer_company: project.client || '',
+    po_number: project.poNumber || '',
+  };
+}
+
 export default function NewHandoverReport() {
   const router = useRouter();
   const { projectId } = router.query;
@@ -22,62 +30,71 @@ export default function NewHandoverReport() {
   const [projects, setProjects] = useState(null);
   const [linkedProject, setLinkedProject] = useState(null);
   const [form, setForm] = useState(buildHandoverEmpty);
+  const [initialized, setInitialized] = useState(false);
   const [invalidFields, setInvalidFields] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState(null);
   const fieldRefs = useRef({});
+  const activeKey = useRef(null); // kunci localStorage untuk draft yang sedang aktif
+  const dirty = useRef(false); // draft baru disimpan setelah pengguna benar-benar mengedit
 
   useEffect(() => {
-    api.getProjects().then(setProjects).catch(() => {});
+    // Kalau daftar project gagal dimuat, tetap lanjut (tanpa prefill) supaya form tidak macet.
+    api.getProjects().then(setProjects).catch(() => setProjects([]));
   }, []);
 
+  // Inisialisasi form SEKALI per project: pulihkan draft kalau ada, kalau tidak isi dari data project.
   useEffect(() => {
     if (!router.isReady) return;
+    if (projectId && projects === null) return; // tunggu daftar project supaya prefill bisa jalan
     const key = draftKey(projectId);
+    if (activeKey.current === key) return;
+    activeKey.current = key;
+
     let saved = null;
     try {
       const raw = window.localStorage.getItem(key);
       if (raw) saved = JSON.parse(raw);
     } catch {}
 
-    if (saved) {
-      setForm(saved);
-    } else if (projectId && projects) {
-      const p = projects.find((pr) => pr.id === projectId);
-      if (p) {
-        setLinkedProject(p);
-        setForm((f) => ({ ...f, project_name: p.projectName || '', buyer_company: p.client || '', po_number: p.poNumber || '' }));
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const p = projectId && projects ? projects.find((pr) => pr.id === projectId) || null : null;
+    setLinkedProject(p);
+    if (saved) setForm({ ...buildHandoverEmpty(), ...saved });
+    else if (p) setForm({ ...buildHandoverEmpty(), ...prefillFrom(p) });
+    else setForm(buildHandoverEmpty());
+    dirty.current = false;
+    setInitialized(true);
   }, [router.isReady, projectId, projects]);
 
+  // Simpan draft otomatis, tapi HANYA setelah pengguna mengedit -- supaya form kosong / hasil
+  // prefill awal tidak ikut tersimpan lalu menimpa prefill di kunjungan berikutnya.
   useEffect(() => {
-    if (projectId && projects && !linkedProject) {
-      const p = projects.find((pr) => pr.id === projectId);
-      if (p) setLinkedProject(p);
-    }
-  }, [projectId, projects, linkedProject]);
-
-  useEffect(() => {
-    if (!router.isReady) return;
+    if (!dirty.current || !activeKey.current) return;
     try {
-      window.localStorage.setItem(draftKey(projectId), JSON.stringify(form));
+      window.localStorage.setItem(activeKey.current, JSON.stringify(form));
     } catch {}
-  }, [form, projectId, router.isReady]);
+  }, [form]);
 
   function update(id, value) {
+    dirty.current = true;
     setForm((f) => ({ ...f, [id]: value }));
     setInvalidFields((v) => (v[id] ? { ...v, [id]: false } : v));
   }
 
   function selectProject(p) {
+    activeKey.current = draftKey(p.id); // supaya efek inisialisasi tidak menimpa form yang sedang diisi
     setLinkedProject(p);
-    setForm((f) => ({ ...f, project_name: p.projectName || f.project_name, buyer_company: p.client || f.buyer_company, po_number: p.poNumber || f.po_number }));
+    setForm((f) => ({
+      ...f,
+      project_name: p.projectName || f.project_name,
+      buyer_company: p.client || f.buyer_company,
+      po_number: p.poNumber || f.po_number,
+    }));
     router.replace({ pathname: router.pathname, query: { projectId: p.id } }, undefined, { shallow: true });
   }
 
   function unlinkProject() {
+    activeKey.current = draftKey(null);
     setLinkedProject(null);
     router.replace({ pathname: router.pathname, query: {} }, undefined, { shallow: true });
   }
@@ -103,7 +120,8 @@ export default function NewHandoverReport() {
         checklistItem: 'Handover Report',
       });
       setResult(data);
-      try { window.localStorage.removeItem(draftKey(projectId)); } catch {}
+      dirty.current = false;
+      try { window.localStorage.removeItem(activeKey.current || draftKey(projectId)); } catch {}
       showToast('Dokumen Hand Over berhasil dibuat.', 'success');
     } catch (err) {
       showToast(err.message, 'error');
@@ -113,8 +131,10 @@ export default function NewHandoverReport() {
   }
 
   function startAnother() {
-    setForm(buildHandoverEmpty());
+    dirty.current = false;
     setResult(null);
+    setInvalidFields({});
+    setForm(linkedProject ? { ...buildHandoverEmpty(), ...prefillFrom(linkedProject) } : buildHandoverEmpty());
   }
 
   return (
@@ -127,7 +147,9 @@ export default function NewHandoverReport() {
       </div>
       <h1 className="font-display text-2xl font-bold text-ink">Handover Report</h1>
 
-      {result ? (
+      {!initialized ? (
+        <p className="text-sm text-inkmute">Memuat data project...</p>
+      ) : result ? (
         <section className="bg-panel border border-teal/30 rounded-lg p-6 flex flex-col gap-4">
           <div className="flex items-center gap-2 text-teal font-display font-semibold text-lg">
             <span className="w-8 h-8 rounded-full bg-teal/15 flex items-center justify-center">&#10003;</span>
@@ -169,13 +191,13 @@ export default function NewHandoverReport() {
           <section className="bg-panel border border-line rounded-lg p-6 flex flex-col gap-4">
             <h2 className="font-display font-semibold text-ink">Data Administrasi</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div ref={(el) => (fieldRefs.current.project_name = el?.querySelector('input'))}>
+              <div ref={(el) => { fieldRefs.current.project_name = el?.querySelector('input'); }}>
                 <TextField label="Project Name (Nama File)" id="project_name" value={form.project_name} placeholder="ex: Percobaan / WTP Kebumen" onChange={update} required invalid={invalidFields.project_name} />
               </div>
-              <div ref={(el) => (fieldRefs.current.system_title = el?.querySelector('input'))}>
+              <div ref={(el) => { fieldRefs.current.system_title = el?.querySelector('input'); }}>
                 <TextField label="System Title" id="system_title" value={form.system_title} placeholder="ex: WTP 500 CMD" onChange={update} required invalid={invalidFields.system_title} />
               </div>
-              <div ref={(el) => (fieldRefs.current.buyer_company = el?.querySelector('input'))}>
+              <div ref={(el) => { fieldRefs.current.buyer_company = el?.querySelector('input'); }}>
                 <TextField label="Buyer Company Name" id="buyer_company" value={form.buyer_company} placeholder="ex: PT Laut Bercerita" onChange={update} required invalid={invalidFields.buyer_company} />
               </div>
               <TextField label="Contractor Name" id="contractor_name" value={form.contractor_name} onChange={update} />
