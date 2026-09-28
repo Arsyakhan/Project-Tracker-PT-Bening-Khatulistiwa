@@ -1,232 +1,63 @@
-import { useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/router';
 import Link from 'next/link';
-import { api } from '../../../lib/api';
-import { useToast } from '../../../components/Toast';
-import PageHead from '../../../components/PageHead';
-import ProjectPicker from '../../../components/docgen/ProjectPicker';
-import { TextField, ToggleSection } from '../../../components/docgen/DocFormControls';
-import { HANDOVER_SECTIONS, buildHandoverEmpty } from '../../../lib/docgen/schema';
+import PageHead from '../../components/PageHead';
 
-const REQUIRED = ['project_name', 'system_title', 'buyer_company'];
+// Class Tailwind ditulis penuh per kartu (bukan digabung lewat template string)
+// supaya kedeteksi compiler JIT-nya Tailwind saat build.
+const DOC_TYPES = [
+  {
+    href: '/documents/commissioning/new',
+    title: 'Commissioning Report',
+    desc: 'Berita acara commissioning: checklist instalasi, setting P&ID, dan hasil pengujian sistem.',
+    cardClass: 'hover:border-blueprint',
+    iconClass: 'bg-blueprint/10 text-blueprint',
+    linkClass: 'text-blueprint',
+  },
+  {
+    href: '/documents/handover/new',
+    title: 'Handover Report',
+    desc: 'Serah terima unit ke klien: daftar lengkap equipment yang terpasang per modul (RO, UF, Softener, dll).',
+    cardClass: 'hover:border-teal',
+    iconClass: 'bg-teal/10 text-teal',
+    linkClass: 'text-teal',
+  },
+];
 
-function draftKey(projectId) {
-  return `bk_docgen_ho_draft_${projectId || 'standalone'}`;
-}
-
-function prefillFrom(project) {
-  return {
-    project_name: project.projectName || '',
-    buyer_company: project.client || '',
-    po_number: project.poNumber || '',
-  };
-}
-
-export default function NewHandoverReport() {
-  const router = useRouter();
-  const { projectId } = router.query;
-  const { showToast } = useToast();
-
-  const [projects, setProjects] = useState(null);
-  const [linkedProject, setLinkedProject] = useState(null);
-  const [form, setForm] = useState(buildHandoverEmpty);
-  const [initialized, setInitialized] = useState(false);
-  const [invalidFields, setInvalidFields] = useState({});
-  const [submitting, setSubmitting] = useState(false);
-  const [result, setResult] = useState(null);
-  const fieldRefs = useRef({});
-  const activeKey = useRef(null); // kunci localStorage untuk draft yang sedang aktif
-  const dirty = useRef(false); // draft baru disimpan setelah pengguna benar-benar mengedit
-
-  useEffect(() => {
-    // Kalau daftar project gagal dimuat, tetap lanjut (tanpa prefill) supaya form tidak macet.
-    api.getProjects().then(setProjects).catch(() => setProjects([]));
-  }, []);
-
-  // Inisialisasi form SEKALI per project: pulihkan draft kalau ada, kalau tidak isi dari data project.
-  useEffect(() => {
-    if (!router.isReady) return;
-    if (projectId && projects === null) return; // tunggu daftar project supaya prefill bisa jalan
-    const key = draftKey(projectId);
-    if (activeKey.current === key) return;
-    activeKey.current = key;
-
-    let saved = null;
-    try {
-      const raw = window.localStorage.getItem(key);
-      if (raw) saved = JSON.parse(raw);
-    } catch {}
-
-    const p = projectId && projects ? projects.find((pr) => pr.id === projectId) || null : null;
-    setLinkedProject(p);
-    if (saved) setForm({ ...buildHandoverEmpty(), ...saved });
-    else if (p) setForm({ ...buildHandoverEmpty(), ...prefillFrom(p) });
-    else setForm(buildHandoverEmpty());
-    dirty.current = false;
-    setInitialized(true);
-  }, [router.isReady, projectId, projects]);
-
-  // Simpan draft otomatis, tapi HANYA setelah pengguna mengedit -- supaya form kosong / hasil
-  // prefill awal tidak ikut tersimpan lalu menimpa prefill di kunjungan berikutnya.
-  useEffect(() => {
-    if (!dirty.current || !activeKey.current) return;
-    try {
-      window.localStorage.setItem(activeKey.current, JSON.stringify(form));
-    } catch {}
-  }, [form]);
-
-  function update(id, value) {
-    dirty.current = true;
-    setForm((f) => ({ ...f, [id]: value }));
-    setInvalidFields((v) => (v[id] ? { ...v, [id]: false } : v));
-  }
-
-  function selectProject(p) {
-    activeKey.current = draftKey(p.id); // supaya efek inisialisasi tidak menimpa form yang sedang diisi
-    setLinkedProject(p);
-    setForm((f) => ({
-      ...f,
-      project_name: p.projectName || f.project_name,
-      buyer_company: p.client || f.buyer_company,
-      po_number: p.poNumber || f.po_number,
-    }));
-    router.replace({ pathname: router.pathname, query: { projectId: p.id } }, undefined, { shallow: true });
-  }
-
-  function unlinkProject() {
-    activeKey.current = draftKey(null);
-    setLinkedProject(null);
-    router.replace({ pathname: router.pathname, query: {} }, undefined, { shallow: true });
-  }
-
-  async function handleSubmit() {
-    const bad = {};
-    REQUIRED.forEach((id) => { if (!String(form[id] || '').trim()) bad[id] = true; });
-    if (Object.keys(bad).length > 0) {
-      setInvalidFields(bad);
-      const firstId = REQUIRED.find((id) => bad[id]);
-      fieldRefs.current[firstId]?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
-      fieldRefs.current[firstId]?.focus?.();
-      showToast('Ada field wajib (*) yang belum diisi.', 'error');
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      const data = await api.generateDocument({
-        type: 'handover',
-        payload: form,
-        projectId: linkedProject?.id,
-        checklistItem: 'Handover Report',
-      });
-      setResult(data);
-      dirty.current = false;
-      try { window.localStorage.removeItem(activeKey.current || draftKey(projectId)); } catch {}
-      showToast('Dokumen Hand Over berhasil dibuat.', 'success');
-    } catch (err) {
-      showToast(err.message, 'error');
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  function startAnother() {
-    dirty.current = false;
-    setResult(null);
-    setInvalidFields({});
-    setForm(linkedProject ? { ...buildHandoverEmpty(), ...prefillFrom(linkedProject) } : buildHandoverEmpty());
-  }
-
+export default function DocumentsHome() {
   return (
-    <div className="max-w-3xl flex flex-col gap-5 pb-28">
-      <PageHead title="Buat Handover Report" />
-      <div className="flex items-center gap-2 text-sm text-inkmute">
-        <Link href="/documents" className="hover:text-blueprint hover:underline">Generator Dokumen</Link>
-        <span>/</span>
-        <span className="text-ink font-medium">Handover Report</span>
+    <div className="flex flex-col gap-6">
+      <PageHead title="Generator Dokumen" />
+      <div>
+        <h1 className="font-display text-2xl font-bold text-ink">Generator Dokumen</h1>
+        <p className="text-inkmute text-sm mt-1">
+          Buat Commissioning Report atau Handover Report. Pilih project dulu di halaman berikutnya supaya PO
+          Number, Nama Project, dan Client terisi otomatis -- atau lewati kalau dokumennya tidak terkait project
+          yang tercatat di sini.
+        </p>
       </div>
-      <h1 className="font-display text-2xl font-bold text-ink">Handover Report</h1>
 
-      {!initialized ? (
-        <p className="text-sm text-inkmute">Memuat data project...</p>
-      ) : result ? (
-        <section className="bg-panel border border-teal/30 rounded-lg p-6 flex flex-col gap-4">
-          <div className="flex items-center gap-2 text-teal font-display font-semibold text-lg">
-            <span className="w-8 h-8 rounded-full bg-teal/15 flex items-center justify-center">&#10003;</span>
-            Dokumen berhasil dibuat
-          </div>
-          <a href={result.documentUrl} target="_blank" rel="noreferrer" className="inline-flex w-fit items-center gap-2 px-4 py-2.5 rounded-md bg-blueprint hover:bg-blueprintdark text-white text-sm font-medium transition-colors">
-            Buka Dokumen
-          </a>
-          {linkedProject && (
-            <p className="text-sm text-inkmute">
-              {result.checklistUpdated
-                ? <>Link & status checklist "Handover Report" pada project <b className="text-ink">{linkedProject.projectName}</b> sudah diperbarui otomatis (jadi "Under Review").</>
-                : <>Dokumen berhasil dibuat, tapi update otomatis ke checklist project gagal -- tempel link di atas secara manual ke tab Checklist Engineering.</>}
-            </p>
-          )}
-          <div className="flex gap-3 pt-2 border-t border-line mt-1">
-            {linkedProject && (
-              <Link href={`/projects/${encodeURIComponent(linkedProject.id)}`} className="text-sm font-medium text-blueprint hover:underline">
-                &larr; Kembali ke project
-              </Link>
-            )}
-            <button onClick={startAnother} className="text-sm font-medium text-inkmute hover:text-ink">Buat dokumen lain</button>
-          </div>
-        </section>
-      ) : (
-        <>
-          {linkedProject ? (
-            <div className="bg-blueprint/10 border border-blueprint/30 rounded-lg px-4 py-3 flex items-center justify-between gap-3 text-sm">
-              <span>Membuat dokumen untuk: <b className="text-ink">{linkedProject.projectName}</b> -- PO Number & Buyer sudah terisi otomatis.</span>
-              <button onClick={unlinkProject} className="text-inkmute hover:text-rust font-medium whitespace-nowrap">Lepas dari project</button>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        {DOC_TYPES.map((d) => (
+          <Link
+            key={d.href}
+            href={d.href}
+            className={`group bg-panel border border-line rounded-xl p-6 shadow-sm hover:shadow-md transition-all flex flex-col gap-3 ${d.cardClass}`}
+          >
+            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${d.iconClass}`}>
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+              </svg>
             </div>
-          ) : (
-            <div className="bg-panel border border-line rounded-lg p-4 flex flex-col gap-2">
-              <span className="text-sm font-medium text-ink">Kaitkan ke project yang sudah tercatat? (opsional)</span>
-              <ProjectPicker projects={projects} onSelect={selectProject} />
-            </div>
-          )}
-
-          <section className="bg-panel border border-line rounded-lg p-6 flex flex-col gap-4">
-            <h2 className="font-display font-semibold text-ink">Data Administrasi</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div ref={(el) => { fieldRefs.current.project_name = el?.querySelector('input'); }}>
-                <TextField label="Project Name (Nama File)" id="project_name" value={form.project_name} placeholder="ex: Percobaan / WTP Kebumen" onChange={update} required invalid={invalidFields.project_name} />
-              </div>
-              <div ref={(el) => { fieldRefs.current.system_title = el?.querySelector('input'); }}>
-                <TextField label="System Title" id="system_title" value={form.system_title} placeholder="ex: WTP 500 CMD" onChange={update} required invalid={invalidFields.system_title} />
-              </div>
-              <div ref={(el) => { fieldRefs.current.buyer_company = el?.querySelector('input'); }}>
-                <TextField label="Buyer Company Name" id="buyer_company" value={form.buyer_company} placeholder="ex: PT Laut Bercerita" onChange={update} required invalid={invalidFields.buyer_company} />
-              </div>
-              <TextField label="Contractor Name" id="contractor_name" value={form.contractor_name} onChange={update} />
-              <TextField label="PO Reference No" id="po_number" value={form.po_number} placeholder="ex: 09/10/200" onChange={update} />
-              <TextField label="Location of Plant" id="location" value={form.location} placeholder="ex: Kebumen, Jawa Tengah" onChange={update} />
-            </div>
-          </section>
-
-          <section className="flex flex-col gap-3">
-            <div className="flex items-center justify-between">
-              <h2 className="font-display font-semibold text-ink">Modul Equipment</h2>
-              <span className="text-xs text-inkmute">Centang modul yang ada, isi spesifikasinya.</span>
-            </div>
-            {HANDOVER_SECTIONS.map((section) => (
-              <ToggleSection key={section.key} section={section} values={form} onChange={update} />
-            ))}
-          </section>
-
-          <div className="fixed bottom-0 left-0 right-0 md:left-60 bg-panel border-t border-line px-6 py-4 flex justify-end z-20">
-            <button
-              onClick={handleSubmit}
-              disabled={submitting}
-              className="bg-blueprint hover:bg-blueprintdark text-white rounded-md px-6 py-2.5 font-medium disabled:opacity-60 transition-colors"
-            >
-              {submitting ? 'Membuat dokumen...' : 'Generate Hand Over Document'}
-            </button>
-          </div>
-        </>
-      )}
+            <h2 className="font-display font-semibold text-lg text-ink">{d.title}</h2>
+            <p className="text-sm text-inkmute leading-relaxed">{d.desc}</p>
+            <span className={`text-sm font-medium mt-auto pt-2 inline-flex items-center gap-1 group-hover:gap-2 transition-all ${d.linkClass}`}>
+              Buat dokumen
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 8.25L21 12m0 0l-3.75 3.75M21 12H3" />
+              </svg>
+            </span>
+          </Link>
+        ))}
+      </div>
     </div>
   );
 }
