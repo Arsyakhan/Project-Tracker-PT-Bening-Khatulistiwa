@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { api } from '../lib/api';
+import { useState } from 'react';
+import useProjects from '../lib/useProjects';
 import StatCard from '../components/StatCard';
 import StatusPie from '../components/StatusPie';
 import ProgressChart from '../components/ProgressChart';
@@ -8,25 +8,12 @@ import ProjectTable from '../components/ProjectTable';
 import { SkeletonStatCards, SkeletonPanel, SkeletonTable } from '../components/Skeleton';
 import PageHead from '../components/PageHead';
 import AttentionPanel from '../components/AttentionPanel';
+import RefreshStatus from '../components/RefreshStatus';
 
 export default function Dashboard() {
-  const [projects, setProjects] = useState(null);
-  const [error, setError] = useState(null);
+  // Data terakhir langsung tampil (kalau ada), lalu disegarkan di belakang layar.
+  const { projects, error, staleError, refreshing } = useProjects();
   const [activeTab, setActiveTab] = useState('preDelivery');
-
-  async function load() {
-    try {
-      // Dulu di sini juga memanggil api.getDashboard(), yang di baliknya membaca
-      // ulang seluruh sheet lagi. Sekarang dihitung dari "projects" yang sudah
-      // diambil, jadi buka Dashboard cuma perlu 1x ambil data, bukan 2x.
-      const p = await api.getProjects();
-      setProjects(p);
-    } catch (err) {
-      setError(err.message);
-    }
-  }
-
-  useEffect(() => { load(); }, []);
 
   if (error) {
     return (
@@ -72,7 +59,10 @@ export default function Dashboard() {
   return (
     <div className="flex flex-col gap-6">
       <PageHead title="Dashboard" />
-      <h1 className="font-display text-2xl font-semibold text-ink">Dashboard Progress</h1>
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
+        <h1 className="font-display text-2xl font-semibold text-ink">Dashboard Progress</h1>
+        <RefreshStatus refreshing={refreshing} staleError={staleError} />
+      </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard label="Total Project" value={dashboard.total} accent="#0C2D48" />
