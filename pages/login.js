@@ -1,11 +1,19 @@
+import { useEffect } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Image from 'next/image';
+import { clearAllCache } from '../lib/persistedCache';
 
 export default function Login() {
   const router = useRouter();
   const { error } = router.query;
+
+  // Halaman login = belum/tidak lagi login (keluar atau sesi habis). Buang data tersimpan di
+  // browser supaya tidak terlihat oleh siapa pun yang login berikutnya di perangkat ini.
+  useEffect(() => {
+    clearAllCache();
+  }, []);
 
   const errorMessage =
     error === 'AccessDenied'
