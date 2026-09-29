@@ -1,21 +1,20 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { api } from '../lib/api';
 import { STAGE_WEIGHTS } from '../lib/stages';
+import useProjects from '../lib/useProjects';
+import RefreshStatus from '../components/RefreshStatus';
 import KanbanBoard from '../components/KanbanBoard';
 import PageHead from '../components/PageHead';
 import { SkeletonPanel } from '../components/Skeleton';
 import { useToast } from '../components/Toast';
 
 export default function BoardPage() {
-  const [projects, setProjects] = useState(null);
-  const [error, setError] = useState(null);
+  // mutate = ubah data lokal (update optimis). Setelah itu, hasil penyegaran yang datang
+  // belakangan tidak menimpa kartu yang baru dipindah.
+  const { projects, mutate: setProjects, error, staleError, refreshing } = useProjects();
   const [query, setQuery] = useState('');
   const [savingId, setSavingId] = useState(null);
   const { showToast } = useToast();
-
-  useEffect(() => {
-    api.getProjects().then(setProjects).catch((e) => setError(e.message));
-  }, []);
 
   const filtered = useMemo(() => {
     if (!projects) return [];
@@ -104,9 +103,12 @@ export default function BoardPage() {
         </div>
       ) : (
         <>
-          <p className="text-xs text-inkmute">
-            Menampilkan {filtered.length} dari {projects.length} project
-          </p>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-xs text-inkmute">
+              Menampilkan {filtered.length} dari {projects.length} project
+            </p>
+            <RefreshStatus refreshing={refreshing} staleError={staleError} />
+          </div>
           <KanbanBoard projects={filtered} busy={!!savingId} onMove={handleMove} />
         </>
       )}
