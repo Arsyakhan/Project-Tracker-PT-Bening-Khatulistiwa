@@ -7,6 +7,7 @@ import Timeline from '../components/Timeline';
 import ProjectTable from '../components/ProjectTable';
 import { SkeletonStatCards, SkeletonPanel, SkeletonTable } from '../components/Skeleton';
 import PageHead from '../components/PageHead';
+import AttentionPanel from '../components/AttentionPanel';
 
 export default function Dashboard() {
   const [projects, setProjects] = useState(null);
@@ -79,6 +80,8 @@ export default function Dashboard() {
         <StatCard label="Delivered" value={dashboard.delivered} accent="#009688" />
         <StatCard label="Completed" value={dashboard.completed} accent="#4A7291" />
       </div>
+
+      <AttentionPanel projects={projects} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <div className="col-span-1">
