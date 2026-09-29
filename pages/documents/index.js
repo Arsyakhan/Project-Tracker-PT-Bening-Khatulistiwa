@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { api } from '../../lib/api';
 import PageHead from '../../components/PageHead';
+import RefreshStatus from '../../components/RefreshStatus';
+import useCachedResource from '../../lib/useCachedResource';
 
 // Class Tailwind ditulis penuh per kartu (bukan digabung lewat template string)
 // supaya kedeteksi compiler JIT-nya Tailwind saat build.
@@ -39,14 +41,10 @@ function formatWhen(ts) {
 
 // Riwayat semua dokumen yang pernah dibuat lewat halaman ini (dari tab "Document Log").
 function DocumentHistory() {
-  const [docs, setDocs] = useState(null);
-  const [error, setError] = useState(null);
+  // Riwayat terakhir langsung tampil (kalau ada), lalu disegarkan di belakang layar.
+  const { data: docs, error, staleError, refreshing } = useCachedResource('documents', () => api.getDocuments());
   const [query, setQuery] = useState('');
   const [showAll, setShowAll] = useState(false);
-
-  useEffect(() => {
-    api.getDocuments().then(setDocs).catch((e) => setError(e.message));
-  }, []);
 
   const filtered = useMemo(() => {
     if (!docs) return [];
@@ -82,6 +80,8 @@ function DocumentHistory() {
           />
         )}
       </div>
+
+      <RefreshStatus refreshing={refreshing && !!docs} staleError={staleError} />
 
       {error ? (
         <div className="bg-panel border border-line rounded-lg p-4 text-sm text-rust">
