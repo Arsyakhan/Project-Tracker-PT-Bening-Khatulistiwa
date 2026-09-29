@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { api } from '../../lib/api';
+import useProjects from '../../lib/useProjects';
+import RefreshStatus from '../../components/RefreshStatus';
 import ProjectTable from '../../components/ProjectTable';
 import { SkeletonTable } from '../../components/Skeleton';
 import PageHead from '../../components/PageHead';
@@ -8,16 +9,12 @@ import { useToast } from '../../components/Toast';
 import { downloadProjectsCsv } from '../../lib/exportCsv';
 
 export default function ProjectsPage() {
-  const [projects, setProjects] = useState(null);
-  const [error, setError] = useState(null);
+  // Data terakhir langsung tampil (kalau ada), lalu disegarkan di belakang layar.
+  const { projects, error, staleError, refreshing } = useProjects();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [priorityFilter, setPriorityFilter] = useState('');
   const { showToast } = useToast();
-
-  useEffect(() => {
-    api.getProjects().then(setProjects).catch((e) => setError(e.message));
-  }, []);
 
   const { statusOptions, priorityOptions } = useMemo(() => {
     if (!projects) return { statusOptions: [], priorityOptions: [] };
@@ -114,6 +111,8 @@ export default function ProjectsPage() {
             Reset filter
           </button>
         )}
+
+        <RefreshStatus refreshing={refreshing} staleError={staleError} />
 
         <span className="text-xs text-inkmute ml-auto">
           Menampilkan {filteredProjects.length} dari {projects.length} project
