@@ -12,6 +12,9 @@
 // berhasil dibuat, route ini otomatis memanggil action "updateChecklist" yang sudah
 // ada di backend Project Tracker (GAS_API_URL) untuk menyimpan link + mengubah status
 // checklist jadi "Under Review" -- tanpa perlu bolak-balik lagi ke browser.
+//
+// Tambahan lain: SETIAP dokumen yang berhasil dibuat (dengan atau tanpa projectId) dicatat
+// ke tab "Document Log" lewat action "logDocument". GET /api/docgen membaca riwayat itu.
 
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from './auth/[...nextauth]';
@@ -44,17 +47,69 @@ async function readJsonSafely(r) {
   }
 }
 
+// Panggil backend Project Tracker (Apps Script) dari server. Tidak pernah melempar error:
+// kalau gagal, hasilnya null dan penyebabnya dicatat di log Vercel.
+async function callGasPost(gasUrl, gasToken, action, payload, timeoutMs) {
+  try {
+    const r = await fetch(gasUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action, token: gasToken, payload }),
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    const json = await readJsonSafely(r);
+    if (!json) console.error(`Respons ${action} bukan JSON. Status:`, r.status);
+    else if (!json.ok) console.error(`Gagal ${action}:`, json.error);
+    return json;
+  } catch (err) {
+    console.error(`Panggil ${action} gagal:`, err);
+    return null;
+  }
+}
+
+// GET: riwayat dokumen (opsional ?projectId=...)
+async function handleList(req, res) {
+  const gasUrl = process.env.GAS_API_URL;
+  const gasToken = process.env.GAS_API_TOKEN;
+  if (!gasUrl || !gasToken) {
+    console.error('GAS_API_URL / GAS_API_TOKEN belum diset di Environment Variables.');
+    return fail(res, 500, 'Server belum dikonfigurasi (GAS_API_URL / GAS_API_TOKEN).');
+  }
+  try {
+    const url = new URL(gasUrl);
+    url.searchParams.set('action', 'documents');
+    url.searchParams.set('token', gasToken);
+    if (typeof req.query.projectId === 'string' && req.query.projectId) {
+      url.searchParams.set('projectId', req.query.projectId);
+    }
+    const r = await fetch(url.toString(), { cache: 'no-store', signal: AbortSignal.timeout(TIMEOUT_MS) });
+    const json = await readJsonSafely(r);
+    if (!json) return fail(res, 502, 'Backend (Apps Script) memberi respons tidak valid. Cek deployment-nya.');
+    if (!json.ok && json.error === 'Unauthorized') {
+      console.error('Apps Script menolak token. GAS_API_TOKEN di Vercel tidak sama dengan API_TOKEN di Script Properties.');
+      return fail(res, 502, 'Token backend tidak cocok. Hubungi admin.');
+    }
+    return res.status(200).json(json);
+  } catch (err) {
+    const timedOut = err?.name === 'TimeoutError' || err?.name === 'AbortError';
+    console.error('Ambil riwayat dokumen gagal:', err);
+    return fail(res, timedOut ? 504 : 502, timedOut ? 'Backend terlalu lama merespons. Coba lagi.' : 'Tidak bisa menghubungi backend.');
+  }
+}
+
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
 
-  if (req.method !== 'POST') {
-    res.setHeader('Allow', 'POST');
+  if (req.method !== 'POST' && req.method !== 'GET') {
+    res.setHeader('Allow', 'GET, POST');
     return fail(res, 405, 'Method tidak diizinkan.');
   }
 
   const session = await getServerSession(req, res, authOptions);
   const email = session?.user?.email;
   if (!email) return fail(res, 401, 'Sesi habis. Silakan login lagi.');
+
+  if (req.method === 'GET') return handleList(req, res);
 
   const body = req.body;
   if (!body || typeof body !== 'object') return fail(res, 400, 'Body harus JSON.');
@@ -98,43 +153,61 @@ export default async function handler(req, res) {
     return fail(res, 502, docJson.message || 'Gagal membuat dokumen.');
   }
 
-  const result = { documentUrl: docJson.documentUrl, fileName: docJson.fileName || '', checklistUpdated: false };
+  const result = {
+    documentUrl: docJson.documentUrl,
+    fileName: docJson.fileName || '',
+    checklistUpdated: false,
+    logged: false,
+  };
 
-  // 2) Kalau ada projectId, simpan link + status ke Checklist Engineering secara otomatis
-  //    lewat backend Project Tracker yang sudah ada (GAS_API_URL / GAS_API_TOKEN).
-  const item = checklistItem || CHECKLIST_ITEM_BY_TYPE[type];
-  if (projectId && item) {
-    const gasUrl = process.env.GAS_API_URL;
-    const gasToken = process.env.GAS_API_TOKEN;
-    if (!gasUrl || !gasToken) {
-      console.error('GAS_API_URL / GAS_API_TOKEN belum diset -- link dokumen tidak otomatis tersimpan ke checklist.');
-    } else {
-      try {
-        const clRes = await fetch(gasUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({
-            action: 'updateChecklist',
-            token: gasToken,
-            payload: {
+  // 2) Setelah dokumen jadi, dua hal dikerjakan bersamaan lewat backend Project Tracker
+  //    (GAS_API_URL / GAS_API_TOKEN). Keduanya "best effort": kalau gagal, dokumennya
+  //    tetap berhasil dibuat dan link-nya tetap dikembalikan ke browser.
+  //    a) logDocument     : catat ke tab "Document Log" (selalu, termasuk dokumen tanpa project)
+  //    b) updateChecklist : hanya kalau ada projectId -> simpan link + status "Under Review"
+  const gasUrl = process.env.GAS_API_URL;
+  const gasToken = process.env.GAS_API_TOKEN;
+  if (!gasUrl || !gasToken) {
+    console.error('GAS_API_URL / GAS_API_TOKEN belum diset -- dokumen tidak dicatat & link tidak tersimpan ke checklist.');
+  } else {
+    const item = checklistItem || CHECKLIST_ITEM_BY_TYPE[type];
+
+    const logTask = callGasPost(
+      gasUrl,
+      gasToken,
+      'logDocument',
+      {
+        docType: type,
+        fileName: result.fileName,
+        documentUrl: result.documentUrl,
+        poNumber: payload.po_number || '',
+        projectName: payload.project_name || payload.company_name || '',
+        projectId: projectId || '',
+        // "user" SELALU dari sesi server, sama seperti /api/gas.js.
+        user: email,
+      },
+      15000
+    );
+
+    const checklistTask =
+      projectId && item
+        ? callGasPost(
+            gasUrl,
+            gasToken,
+            'updateChecklist',
+            {
               projectId,
               items: { [item]: 'Under Review' },
               links: { [item]: docJson.documentUrl },
-              // "user" SELALU dari sesi server, sama seperti /api/gas.js.
               user: email,
             },
-          }),
-          signal: AbortSignal.timeout(TIMEOUT_MS),
-        });
-        const clJson = await readJsonSafely(clRes);
-        result.checklistUpdated = !!(clJson && clJson.ok);
-        if (clJson && !clJson.ok) console.error('Gagal update checklist otomatis:', clJson.error);
-      } catch (err) {
-        console.error('Panggil updateChecklist otomatis gagal:', err);
-        // Dokumennya sendiri tetap berhasil dibuat -- ini bukan kegagalan fatal, cuma
-        // berarti link-nya perlu ditempel manual di tab Checklist Engineering.
-      }
-    }
+            TIMEOUT_MS
+          )
+        : Promise.resolve(null);
+
+    const [logJson, clJson] = await Promise.all([logTask, checklistTask]);
+    result.logged = !!(logJson && logJson.ok);
+    result.checklistUpdated = !!(clJson && clJson.ok);
   }
 
   return res.status(200).json({ ok: true, data: result });
