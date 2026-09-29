@@ -1,203 +1,178 @@
-import { useMemo, useState } from 'react';
-import Link from 'next/link';
+import { useState, useMemo } from 'react';
 
-function compareValues(a, b, key) {
-  const av = a[key];
-  const bv = b[key];
-  if (av == null && bv == null) return 0;
-  if (av == null) return 1;
-  if (bv == null) return -1;
-  if (typeof av === 'number' && typeof bv === 'number') return av - bv;
-  return String(av).localeCompare(String(bv), 'id', { numeric: true });
-}
+export default function ProjectTable({ projects = [] }) {
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [picFilter, setPicFilter] = useState('');
 
-function SortIcon({ active, dir }) {
-  return (
-    <svg
-      className={`w-3 h-3 transition-transform ${active ? 'text-blueprint' : 'text-inkmute/40'} ${active && dir === 'desc' ? 'rotate-180' : ''}`}
-      fill="currentColor"
-      viewBox="0 0 20 20"
-    >
-      <path fillRule="evenodd" d="M10 3a1 1 0 01.707.293l3 3a1 1 0 01-1.414 1.414L10 5.414 7.707 7.707a1 1 0 01-1.414-1.414l3-3A1 1 0 0110 3zm-3.707 9.293a1 1 0 011.414 0L10 14.586l2.293-2.293a1 1 0 011.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
-    </svg>
-  );
-}
+  // Ekstrak data unik untuk dropdown filter
+  const uniqueStatuses = [...new Set(projects.map(p => p.status).filter(Boolean))];
+  const uniquePICs = [...new Set(projects.map(p => p.pic).filter(Boolean))];
 
-// Fungsi untuk memberi warna badge secara otomatis berdasarkan nama tahapan
-const getStageBadge = (stage) => {
-  const s = stage?.toLowerCase() || '';
-  if (s.includes('po') || s.includes('sos')) return 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700';
-  if (s.includes('procurement') || s.includes('collecting')) return 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950 dark:text-purple-300 dark:border-purple-800';
-  if (s.includes('fabrication')) return 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800';
-  if (s.includes('delivery')) return 'bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950 dark:text-orange-300 dark:border-orange-800';
-  if (s.includes('installation') || s.includes('commissioning')) return 'bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-950 dark:text-teal-300 dark:border-teal-800';
-  return 'bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700';
-};
+  // Logic filter & search
+  const filteredProjects = useMemo(() => {
+    return projects.filter(p => {
+      const matchSearch = 
+        (p.projectName && p.projectName.toLowerCase().includes(search.toLowerCase())) ||
+        (p.poNumber && p.poNumber.toLowerCase().includes(search.toLowerCase())) ||
+        (p.client && p.client.toLowerCase().includes(search.toLowerCase()));
+      
+      const matchStatus = statusFilter ? p.status === statusFilter : true;
+      const matchPIC = picFilter ? p.pic === picFilter : true;
+      
+      return matchSearch && matchStatus && matchPIC;
+    });
+  }, [projects, search, statusFilter, picFilter]);
 
-function DeliveryInfo({ p }) {
-  if (!p.deliveryDate) return <span className="text-inkmute">-</span>;
-  return (
-    <>
-      <span className="text-sm font-semibold text-ink">{p.deliveryDate}</span>
-      {p.stageProgress >= 100 ? (
-        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-[#4E7B5B]/10 text-[#4E7B5B] uppercase tracking-wide">
-          Selesai
-        </span>
-      ) : p.stageProgress >= 90 ? (
-        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-blueprint/10 text-blueprint uppercase tracking-wide">
-          Terkirim
-        </span>
-      ) : (
-        <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold ${p.daysRemaining < 0 ? 'bg-rust/10 text-rust border border-rust/20' : 'bg-canvas text-inkmute border border-line'}`}>
-          {p.daysRemaining < 0 ? `Terlewat ${Math.abs(p.daysRemaining)} hari` : `${p.daysRemaining} hari lagi`}
-        </span>
-      )}
-    </>
-  );
-}
-
-export default function ProjectTable({ projects }) {
-  const [sortKey, setSortKey] = useState(null);
-  const [sortDir, setSortDir] = useState('asc');
-
-  const sortedProjects = useMemo(() => {
-    if (!projects) return [];
-    if (!sortKey) return projects;
-    const sorted = [...projects].sort((a, b) => compareValues(a, b, sortKey));
-    return sortDir === 'asc' ? sorted : sorted.reverse();
-  }, [projects, sortKey, sortDir]);
-
-  function toggleSort(key) {
-    if (sortKey === key) {
-      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
-    } else {
-      setSortKey(key);
-      setSortDir('asc');
-    }
+  if (!projects.length) {
+    return <div className="text-sm text-inkmute py-8 text-center bg-panel border border-line rounded-lg">Tidak ada data project di tab ini.</div>;
   }
 
-  if (!projects || projects.length === 0) {
-    return <div className="p-6 text-center text-inkmute text-sm bg-panel rounded-lg border border-line">Tidak ada project yang ditemukan.</div>;
-  }
-
-  const columns = [
-    { key: 'poNumber', label: 'PO Number' },
-    { key: 'projectName', label: 'Project Name' },
-    { key: 'client', label: 'Client' },
-    { key: 'pic', label: 'PIC' },
-    { key: 'currentStage', label: 'Stage' },
-    { key: 'stageProgress', label: 'Progress' },
-    { key: 'deliveryDate', label: 'Delivery Target' },
-  ];
-
   return (
-    <>
-      {/* Tampilan Tabel - Desktop & Tablet */}
-      <div className="hidden md:block overflow-x-auto bg-panel rounded-xl border border-line shadow-sm">
-        <table className="w-full text-sm text-left whitespace-nowrap">
-          <thead className="text-[11px] text-inkmute uppercase bg-canvas/80 border-b border-line tracking-wider">
-            <tr>
-              {columns.map((col) => (
-                <th
-                  key={col.key}
-                  onClick={() => toggleSort(col.key)}
-                  className={`px-5 py-4 font-semibold cursor-pointer select-none hover:text-ink transition-colors ${col.key === 'stageProgress' ? 'min-w-[150px]' : ''} ${col.key === 'deliveryDate' ? 'text-right' : ''}`}
-                >
-                  <span className={`inline-flex items-center gap-1 ${col.key === 'deliveryDate' ? 'flex-row-reverse' : ''}`}>
-                    {col.label}
-                    <SortIcon active={sortKey === col.key} dir={sortDir} />
-                  </span>
-                </th>
-              ))}
-            </tr>
-          </thead>
+    <div className="flex flex-col gap-4">
+      {/* SECTION 1: SEARCH & FILTER CONTROLS */}
+      <div className="flex flex-col md:flex-row gap-3">
+        {/* Search Bar */}
+        <div className="relative flex-1">
+          <input
+            type="text"
+            placeholder="Cari PO, Project, atau Client..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 text-sm border border-line rounded-md bg-panel text-ink focus:outline-none focus:border-blueprint transition-colors"
+          />
+          <svg className="w-4 h-4 absolute left-3 top-3 text-inkmute" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </div>
 
-          <tbody className="divide-y divide-line">
-            {sortedProjects.map((p) => (
-              <tr key={p.id || p.poNumber} className="hover:bg-canvas/40 transition-colors group">
-                <td className="px-5 py-4 text-xs font-mono text-inkmute">{p.poNumber}</td>
+        {/* Filter Status */}
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="px-3 py-2 text-sm border border-line rounded-md bg-panel text-ink focus:outline-none focus:border-blueprint"
+        >
+          <option value="">Semua Status</option>
+          {uniqueStatuses.map(s => (
+            <option key={s} value={s}>{s}</option>
+          ))}
+        </select>
 
-                <td className="px-5 py-4 font-medium whitespace-normal min-w-[250px]">
-                  <Link href={`/projects/${encodeURIComponent(p.id)}`} className="text-blueprint group-hover:text-blueprintdark group-hover:underline transition-colors line-clamp-2 leading-snug">
-                    {p.projectName}
-                  </Link>
-                </td>
-
-                <td className="px-5 py-4 text-ink">
-                  <div className="flex items-center gap-3">
-                    <div className="w-7 h-7 rounded-full bg-canvas border border-line flex items-center justify-center text-[10px] font-bold text-inkmute shadow-sm">
-                      {p.client ? p.client.substring(0, 1).toUpperCase() : '-'}
-                    </div>
-                    <span className="truncate max-w-[150px] font-medium text-sm">{p.client || '-'}</span>
-                  </div>
-                </td>
-
-                <td className="px-5 py-4 text-ink text-sm">{p.pic || '-'}</td>
-
-                <td className="px-5 py-4">
-                  <span className={`px-2.5 py-1 rounded-md text-[11px] font-semibold border ${getStageBadge(p.currentStage)}`}>
-                    {p.currentStage || 'Unknown'}
-                  </span>
-                </td>
-
-                <td className="px-5 py-4">
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1 h-1.5 bg-canvas rounded-full overflow-hidden border border-line/50">
-                      <div
-                        className={`h-full rounded-full transition-all duration-500 ${p.stageProgress >= 100 ? 'bg-teal' : p.stageProgress >= 90 ? 'bg-orange-400' : 'bg-blueprint'}`}
-                        style={{ width: `${p.stageProgress}%` }}
-                      ></div>
-                    </div>
-                    <span className="text-xs font-data font-bold text-ink w-8">{p.stageProgress}%</span>
-                  </div>
-                </td>
-
-                <td className="px-5 py-4 text-right flex flex-col items-end gap-1.5 justify-center h-full">
-                  <DeliveryInfo p={p} />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        {/* Filter PIC */}
+        <select
+          value={picFilter}
+          onChange={(e) => setPicFilter(e.target.value)}
+          className="px-3 py-2 text-sm border border-line rounded-md bg-panel text-ink focus:outline-none focus:border-blueprint"
+        >
+          <option value="">Semua PIC</option>
+          {uniquePICs.map(pic => (
+            <option key={pic} value={pic}>{pic}</option>
+          ))}
+        </select>
       </div>
 
-      {/* Tampilan Card - Mobile */}
-      <div className="md:hidden flex flex-col gap-3">
-        {sortedProjects.map((p) => (
-          <Link
-            key={p.id || p.poNumber}
-            href={`/projects/${encodeURIComponent(p.id)}`}
-            className="bg-panel rounded-xl border border-line shadow-sm p-4 flex flex-col gap-3 active:bg-canvas/40 transition-colors"
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex flex-col gap-0.5 min-w-0">
-                <span className="text-[10px] font-mono text-inkmute">{p.poNumber}</span>
-                <span className="font-medium text-blueprint leading-snug line-clamp-2">{p.projectName}</span>
+      {/* Menampilkan jumlah hasil filter */}
+      <div className="text-xs text-inkmute font-medium">
+        Menampilkan {filteredProjects.length} dari {projects.length} project
+      </div>
+
+      {/* SECTION 2: MOBILE VIEW (CARD LAYOUT) */}
+      <div className="grid grid-cols-1 gap-4 md:hidden">
+        {filteredProjects.map((p) => (
+          <div key={p.id} className="bg-panel border border-line rounded-lg p-4 shadow-sm flex flex-col gap-3">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-xs font-semibold text-blueprint mb-1">{p.poNumber || '-'}</p>
+                <h3 className="text-base font-bold text-ink">{p.projectName || 'Unnamed Project'}</h3>
+                <p className="text-xs text-inkmute mt-0.5">{p.client || '-'}</p>
               </div>
-              <span className={`shrink-0 px-2 py-1 rounded-md text-[10px] font-semibold border ${getStageBadge(p.currentStage)}`}>
-                {p.currentStage || 'Unknown'}
+              <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${p.status === 'Completed' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
+                {p.status}
               </span>
             </div>
+            
+            <div className="grid grid-cols-2 gap-2 text-sm border-t border-line pt-3 mt-1">
+              <div>
+                <p className="text-xs text-inkmute">PIC</p>
+                <p className="font-medium text-ink">{p.pic || '-'}</p>
+              </div>
+              <div>
+                <p className="text-xs text-inkmute">Current Stage</p>
+                <p className="font-medium text-ink truncate">{p.currentStage || '-'}</p>
+              </div>
+            </div>
 
-            <div className="flex items-center gap-3">
-              <div className="flex-1 h-1.5 bg-canvas rounded-full overflow-hidden border border-line/50">
-                <div
-                  className={`h-full rounded-full transition-all duration-500 ${p.stageProgress >= 100 ? 'bg-teal' : p.stageProgress >= 90 ? 'bg-orange-400' : 'bg-blueprint'}`}
+            <div>
+              <div className="flex justify-between text-xs mb-1 mt-2">
+                <span className="text-inkmute">Progress</span>
+                <span className="font-bold text-ink">{p.stageProgress}%</span>
+              </div>
+              <div className="w-full bg-line rounded-full h-2">
+                <div 
+                  className="bg-blueprint h-2 rounded-full transition-all duration-500" 
                   style={{ width: `${p.stageProgress}%` }}
                 ></div>
               </div>
-              <span className="text-xs font-data font-bold text-ink">{p.stageProgress}%</span>
             </div>
-
-            <div className="flex items-center justify-between text-xs text-inkmute pt-2 border-t border-line/60">
-              <span>{p.client || '-'} &middot; {p.pic || '-'}</span>
-              <span className="flex items-center gap-1.5">
-                <DeliveryInfo p={p} />
-              </span>
-            </div>
-          </Link>
+          </div>
         ))}
+        {filteredProjects.length === 0 && (
+          <div className="text-center text-sm text-inkmute py-4">Pencarian tidak ditemukan.</div>
+        )}
       </div>
-    </>
+
+      {/* SECTION 3: DESKTOP VIEW (TABLE LAYOUT WITH STICKY HEADER) */}
+      <div className="hidden md:block overflow-x-auto border border-line rounded-lg shadow-sm max-h-[600px] overflow-y-auto relative">
+        <table className="w-full text-left border-collapse whitespace-nowrap">
+          <thead className="bg-panel sticky top-0 z-10 shadow-sm">
+            <tr>
+              <th className="py-3 px-4 text-xs font-semibold text-inkmute uppercase tracking-wider border-b border-line">PO Number</th>
+              <th className="py-3 px-4 text-xs font-semibold text-inkmute uppercase tracking-wider border-b border-line">Project Name</th>
+              <th className="py-3 px-4 text-xs font-semibold text-inkmute uppercase tracking-wider border-b border-line">Client</th>
+              <th className="py-3 px-4 text-xs font-semibold text-inkmute uppercase tracking-wider border-b border-line">PIC</th>
+              <th className="py-3 px-4 text-xs font-semibold text-inkmute uppercase tracking-wider border-b border-line">Stage</th>
+              <th className="py-3 px-4 text-xs font-semibold text-inkmute uppercase tracking-wider border-b border-line">Progress</th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-line">
+            {filteredProjects.map((p) => (
+              <tr key={p.id} className="hover:bg-slate-50 transition-colors">
+                <td className="py-3 px-4 text-sm font-medium text-blueprint">{p.poNumber || '-'}</td>
+                <td className="py-3 px-4 text-sm font-bold text-ink">
+                  {p.projectName || '-'}
+                  {p.priority === 'High' && <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-100 text-red-800">High</span>}
+                </td>
+                <td className="py-3 px-4 text-sm text-ink">{p.client || '-'}</td>
+                <td className="py-3 px-4 text-sm text-ink">{p.pic || '-'}</td>
+                <td className="py-3 px-4 text-sm text-ink">
+                  <div className="flex flex-col">
+                    <span>{p.currentStage || '-'}</span>
+                    <span className="text-[10px] text-inkmute">{p.status}</span>
+                  </div>
+                </td>
+                <td className="py-3 px-4 text-sm text-ink min-w-[150px]">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium w-8">{p.stageProgress}%</span>
+                    <div className="w-full bg-line rounded-full h-2">
+                      <div 
+                        className={`h-2 rounded-full transition-all duration-500 ${p.stageProgress >= 100 ? 'bg-green-500' : 'bg-blueprint'}`} 
+                        style={{ width: `${p.stageProgress}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            ))}
+            {filteredProjects.length === 0 && (
+              <tr>
+                <td colSpan="6" className="py-8 text-center text-sm text-inkmute">
+                  Pencarian tidak ditemukan.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }
