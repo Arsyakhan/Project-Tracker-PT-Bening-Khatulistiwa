@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import useProjects from '../lib/useProjects';
 import StatCard from '../components/StatCard';
 import StatusPie from '../components/StatusPie';
@@ -14,6 +14,15 @@ export default function Dashboard() {
   // Data terakhir langsung tampil (kalau ada), lalu disegarkan di belakang layar.
   const { projects, error, staleError, refreshing } = useProjects();
   const [activeTab, setActiveTab] = useState('preDelivery');
+  const listRef = useRef(null);
+
+  // Klik kartu statistik -> pilih tab yang sesuai lalu gulir ke daftar project.
+  function showTab(key) {
+    setActiveTab(key);
+    const reduceMotion =
+      typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    listRef.current?.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+  }
 
   if (error) {
     return (
@@ -65,10 +74,37 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard label="Total Project" value={dashboard.total} accent="#0C2D48" />
-        <StatCard label="Pre-Delivery" value={dashboard.preDelivery} accent="#0077B6" />
-        <StatCard label="Delivered" value={dashboard.delivered} accent="#009688" />
-        <StatCard label="Completed" value={dashboard.completed} accent="#4A7291" />
+        <StatCard
+          label="Total Project"
+          value={dashboard.total}
+          accent="#0C2D48"
+          href="/projects"
+          hint="Buka semua project →"
+        />
+        <StatCard
+          label="Pre-Delivery"
+          value={dashboard.preDelivery}
+          accent="#0077B6"
+          onClick={() => showTab('preDelivery')}
+          active={activeTab === 'preDelivery'}
+          hint={activeTab === 'preDelivery' ? 'Sedang ditampilkan' : 'Lihat daftar ↓'}
+        />
+        <StatCard
+          label="Delivered"
+          value={dashboard.delivered}
+          accent="#009688"
+          onClick={() => showTab('delivered')}
+          active={activeTab === 'delivered'}
+          hint={activeTab === 'delivered' ? 'Sedang ditampilkan' : 'Lihat daftar ↓'}
+        />
+        <StatCard
+          label="Completed"
+          value={dashboard.completed}
+          accent="#4A7291"
+          onClick={() => showTab('completed')}
+          active={activeTab === 'completed'}
+          hint={activeTab === 'completed' ? 'Sedang ditampilkan' : 'Lihat daftar ↓'}
+        />
       </div>
 
       <AttentionPanel projects={projects} />
@@ -85,7 +121,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="flex flex-col gap-3 mt-4">
+      <div ref={listRef} className="flex flex-col gap-3 mt-4 scroll-mt-20 md:scroll-mt-6">
         <div className="flex flex-wrap gap-1.5 border-b border-line">
           {tabs.map((tab) => (
             <button
