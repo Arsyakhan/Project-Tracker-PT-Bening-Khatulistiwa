@@ -4,6 +4,8 @@ import { api } from '../../lib/api';
 import ProjectTable from '../../components/ProjectTable';
 import { SkeletonTable } from '../../components/Skeleton';
 import PageHead from '../../components/PageHead';
+import { useToast } from '../../components/Toast';
+import { downloadProjectsCsv } from '../../lib/exportCsv';
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState(null);
@@ -11,6 +13,7 @@ export default function ProjectsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [priorityFilter, setPriorityFilter] = useState('');
+  const { showToast } = useToast();
 
   useEffect(() => {
     api.getProjects().then(setProjects).catch((e) => setError(e.message));
@@ -55,6 +58,12 @@ export default function ProjectsPage() {
     setSearchQuery('');
     setStatusFilter('');
     setPriorityFilter('');
+  }
+
+  function handleExport() {
+    if (filteredProjects.length === 0) return;
+    downloadProjectsCsv(filteredProjects);
+    showToast(`${filteredProjects.length} project diekspor ke CSV`);
   }
 
   return (
@@ -109,6 +118,18 @@ export default function ProjectsPage() {
         <span className="text-xs text-inkmute ml-auto">
           Menampilkan {filteredProjects.length} dari {projects.length} project
         </span>
+
+        <button
+          onClick={handleExport}
+          disabled={filteredProjects.length === 0}
+          title="Unduh daftar yang sedang tampil (sesuai pencarian & filter) sebagai file CSV untuk Excel"
+          className="inline-flex items-center gap-1.5 border border-line rounded-md px-3 py-2 text-sm font-medium text-ink bg-panel hover:border-blueprint hover:text-blueprint disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+          </svg>
+          Export CSV
+        </button>
       </div>
 
       {projects.length === 0 ? (
