@@ -1,8 +1,8 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
 /* ---- Palet warna: light (default) ---- */
 :root {
@@ -52,14 +52,45 @@ h1, h2, h3, .font-display {
   border: 1px solid rgb(var(--color-line));
   border-radius: 6px;
   padding: 8px 10px;
+  min-height: 38px;
   font-size: 14px;
   background: rgb(var(--color-panel));
   color: rgb(var(--color-ink));
   width: 100%;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.input::placeholder {
+  color: rgb(var(--color-inkmute) / 0.6);
+}
+.input:hover {
+  border-color: rgb(var(--color-inkmute) / 0.5);
 }
 .input:focus {
   outline: none;
   border-color: rgb(var(--color-blueprint));
+  box-shadow: 0 0 0 3px rgb(var(--color-blueprint) / 0.15);
+}
+
+/* Angka & kode teknis: lebar digit seragam supaya kolom rapi */
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Kertas milimeter halus, dipakai sebagai latar kepala halaman detail project */
+.bp-grid {
+  background-image:
+    linear-gradient(rgb(var(--color-blueprint) / 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(var(--color-blueprint) / 0.07) 1px, transparent 1px);
+  background-size: 22px 22px;
+  background-position: -1px -1px;
+}
+
+/* Fokus keyboard yang jelas untuk tombol & link */
+button:focus-visible,
+a:focus-visible,
+summary:focus-visible {
+  outline: 2px solid rgb(var(--color-blueprint));
+  outline-offset: 2px;
 }
 
 /* Signature element: pipeline-style stage gauge with checkpoint ticks */
