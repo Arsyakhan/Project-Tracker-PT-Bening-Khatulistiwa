@@ -9,6 +9,7 @@ import StageGauge from '../../components/StageGauge';
 import StagePipeline from '../../components/StagePipeline';
 import { StatusBadge, PriorityBadge, DeliveryHint, Pill } from '../../components/Badges';
 import { fmtDate, todayISO, deliveryHint, initialOf, nameFromEmail, timeAgo } from '../../lib/projectHelpers';
+import { SYSTEMS, RO_OPTIONS, normalizeSystems, detectSystems, effectiveSystems, systemLabel, docReadiness } from '../../lib/systems';
 import ConfirmModal from '../../components/ConfirmModal';
 import { useToast } from '../../components/Toast';
 import { SkeletonBlock } from '../../components/Skeleton';
@@ -20,11 +21,12 @@ const EDITABLE_FIELDS = [
   'currentStage', 'status', 'priority',
   'tanggalPO', 'tanggalDP', 'deliveryDate', 'targetFinishDate',
   'remarks', 'deskripsiPesanan', 'spesifikasiTeknologi',
+  'lokasiPlant', 'alamat', 'kontakOwner', 'sistemTerpasang',
 ];
 
 function pickEditable(p) {
   const out = {};
-  EDITABLE_FIELDS.forEach((f) => { out[f] = p?.[f] ?? ''; });
+  EDITABLE_FIELDS.forEach((f) => { out[f] = p?.[f] ?? (f === 'sistemTerpasang' ? [] : ''); });
   return out;
 }
 
@@ -282,6 +284,23 @@ export default function ProjectDetailPage() {
   const hasRemarks = project.remarks && String(project.remarks).trim() && String(project.remarks).trim() !== '-';
   const today = todayISO();
 
+  const savedSystems = normalizeSystems(project.sistemTerpasang);
+  const detectedKeys = detectSystems(project);
+  const shownSystems = effectiveSystems(project);
+  const filterCount = ['birm', 'mmf', 'acf'].filter((k) => savedSystems.includes(k)).length;
+  const readiness = {
+    commissioning: docReadiness(project, 'commissioning'),
+    handover: docReadiness(project, 'handover'),
+  };
+  const allMissing = Array.from(new Set([...readiness.commissioning.missing, ...readiness.handover.missing]));
+
+  function toggleSystem(key) {
+    const cur = savedSystems;
+    let next = cur.includes(key) ? cur.filter((k) => k !== key) : [...cur, key];
+    if (key === 'ro' && !next.includes('ro')) next = next.filter((k) => k !== 'ro_large' && k !== 'recycle');
+    update('sistemTerpasang', normalizeSystems(next));
+  }
+
   const dateWarnings = [];
   if (project.tanggalPO && project.tanggalDP && project.tanggalDP < project.tanggalPO) dateWarnings.push('Tanggal DP lebih awal dari Tanggal PO.');
   if (project.tanggalPO && project.deliveryDate && project.deliveryDate < project.tanggalPO) dateWarnings.push('Delivery Date lebih awal dari Tanggal PO.');
@@ -331,13 +350,22 @@ export default function ProjectDetailPage() {
             title="Klik untuk mengedit nama project"
             aria-label="Nama project"
           />
+          {shownSystems.keys.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5">
+              {shownSystems.keys.filter((k) => !['ro_large', 'recycle'].includes(k)).map((k) => (
+                <Pill key={k} tone="blueprint">{systemLabel(k)}</Pill>
+              ))}
+              {shownSystems.detected && <span className="text-[11px] text-inkmute">terdeteksi otomatis, belum disimpan</span>}
+            </div>
+          )}
         </div>
 
-        <dl className="grid grid-cols-2 md:grid-cols-4 border-t border-line divide-x divide-y md:divide-y-0 divide-line">
+        <dl className="grid grid-cols-2 md:grid-cols-5 border-t border-line divide-x divide-y md:divide-y-0 divide-line">
           <TitleCell label="Client" value={project.client} />
+          <TitleCell label="Lokasi plant" value={project.lokasiPlant} />
           <TitleCell label="PIC" value={project.pic} />
           <TitleCell label="Teknologi / kapasitas" value={project.technology} />
-          <TitleCell label="Delivery" value={project.deliveryDate ? fmtDate(project.deliveryDate) : ''} extra={<DeliveryHint p={project} />} />
+          <TitleCell className="col-span-2 md:col-span-1" label="Delivery" value={project.deliveryDate ? fmtDate(project.deliveryDate) : ''} extra={<DeliveryHint p={project} />} />
         </dl>
       </header>
 
@@ -428,6 +456,7 @@ export default function ProjectDetailPage() {
           </div>
 
           {activeTab === 'ringkasan' && (
+            <>
             <Panel title="Info umum" hint="Perubahan baru tersimpan setelah menekan Simpan perubahan.">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Row label="Current stage">
@@ -456,6 +485,68 @@ export default function ProjectDetailPage() {
                 </Row>
               </div>
             </Panel>
+
+            <Panel title="Lokasi & kontak owner" hint="Dipakai otomatis di form Commissioning Report dan Hand Over.">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Row label="Lokasi plant">
+                  <input className="input" placeholder="ex: Kebumen, Jawa Tengah" value={project.lokasiPlant || ''} onChange={(e) => update('lokasiPlant', e.target.value)} />
+                </Row>
+                <Row label="Nama kontak owner (klien)">
+                  <input className="input" placeholder="Nama yang menandatangani di pihak klien" value={project.kontakOwner || ''} onChange={(e) => update('kontakOwner', e.target.value)} />
+                </Row>
+              </div>
+              <Row label="Alamat lengkap">
+                <textarea className="input" rows={2} placeholder="Alamat detail lokasi plant" value={project.alamat || ''} onChange={(e) => update('alamat', e.target.value)} />
+              </Row>
+            </Panel>
+
+            <Panel title="Sistem terpasang" hint="Modul yang dipilih di sini otomatis aktif di form Commissioning dan Hand Over, lengkap dengan nomor tag P&ID.">
+              {savedSystems.length === 0 && detectedKeys.length > 0 && (
+                <div className="flex flex-wrap items-center justify-between gap-2 bg-blueprint/10 border border-blueprint/25 rounded-md px-3 py-2 text-sm">
+                  <span className="text-ink">Terdeteksi dari nama project: <b>{detectedKeys.map(systemLabel).join(', ')}</b></span>
+                  <button type="button" onClick={() => update('sistemTerpasang', normalizeSystems(detectedKeys))} className="text-sm font-medium text-blueprint hover:underline">
+                    Terapkan
+                  </button>
+                </div>
+              )}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {SYSTEMS.map((sys) => {
+                  const checked = savedSystems.includes(sys.key);
+                  return (
+                    <label
+                      key={sys.key}
+                      className={`flex items-start gap-2.5 rounded-md border px-3 py-2 cursor-pointer transition-colors ${checked ? 'border-blueprint/50 bg-blueprint/10' : 'border-line hover:border-blueprint/40'}`}
+                    >
+                      <input type="checkbox" className="mt-0.5 w-4 h-4 accent-blueprint" checked={checked} onChange={() => toggleSystem(sys.key)} />
+                      <span className="text-sm text-ink leading-snug">
+                        {sys.label}
+                        {sys.hint && <span className="block text-[11px] text-inkmute">{sys.hint}</span>}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+              {savedSystems.includes('ro') && (
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {RO_OPTIONS.map((opt) => {
+                    const checked = savedSystems.includes(opt.key);
+                    return (
+                      <label
+                        key={opt.key}
+                        className={`inline-flex items-center gap-2 rounded-md border px-3 py-1.5 cursor-pointer text-sm transition-colors ${checked ? 'border-blueprint/50 bg-blueprint/10 text-ink' : 'border-line text-ink hover:border-blueprint/40'}`}
+                      >
+                        <input type="checkbox" className="w-4 h-4 accent-blueprint" checked={checked} onChange={() => toggleSystem(opt.key)} />
+                        {opt.label}
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+              {filterCount > 2 && (
+                <p className="text-xs text-amber">Template Hand Over hanya punya 2 slot filter. Filter ketiga perlu dicatat manual di "Item Tambahan".</p>
+              )}
+            </Panel>
+            </>
           )}
 
           {activeTab === 'jadwal' && (
@@ -509,6 +600,12 @@ export default function ProjectDetailPage() {
               aside={<span className="font-data tnum text-sm font-semibold text-blueprint">{checklist.progress}%</span>}
             >
               <StageGauge progress={checklist.progress} showLabel={false} compact />
+              {allMissing.length > 0 && (
+                <div className="flex flex-wrap items-center justify-between gap-2 bg-amber/10 border border-amber/30 rounded-md px-3 py-2 text-sm">
+                  <span className="text-ink">Data untuk mengisi dokumen otomatis belum lengkap: <b>{allMissing.join(', ')}</b>.</span>
+                  <button type="button" onClick={() => setActiveTab('ringkasan')} className="text-sm font-medium text-blueprint hover:underline">Lengkapi di Ringkasan</button>
+                </div>
+              )}
               <div className="border border-line rounded-lg divide-y divide-line overflow-hidden">
                 {items.map((item) => {
                   const status = statusOf(item);
@@ -541,6 +638,11 @@ export default function ProjectDetailPage() {
                           <a href={savedLink} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-blueprint hover:underline whitespace-nowrap">
                             Buka
                           </a>
+                        )}
+                        {docSlug && readiness[docSlug] && (
+                          <span title={readiness[docSlug].ready ? 'Data project cukup untuk mengisi form otomatis' : `Kurang: ${readiness[docSlug].missing.join(', ')}`}>
+                            <Pill tone={readiness[docSlug].ready ? 'teal' : 'amber'} dot>{readiness[docSlug].ready ? 'Data siap' : 'Data kurang'}</Pill>
+                          </span>
                         )}
                         {docSlug && (
                           <Link
@@ -725,9 +827,9 @@ export default function ProjectDetailPage() {
   );
 }
 
-function TitleCell({ label, value, extra }) {
+function TitleCell({ label, value, extra, className = '' }) {
   return (
-    <div className="px-4 py-3 min-w-0">
+    <div className={`px-4 py-3 min-w-0 ${className}`}>
       <dt className="text-xs text-inkmute">{label}</dt>
       <dd className="mt-1 flex items-center gap-2 flex-wrap">
         <span className="text-sm font-medium text-ink truncate max-w-full" title={value || ''}>{value || '-'}</span>
