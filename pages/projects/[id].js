@@ -33,7 +33,6 @@ function pickEditable(p) {
 const TABS = [
   { key: 'ringkasan', label: 'Ringkasan' },
   { key: 'jadwal', label: 'Jadwal' },
-  { key: 'deskripsi', label: 'Deskripsi Teknis' },
   { key: 'checklist', label: 'Checklist Engineering' },
   { key: 'komentar', label: 'Komentar' },
 ];
@@ -294,6 +293,16 @@ export default function ProjectDetailPage() {
   };
   const allMissing = Array.from(new Set([...readiness.commissioning.missing, ...readiness.handover.missing]));
 
+  // Gabungkan isi kolom lama "Spesifikasi Teknologi" ke "Lingkup pesanan", lalu kosongkan kolom lama.
+  // Baru tersimpan setelah "Simpan perubahan"; isi lama tetap tercatat di tab Aktivitas.
+  function mergeOldSpec() {
+    const oldSpec = String(project.spesifikasiTeknologi || '').trim();
+    if (!oldSpec) return;
+    const cur = String(project.deskripsiPesanan || '').trim();
+    update('deskripsiPesanan', cur ? `${cur}\n${oldSpec}` : oldSpec);
+    update('spesifikasiTeknologi', '');
+  }
+
   function toggleSystem(key) {
     const cur = savedSystems;
     let next = cur.includes(key) ? cur.filter((k) => k !== key) : [...cur, key];
@@ -484,6 +493,26 @@ export default function ProjectDetailPage() {
                   <input className="input" value={project.technology || ''} onChange={(e) => update('technology', e.target.value)} />
                 </Row>
               </div>
+              <Row label="Lingkup pesanan (sesuai PO)">
+                <textarea
+                  className="input"
+                  rows={3}
+                  placeholder="ex: Tank NaCl 5000 L, Tank NaCl 300 L (2 unit), Tank PAA 300 L (2 unit)"
+                  value={project.deskripsiPesanan || ''}
+                  onChange={(e) => update('deskripsiPesanan', e.target.value)}
+                />
+              </Row>
+              {String(project.spesifikasiTeknologi || '').trim() && (
+                <div className="flex flex-col gap-2 bg-canvas border border-line rounded-md px-3 py-2.5">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-xs font-medium text-inkmute">Catatan lama (kolom Spesifikasi Teknologi)</span>
+                    <button type="button" onClick={mergeOldSpec} className="text-xs font-medium text-blueprint hover:underline">
+                      Gabungkan ke lingkup pesanan
+                    </button>
+                  </div>
+                  <p className="text-sm text-ink/90 whitespace-pre-wrap break-words">{project.spesifikasiTeknologi}</p>
+                </div>
+              )}
             </Panel>
 
             <Panel title="Lokasi & kontak owner" hint="Dipakai otomatis di form Commissioning Report dan Hand Over.">
@@ -572,17 +601,6 @@ export default function ProjectDetailPage() {
               </div>
               <Row label="Remarks (kendala, menunggu material, dll.)">
                 <textarea className="input" rows={3} value={project.remarks || ''} onChange={(e) => update('remarks', e.target.value)} />
-              </Row>
-            </Panel>
-          )}
-
-          {activeTab === 'deskripsi' && (
-            <Panel title="Deskripsi & spesifikasi teknis">
-              <Row label="Deskripsi pesanan (teknologi)">
-                <textarea className="input" rows={5} value={project.deskripsiPesanan || ''} onChange={(e) => update('deskripsiPesanan', e.target.value)} />
-              </Row>
-              <Row label="Spesifikasi & detail teknologi">
-                <textarea className="input" rows={5} value={project.spesifikasiTeknologi || ''} onChange={(e) => update('spesifikasiTeknologi', e.target.value)} />
               </Row>
             </Panel>
           )}
