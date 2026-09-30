@@ -14,6 +14,8 @@ import {
   computePidTags,
   buildCommChecklistText,
 } from '../../../lib/docgen/schema';
+import { prefillCommissioning } from '../../../lib/docgen/prefill';
+import { docReadiness } from '../../../lib/systems';
 
 const REQUIRED = ['project_name', 'system_title', 'company_name'];
 const PID_TRIGGER_KEYS = ['has_softener', 'has_uf', 'has_ro', 'is_ro_large', 'has_recycle'];
@@ -23,11 +25,7 @@ function draftKey(projectId) {
 }
 
 function prefillFrom(project) {
-  return {
-    project_name: project.projectName || '',
-    company_name: project.client || '',
-    po_number: project.poNumber || '',
-  };
+  return prefillCommissioning(project);
 }
 
 export default function NewCommissioningReport() {
@@ -103,12 +101,7 @@ export default function NewCommissioningReport() {
   function selectProject(p) {
     activeKey.current = draftKey(p.id); // supaya efek inisialisasi tidak menimpa form yang sedang diisi
     setLinkedProject(p);
-    setForm((f) => ({
-      ...f,
-      project_name: p.projectName || f.project_name,
-      company_name: p.client || f.company_name,
-      po_number: p.poNumber || f.po_number,
-    }));
+    setForm((f) => ({ ...f, ...prefillFrom(p) }));
     router.replace({ pathname: router.pathname, query: { projectId: p.id } }, undefined, { shallow: true });
   }
 
@@ -117,6 +110,8 @@ export default function NewCommissioningReport() {
     setLinkedProject(null);
     router.replace({ pathname: router.pathname, query: {} }, undefined, { shallow: true });
   }
+
+  const readiness = linkedProject ? docReadiness(linkedProject, 'commissioning') : null;
 
   const visibleTagGroups = useMemo(() => {
     return Object.entries(COMMISSIONING_TAG_FIELDS).filter(([moduleId]) => form[moduleId]);
@@ -202,7 +197,16 @@ export default function NewCommissioningReport() {
         <>
           {linkedProject ? (
             <div className="bg-blueprint/10 border border-blueprint/30 rounded-lg px-4 py-3 flex items-center justify-between gap-3 text-sm">
-              <span>Membuat dokumen untuk: <b className="text-ink">{linkedProject.projectName}</b> -- PO Number & Client sudah terisi otomatis.</span>
+              <div className="min-w-0">
+                <span>Membuat dokumen untuk: <b className="text-ink">{linkedProject.projectName}</b> -- data project (PO, client, lokasi, sistem terpasang) sudah terisi otomatis. Periksa kembali sebelum generate.</span>
+                {!readiness.ready && (
+                  <span className="block text-xs text-amber mt-1">
+                    Belum lengkap di project: {readiness.missing.join(', ')}.{' '}
+                    <Link href={`/projects/${encodeURIComponent(linkedProject.id)}`} className="underline font-medium">Lengkapi di detail project</Link>
+                  </span>
+                )}
+                {readiness.note && <span className="block text-xs text-inkmute mt-1">{readiness.note}</span>}
+              </div>
               <button onClick={unlinkProject} className="text-inkmute hover:text-rust font-medium whitespace-nowrap">Lepas dari project</button>
             </div>
           ) : (
