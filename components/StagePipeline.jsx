@@ -1,0 +1,77 @@
+// Jalur tahapan project: seperti garis proses di diagram alir (P&ID) —
+// setiap tahap adalah titik, tahap yang sudah lewat terisi, tahap saat ini diberi cincin.
+// Klik sebuah titik untuk memindahkan project ke tahap itu (baru tersimpan setelah "Simpan perubahan").
+
+const GROUPS = [
+  { label: 'Desain & approval', stages: ['PO', 'SOS', 'BOM, PID, EWD, GAD', 'Review & Approval'] },
+  { label: 'Pengadaan & fabrikasi', stages: ['Procurement of Material', 'Collecting Material / Inspection', 'Fabrication'] },
+  { label: 'Pengiriman & pemasangan', stages: ['Delivery', 'Installation', 'Commissioning'] },
+  { label: 'Serah terima', stages: ['Preparation Manual Book', 'Hand Over and Finished'] },
+];
+
+const ALL_STAGES = GROUPS.flatMap((g) => g.stages);
+
+export default function StagePipeline({ current, weights = {}, onSelect }) {
+  const currentIdx = ALL_STAGES.indexOf(current);
+  const interactive = typeof onSelect === 'function';
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex items-start gap-3 sm:gap-5">
+        {GROUPS.map((group) => (
+          <div key={group.label} className="flex flex-col gap-2 min-w-0" style={{ flex: group.stages.length }}>
+            <span className="text-[11px] text-inkmute truncate" title={group.label}>{group.label}</span>
+            <div className="flex items-center">
+              {group.stages.map((stage, i) => {
+                const idx = ALL_STAGES.indexOf(stage);
+                const done = currentIdx > idx;
+                const active = currentIdx === idx;
+                const isLast = i === group.stages.length - 1;
+                const weight = weights[stage];
+                return (
+                  <div key={stage} className={`flex items-center ${isLast ? '' : 'flex-1'}`}>
+                    <button
+                      type="button"
+                      disabled={!interactive}
+                      onClick={() => onSelect && onSelect(stage)}
+                      title={`${stage}${weight != null ? ` (${weight}%)` : ''}`}
+                      aria-label={`Tahap ${idx + 1}: ${stage}`}
+                      aria-current={active ? 'step' : undefined}
+                      className={`shrink-0 p-1.5 -m-1.5 rounded-full ${interactive ? 'cursor-pointer' : 'cursor-default'}`}
+                    >
+                      <span
+                        className={`block rounded-full border-2 transition-all ${
+                          active
+                            ? 'w-[18px] h-[18px] bg-blueprint border-blueprint ring-4 ring-blueprint/20'
+                            : done
+                              ? 'w-3.5 h-3.5 bg-blueprint border-blueprint'
+                              : 'w-3.5 h-3.5 bg-panel border-line hover:border-blueprint/60'
+                        }`}
+                      />
+                    </button>
+                    {!isLast && (
+                      <span className={`flex-1 h-0.5 mx-1 ${done ? 'bg-blueprint' : 'bg-line'}`} />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <p className="text-sm text-inkmute">
+        {currentIdx >= 0 ? (
+          <>
+            Tahap <span className="tnum font-medium text-ink">{currentIdx + 1}</span> dari {ALL_STAGES.length}
+            <span className="mx-1.5 text-line">|</span>
+            <span className="font-medium text-ink">{current}</span>
+          </>
+        ) : (
+          'Tahap belum diatur'
+        )}
+        {interactive && <span className="hidden sm:inline text-xs ml-3 text-inkmute/80">Klik titik untuk mengganti tahap</span>}
+      </p>
+    </div>
+  );
+}
