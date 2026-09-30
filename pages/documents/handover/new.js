@@ -7,6 +7,8 @@ import PageHead from '../../../components/PageHead';
 import ProjectPicker from '../../../components/docgen/ProjectPicker';
 import { TextField, ToggleSection } from '../../../components/docgen/DocFormControls';
 import { HANDOVER_SECTIONS, buildHandoverEmpty } from '../../../lib/docgen/schema';
+import { prefillHandover } from '../../../lib/docgen/prefill';
+import { docReadiness, effectiveSystems, toHandoverModules } from '../../../lib/systems';
 
 const REQUIRED = ['project_name', 'system_title', 'buyer_company'];
 
@@ -15,11 +17,7 @@ function draftKey(projectId) {
 }
 
 function prefillFrom(project) {
-  return {
-    project_name: project.projectName || '',
-    buyer_company: project.client || '',
-    po_number: project.poNumber || '',
-  };
+  return prefillHandover(project);
 }
 
 export default function NewHandoverReport() {
@@ -84,12 +82,7 @@ export default function NewHandoverReport() {
   function selectProject(p) {
     activeKey.current = draftKey(p.id); // supaya efek inisialisasi tidak menimpa form yang sedang diisi
     setLinkedProject(p);
-    setForm((f) => ({
-      ...f,
-      project_name: p.projectName || f.project_name,
-      buyer_company: p.client || f.buyer_company,
-      po_number: p.poNumber || f.po_number,
-    }));
+    setForm((f) => ({ ...f, ...prefillFrom(p) }));
     router.replace({ pathname: router.pathname, query: { projectId: p.id } }, undefined, { shallow: true });
   }
 
@@ -97,6 +90,14 @@ export default function NewHandoverReport() {
     activeKey.current = draftKey(null);
     setLinkedProject(null);
     router.replace({ pathname: router.pathname, query: {} }, undefined, { shallow: true });
+  }
+
+  const readiness = linkedProject ? docReadiness(linkedProject, 'handover') : null;
+  const hoNotes = [];
+  if (linkedProject) {
+    const info = toHandoverModules(effectiveSystems(linkedProject).keys);
+    if (info.overflowFilters.length > 0) hoNotes.push(`Template Hand Over hanya punya 2 slot filter. Tambahkan secara manual di "Item Tambahan": ${info.overflowFilters.join(', ')}.`);
+    if (info.notInHandover.length > 0) hoNotes.push(`${info.notInHandover.join(', ')} tidak punya seksi di template Hand Over.`);
   }
 
   async function handleSubmit() {
@@ -178,7 +179,17 @@ export default function NewHandoverReport() {
         <>
           {linkedProject ? (
             <div className="bg-blueprint/10 border border-blueprint/30 rounded-lg px-4 py-3 flex items-center justify-between gap-3 text-sm">
-              <span>Membuat dokumen untuk: <b className="text-ink">{linkedProject.projectName}</b> -- PO Number & Buyer sudah terisi otomatis.</span>
+              <div className="min-w-0">
+                <span>Membuat dokumen untuk: <b className="text-ink">{linkedProject.projectName}</b> -- data project (PO, client, lokasi, sistem terpasang) sudah terisi otomatis. Periksa kembali sebelum generate.</span>
+                {!readiness.ready && (
+                  <span className="block text-xs text-amber mt-1">
+                    Belum lengkap di project: {readiness.missing.join(', ')}.{' '}
+                    <Link href={`/projects/${encodeURIComponent(linkedProject.id)}`} className="underline font-medium">Lengkapi di detail project</Link>
+                  </span>
+                )}
+                {readiness.note && <span className="block text-xs text-inkmute mt-1">{readiness.note}</span>}
+                {hoNotes.map((n) => <span key={n} className="block text-xs text-inkmute mt-1">{n}</span>)}
+              </div>
               <button onClick={unlinkProject} className="text-inkmute hover:text-rust font-medium whitespace-nowrap">Lepas dari project</button>
             </div>
           ) : (
