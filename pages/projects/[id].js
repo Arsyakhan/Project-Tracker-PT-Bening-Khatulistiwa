@@ -10,6 +10,8 @@ import StagePipeline from '../../components/StagePipeline';
 import { StatusBadge, PriorityBadge, DeliveryHint, Pill } from '../../components/Badges';
 import { fmtDate, todayISO, deliveryHint, initialOf, nameFromEmail, timeAgo } from '../../lib/projectHelpers';
 import { SYSTEMS, RO_OPTIONS, normalizeSystems, detectSystems, effectiveSystems, systemLabel, docReadiness } from '../../lib/systems';
+import SpecsEditor from '../../components/SpecsEditor';
+import { packSpecs, buildSpecValues, visibleSections, overallProgress } from '../../lib/docgen/specs';
 import ConfirmModal from '../../components/ConfirmModal';
 import { useToast } from '../../components/Toast';
 import { SkeletonBlock } from '../../components/Skeleton';
@@ -33,6 +35,7 @@ function pickEditable(p) {
 const TABS = [
   { key: 'ringkasan', label: 'Ringkasan' },
   { key: 'jadwal', label: 'Jadwal' },
+  { key: 'spesifikasi', label: 'Spesifikasi Peralatan' },
   { key: 'checklist', label: 'Checklist Engineering' },
   { key: 'komentar', label: 'Komentar' },
 ];
@@ -62,6 +65,12 @@ export default function ProjectDetailPage() {
   const [commentsError, setCommentsError] = useState(null);
   const [commentDraft, setCommentDraft] = useState('');
   const [postingComment, setPostingComment] = useState(false);
+  // Spesifikasi peralatan (dipakai form Hand Over). Disimpan terpisah di tab "Project Specs".
+  const [specsValues, setSpecsValues] = useState(null);   // nilai yang sedang diedit
+  const [specsSaved, setSpecsSaved] = useState(null);     // nilai terakhir yang tersimpan di server
+  const [specsVersion, setSpecsVersion] = useState(0);
+  const [specsLoading, setSpecsLoading] = useState(false);
+  const [specsError, setSpecsError] = useState(null);
   // Request checklist dijalankan berurutan supaya respons tidak saling menimpa
   const checklistQueueRef = useRef(Promise.resolve());
 
@@ -91,6 +100,38 @@ export default function ProjectDetailPage() {
     setCommentsError(null);
     setCommentDraft('');
   }, [id]);
+
+  // Ganti project -> spesifikasi project sebelumnya jangan ikut terbawa
+  useEffect(() => {
+    setSpecsValues(null);
+    setSpecsSaved(null);
+    setSpecsVersion(0);
+    setSpecsError(null);
+  }, [id]);
+
+  async function loadSpecs() {
+    const current = projectRef.current;
+    if (!current?.id) return;
+    setSpecsLoading(true);
+    setSpecsError(null);
+    try {
+      const res = await api.getSpecs(current.id);
+      const values = buildSpecValues(current, res.specs);
+      setSpecsValues(values);
+      setSpecsSaved(values);
+      setSpecsVersion(res.version || 0);
+    } catch (err) {
+      setSpecsError(err.message);
+    } finally {
+      setSpecsLoading(false);
+    }
+  }
+
+  // Dimuat di latar belakang begitu project terbuka (dipakai juga untuk kartu "Kesiapan dokumen").
+  useEffect(() => {
+    if (!project?.id || specsValues !== null || specsLoading || specsError) return;
+    loadSpecs();
+  }, [project?.id, specsValues, specsLoading, specsError]);
 
   // Ambil komentar begitu tab dibuka (sekali per project, bukan tiap render)
   useEffect(() => {
@@ -122,10 +163,17 @@ export default function ProjectDetailPage() {
     }
   }
 
-  const isDirty = useMemo(() => {
+  const projectDirty = useMemo(() => {
     if (!project || !initialSnapshot) return false;
     return JSON.stringify(pickEditable(project)) !== initialSnapshot;
   }, [project, initialSnapshot]);
+
+  const specsDirty = useMemo(() => {
+    if (!specsValues || !specsSaved) return false;
+    return JSON.stringify(packSpecs(specsValues)) !== JSON.stringify(packSpecs(specsSaved));
+  }, [specsValues, specsSaved]);
+
+  const isDirty = projectDirty || specsDirty;
 
   useEffect(() => {
     function handleBeforeUnload(e) {
@@ -171,6 +219,7 @@ export default function ProjectDetailPage() {
   function discardChanges() {
     if (!initialSnapshot) return;
     setProject((p) => ({ ...p, ...JSON.parse(initialSnapshot) }));
+    if (specsSaved) setSpecsValues(specsSaved);
     setError(null);
   }
 
@@ -191,14 +240,39 @@ export default function ProjectDetailPage() {
     setProject((p) => ({ ...p, [field]: value }));
   }
 
+  function updateSpec(fieldId, value) {
+    setSpecsValues((v) => ({ ...(v || {}), [fieldId]: value }));
+  }
+
   async function saveProject() {
     setSaving(true);
     setError(null);
     try {
       // "user" tidak dikirim dari sini: server mengisinya dari sesi login.
-      await api.updateProject({ projectId: project.id, ...pickEditable(project) });
+      let projectSaved = false;
+      if (projectDirty) {
+        await api.updateProject({ projectId: project.id, ...pickEditable(project) });
+        projectSaved = true;
+      }
+      if (specsDirty) {
+        try {
+          const res = await api.saveSpecs({
+            projectId: project.id,
+            specs: packSpecs(specsValues),
+            baseVersion: specsVersion,
+          });
+          setSpecsVersion(res.version);
+          setSpecsSaved(specsValues);
+        } catch (err) {
+          // Data project sudah tersimpan; hanya spesifikasi yang gagal (mis. bentrok versi).
+          if (projectSaved) await load();
+          setError(`Spesifikasi belum tersimpan: ${err.message}`);
+          showToast(`Spesifikasi gagal disimpan: ${err.message}`, 'error');
+          return;
+        }
+      }
       showToast('Tersimpan ke spreadsheet.', 'success');
-      await load();
+      if (projectSaved) await load();
     } catch (err) {
       setError(err.message);
       showToast(`Gagal menyimpan: ${err.message}`, 'error');
@@ -292,6 +366,9 @@ export default function ProjectDetailPage() {
     handover: docReadiness(project, 'handover'),
   };
   const allMissing = Array.from(new Set([...readiness.commissioning.missing, ...readiness.handover.missing]));
+  const specSections = visibleSections(project);
+  const specProgress = specsValues ? overallProgress(specSections, specsValues) : null;
+  const commPercent = Math.round(((4 - readiness.commissioning.missing.length) / 4) * 100);
 
   // Gabungkan isi kolom lama "Spesifikasi Teknologi" ke "Lingkup pesanan", lalu kosongkan kolom lama.
   // Baru tersimpan setelah "Simpan perubahan"; isi lama tetap tercatat di tab Aktivitas.
@@ -454,6 +531,9 @@ export default function ProjectDetailPage() {
                 }`}
               >
                 {tab.label}
+                {tab.key === 'spesifikasi' && specProgress && specSections.length > 0 && (
+                  <span className="ml-1.5 text-xs tnum opacity-70">{specProgress.percent}%</span>
+                )}
                 {tab.key === 'checklist' && (
                   <span className="ml-1.5 text-xs tnum opacity-70">{checklist?.progress ?? 0}%</span>
                 )}
@@ -605,6 +685,21 @@ export default function ProjectDetailPage() {
             </Panel>
           )}
 
+          {activeTab === 'spesifikasi' && (
+            <SpecsEditor
+              sections={specSections}
+              values={specsValues}
+              onChange={updateSpec}
+              loading={specsLoading && specsValues === null}
+              error={specsError}
+              onRetry={loadSpecs}
+              onGoSummary={() => setActiveTab('ringkasan')}
+              scopeText={project.deskripsiPesanan}
+              oldSpecText={project.spesifikasiTeknologi}
+              version={specsVersion}
+            />
+          )}
+
           {activeTab === 'checklist' && !checklist && (
             <Panel title="Checklist engineering">
               <p className="text-sm text-inkmute">Checklist untuk project ini belum tersedia. Muat ulang halaman untuk membuatnya otomatis.</p>
@@ -659,7 +754,11 @@ export default function ProjectDetailPage() {
                         )}
                         {docSlug && readiness[docSlug] && (
                           <span title={readiness[docSlug].ready ? 'Data project cukup untuk mengisi form otomatis' : `Kurang: ${readiness[docSlug].missing.join(', ')}`}>
-                            <Pill tone={readiness[docSlug].ready ? 'teal' : 'amber'} dot>{readiness[docSlug].ready ? 'Data siap' : 'Data kurang'}</Pill>
+                            {docSlug === 'handover' && readiness.handover.ready && specProgress && specSections.length > 0 ? (
+                              <Pill tone={specProgress.percent >= 100 ? 'teal' : 'amber'} dot>Spesifikasi {specProgress.percent}%</Pill>
+                            ) : (
+                              <Pill tone={readiness[docSlug].ready ? 'teal' : 'amber'} dot>{readiness[docSlug].ready ? 'Data siap' : 'Data kurang'}</Pill>
+                            )}
                           </span>
                         )}
                         {docSlug && (
@@ -738,6 +837,40 @@ export default function ProjectDetailPage() {
 
         {/* ===== Kolom samping ===== */}
         <aside className="flex flex-col gap-4 min-w-0">
+          <section className="bg-panel border border-line rounded-lg p-4 shadow-sm">
+            <h2 className="text-sm font-semibold text-ink mb-3">Kesiapan dokumen</h2>
+            <div className="flex flex-col gap-3.5">
+              <div>
+                <div className="flex items-center justify-between text-xs mb-1.5">
+                  <span className="text-ink">Commissioning Report</span>
+                  <span className="font-data tnum font-semibold text-ink">{commPercent}%</span>
+                </div>
+                <div className="h-1.5 bg-line/60 rounded-full overflow-hidden">
+                  <div className={`h-full rounded-full ${commPercent >= 100 ? 'bg-teal' : 'bg-blueprint'}`} style={{ width: `${commPercent}%` }} />
+                </div>
+                {readiness.commissioning.missing.length > 0 ? (
+                  <button onClick={() => setActiveTab('ringkasan')} className="text-[11px] text-amber hover:underline mt-1.5 text-left">
+                    Kurang: {readiness.commissioning.missing.join(', ')}
+                  </button>
+                ) : (
+                  <p className="text-[11px] text-teal mt-1.5">Data lengkap, siap di-generate</p>
+                )}
+              </div>
+              <div>
+                <div className="flex items-center justify-between text-xs mb-1.5">
+                  <span className="text-ink">Hand Over Report</span>
+                  <span className="font-data tnum font-semibold text-ink">{specProgress && specSections.length > 0 ? `${specProgress.percent}%` : '-'}</span>
+                </div>
+                <div className="h-1.5 bg-line/60 rounded-full overflow-hidden">
+                  <div className={`h-full rounded-full ${specProgress && specProgress.percent >= 100 ? 'bg-teal' : 'bg-blueprint'}`} style={{ width: `${specProgress && specSections.length > 0 ? specProgress.percent : 0}%` }} />
+                </div>
+                <button onClick={() => setActiveTab(specSections.length > 0 ? 'spesifikasi' : 'ringkasan')} className="text-[11px] text-blueprint hover:underline mt-1.5 text-left">
+                  {specSections.length === 0 ? 'Pilih sistem terpasang dulu' : specProgress && specProgress.percent >= 100 ? 'Spesifikasi lengkap' : 'Lengkapi spesifikasi peralatan'}
+                </button>
+              </div>
+            </div>
+          </section>
+
           <section className="bg-panel border border-line rounded-lg p-4 shadow-sm">
             <h2 className="text-sm font-semibold text-ink mb-3">Garis waktu</h2>
             <ol className="flex flex-col">
