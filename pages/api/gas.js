@@ -15,8 +15,8 @@ import { authOptions } from './auth/[...nextauth]';
 export const config = { maxDuration: 30 };
 
 // 'comments' & 'addComment' disiapkan untuk fitur komentar (backend-nya belum ada di Code.gs).
-const GET_ACTIONS = new Set(['projects', 'dashboard', 'meta', 'activityLog', 'comments']);
-const POST_ACTIONS = new Set(['addProject', 'updateProject', 'updateChecklist', 'deleteProject', 'addComment']);
+const GET_ACTIONS = new Set(['projects', 'dashboard', 'meta', 'activityLog', 'comments', 'specs']);
+const POST_ACTIONS = new Set(['addProject', 'updateProject', 'updateChecklist', 'deleteProject', 'addComment', 'saveSpecs']);
 // Parameter tambahan yang boleh diteruskan pada GET (selain action & token)
 const GET_EXTRA_PARAMS = ['projectId', 'poNumber'];
 const TIMEOUT_MS = 28000;
