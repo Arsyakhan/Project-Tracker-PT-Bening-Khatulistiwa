@@ -4,10 +4,12 @@ import Link from 'next/link';
 import { api } from '../../../lib/api';
 import { useToast } from '../../../components/Toast';
 import PageHead from '../../../components/PageHead';
+import ConfirmModal from '../../../components/ConfirmModal';
 import ProjectPicker from '../../../components/docgen/ProjectPicker';
 import { TextField, ToggleSection } from '../../../components/docgen/DocFormControls';
 import { HANDOVER_SECTIONS, buildHandoverEmpty } from '../../../lib/docgen/schema';
 import { prefillHandover } from '../../../lib/docgen/prefill';
+import { SPEC_FIELD_IDS, packSpecs, unpackSpecs } from '../../../lib/docgen/specs';
 import { docReadiness, effectiveSystems, toHandoverModules } from '../../../lib/systems';
 
 const REQUIRED = ['project_name', 'system_title', 'buyer_company'];
@@ -33,6 +35,12 @@ export default function NewHandoverReport() {
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState(null);
   const fieldRefs = useRef({});
+  // Spesifikasi peralatan yang tersimpan di project (lihat tab "Spesifikasi Peralatan" di detail project)
+  const projectSpecsRef = useRef({});             // spesifikasi terakhir dari server (sudah dibersihkan)
+  const [specsVersion, setSpecsVersion] = useState(0);
+  const [specsCount, setSpecsCount] = useState(0);
+  const [specsBusy, setSpecsBusy] = useState(false);
+  const [confirmReloadOpen, setConfirmReloadOpen] = useState(false);
   const activeKey = useRef(null); // kunci localStorage untuk draft yang sedang aktif
   const dirty = useRef(false); // draft baru disimpan setelah pengguna benar-benar mengedit
 
@@ -40,6 +48,23 @@ export default function NewHandoverReport() {
     // Kalau daftar project gagal dimuat, tetap lanjut (tanpa prefill) supaya form tidak macet.
     api.getProjects().then(setProjects).catch(() => setProjects([]));
   }, []);
+
+  // Ambil spesifikasi tersimpan milik sebuah project. Gagal = lanjut tanpa spesifikasi (form tetap bisa dipakai).
+  async function fetchProjectSpecs(pid) {
+    try {
+      const res = await api.getSpecs(pid);
+      const specs = unpackSpecs(res.specs);
+      projectSpecsRef.current = specs;
+      setSpecsVersion(res.version || 0);
+      setSpecsCount(Object.keys(packSpecs(specs)).length);
+      return specs;
+    } catch {
+      projectSpecsRef.current = {};
+      setSpecsVersion(0);
+      setSpecsCount(0);
+      return {};
+    }
+  }
 
   // Inisialisasi form SEKALI per project: pulihkan draft kalau ada, kalau tidak isi dari data project.
   useEffect(() => {
@@ -57,11 +82,16 @@ export default function NewHandoverReport() {
 
     const p = projectId && projects ? projects.find((pr) => pr.id === projectId) || null : null;
     setLinkedProject(p);
-    if (saved) setForm({ ...buildHandoverEmpty(), ...saved });
-    else if (p) setForm({ ...buildHandoverEmpty(), ...prefillFrom(p) });
-    else setForm(buildHandoverEmpty());
-    dirty.current = false;
-    setInitialized(true);
+
+    (async () => {
+      // Spesifikasi project selalu diambil (untuk nomor versi), tapi hanya dipakai kalau tidak ada draft.
+      const specs = p ? await fetchProjectSpecs(p.id) : {};
+      if (saved) setForm({ ...buildHandoverEmpty(), ...saved });
+      else if (p) setForm({ ...buildHandoverEmpty(), ...prefillFrom(p), ...specs });
+      else setForm(buildHandoverEmpty());
+      dirty.current = false;
+      setInitialized(true);
+    })();
   }, [router.isReady, projectId, projects]);
 
   // Simpan draft otomatis, tapi HANYA setelah pengguna mengedit -- supaya form kosong / hasil
@@ -83,11 +113,17 @@ export default function NewHandoverReport() {
     activeKey.current = draftKey(p.id); // supaya efek inisialisasi tidak menimpa form yang sedang diisi
     setLinkedProject(p);
     setForm((f) => ({ ...f, ...prefillFrom(p) }));
+    fetchProjectSpecs(p.id).then((specs) => {
+      if (Object.keys(specs).length > 0) setForm((f) => ({ ...f, ...specs }));
+    });
     router.replace({ pathname: router.pathname, query: { projectId: p.id } }, undefined, { shallow: true });
   }
 
   function unlinkProject() {
     activeKey.current = draftKey(null);
+    projectSpecsRef.current = {};
+    setSpecsVersion(0);
+    setSpecsCount(0);
     setLinkedProject(null);
     router.replace({ pathname: router.pathname, query: {} }, undefined, { shallow: true });
   }
@@ -98,6 +134,48 @@ export default function NewHandoverReport() {
     const info = toHandoverModules(effectiveSystems(linkedProject).keys);
     if (info.overflowFilters.length > 0) hoNotes.push(`Template Hand Over hanya punya 2 slot filter. Tambahkan secara manual di "Item Tambahan": ${info.overflowFilters.join(', ')}.`);
     if (info.notInHandover.length > 0) hoNotes.push(`${info.notInHandover.join(', ')} tidak punya seksi di template Hand Over.`);
+  }
+
+  // Simpan isian spesifikasi di form ini ke project, supaya koreksi saat serah terima tidak hilang.
+  async function saveSpecsToProject() {
+    if (!linkedProject || specsBusy) return;
+    const packed = packSpecs(form);
+    if (Object.keys(packed).length === 0) {
+      showToast('Belum ada spesifikasi yang diisi untuk disimpan.', 'error');
+      return;
+    }
+    setSpecsBusy(true);
+    try {
+      const res = await api.saveSpecs({ projectId: linkedProject.id, specs: packed, baseVersion: specsVersion });
+      projectSpecsRef.current = unpackSpecs(packed);
+      setSpecsVersion(res.version);
+      setSpecsCount(Object.keys(packed).length);
+      showToast('Spesifikasi tersimpan ke project.', 'success');
+    } catch (err) {
+      showToast(err.message, 'error');
+    } finally {
+      setSpecsBusy(false);
+    }
+  }
+
+  // Ganti isian spesifikasi di form dengan data terbaru dari project.
+  async function reloadSpecsFromProject() {
+    if (!linkedProject) return;
+    setConfirmReloadOpen(false);
+    setSpecsBusy(true);
+    try {
+      const specs = await fetchProjectSpecs(linkedProject.id);
+      const base = buildHandoverEmpty();
+      dirty.current = true;
+      setForm((f) => {
+        const next = { ...f };
+        SPEC_FIELD_IDS.forEach((id) => { next[id] = base[id]; });
+        return { ...next, ...prefillFrom(linkedProject), ...specs };
+      });
+      showToast('Spesifikasi dimuat ulang dari project.', 'success');
+    } finally {
+      setSpecsBusy(false);
+    }
   }
 
   async function handleSubmit() {
@@ -135,7 +213,7 @@ export default function NewHandoverReport() {
     dirty.current = false;
     setResult(null);
     setInvalidFields({});
-    setForm(linkedProject ? { ...buildHandoverEmpty(), ...prefillFrom(linkedProject) } : buildHandoverEmpty());
+    setForm(linkedProject ? { ...buildHandoverEmpty(), ...prefillFrom(linkedProject), ...projectSpecsRef.current } : buildHandoverEmpty());
   }
 
   return (
@@ -189,6 +267,19 @@ export default function NewHandoverReport() {
                 )}
                 {readiness.note && <span className="block text-xs text-inkmute mt-1">{readiness.note}</span>}
                 {hoNotes.map((n) => <span key={n} className="block text-xs text-inkmute mt-1">{n}</span>)}
+                <span className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs">
+                  <span className="text-inkmute">
+                    {specsCount > 0
+                      ? `Spesifikasi peralatan: ${specsCount} kolom terisi dari project.`
+                      : 'Spesifikasi peralatan project belum diisi.'}
+                  </span>
+                  <button type="button" onClick={saveSpecsToProject} disabled={specsBusy} className="font-medium text-blueprint hover:underline disabled:opacity-50">
+                    Simpan ke project
+                  </button>
+                  <button type="button" onClick={() => setConfirmReloadOpen(true)} disabled={specsBusy} className="font-medium text-blueprint hover:underline disabled:opacity-50">
+                    Muat ulang dari project
+                  </button>
+                </span>
               </div>
               <button onClick={unlinkProject} className="text-inkmute hover:text-rust font-medium whitespace-nowrap">Lepas dari project</button>
             </div>
@@ -238,6 +329,16 @@ export default function NewHandoverReport() {
           </div>
         </>
       )}
+      <ConfirmModal
+        open={confirmReloadOpen}
+        title="Muat ulang dari project?"
+        description="Isian spesifikasi peralatan di form ini akan diganti dengan data yang tersimpan di project. Perubahan yang belum disimpan ke project akan hilang."
+        confirmText="Ya, muat ulang"
+        cancelText="Batal"
+        danger={true}
+        onConfirm={reloadSpecsFromProject}
+        onCancel={() => setConfirmReloadOpen(false)}
+      />
     </div>
   );
 }
