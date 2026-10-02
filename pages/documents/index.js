@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { api } from '../../lib/api';
 import PageHead from '../../components/PageHead';
+import DocsTabs from '../../components/DocsTabs';
 import RefreshStatus from '../../components/RefreshStatus';
 import useCachedResource from '../../lib/useCachedResource';
 
@@ -152,6 +153,7 @@ export default function DocumentsHome() {
   return (
     <div className="flex flex-col gap-6">
       <PageHead title="Generator Dokumen" />
+      <DocsTabs active="generator" />
       <div>
         <h1 className="font-display text-2xl font-bold text-ink">Generator Dokumen</h1>
         <p className="text-inkmute text-sm mt-1">
