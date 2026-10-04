@@ -1,5 +1,6 @@
 import NextAuth from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
+import { getRoleForEmail } from '../../../lib/roles';
 
 // Daftar email yang boleh login, diambil dari Environment Variable ALLOWED_EMAILS
 // di Vercel (dipisah koma), misal:
@@ -43,7 +44,10 @@ export const authOptions = {
 
       return allowedEmails.includes(email);
     },
+    // Peran dihitung ulang tiap sesi dibaca, jadi perubahan ADMIN_EMAILS / VIEWER_EMAILS
+    // berlaku begitu Vercel di-redeploy, tanpa pengguna harus login ulang.
     async session({ session }) {
+      if (session?.user?.email) session.user.role = getRoleForEmail(session.user.email);
       return session;
     },
   },
