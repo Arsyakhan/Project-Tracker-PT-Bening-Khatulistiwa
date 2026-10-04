@@ -9,6 +9,7 @@ import CommandPalette from '../components/CommandPalette';
 import TopLoadingBar from '../components/TopLoadingBar';
 import { setStoredTheme } from '../lib/theme';
 import { getRecentProjects } from '../lib/recentlyViewed';
+import { roleLabel } from '../lib/roles';
 
 const NAV_ITEMS = [
   {
@@ -124,17 +125,14 @@ function Shell({ Component, pageProps }) {
     <div className="flex flex-col h-full">
       <Link
         href="/"
-        className="flex items-center gap-2.5 px-5 py-5 border-b border-line group"
+        className="flex items-center px-5 py-5 border-b border-line group"
         onClick={() => setMobileNavOpen(false)}
       >
         <img
-          src="/logo-bk2.png"
-          alt="Logo Bening Khatulistiwa"
-          className="h-8 w-8 object-contain mix-blend-multiply flex-shrink-0 group-hover:opacity-80 transition-opacity"
+          src="/logo-bening-hub-compact.png"
+          alt="Bening Hub"
+          className="h-9 w-auto object-contain flex-shrink-0 group-hover:opacity-80 transition-opacity dark:brightness-0 dark:invert"
         />
-        <span className="font-display font-bold text-[15px] text-blueprint leading-none whitespace-nowrap tracking-tight">
-          Bening Hub
-        </span>
       </Link>
 
       <div className="px-3 pt-4">
@@ -212,7 +210,14 @@ function Shell({ Component, pageProps }) {
             {session.user.image && (
               <img src={session.user.image} alt="" className="w-7 h-7 rounded-full flex-shrink-0 ring-2 ring-panel" />
             )}
-            <span className="text-xs text-ink font-medium truncate">{session.user.email}</span>
+            <div className="min-w-0">
+              <span className="block text-xs text-ink font-medium truncate">{session.user.email}</span>
+              {session.user.role && (
+                <span className={`block text-[10px] leading-tight mt-0.5 ${session.user.role === 'viewer' ? 'text-amber font-medium' : 'text-inkmute'}`}>
+                  {roleLabel(session.user.role)}
+                </span>
+              )}
+            </div>
           </div>
         )}
 
@@ -280,9 +285,8 @@ function Shell({ Component, pageProps }) {
 
           {/* Top bar mobile - cuma logo + tombol hamburger */}
           <header className="md:hidden sticky top-0 z-20 bg-panel border-b border-line flex items-center justify-between px-4 py-3">
-            <Link href="/" className="flex items-center gap-2">
-              <img src="/logo-bk2.png" alt="Logo" className="h-7 w-auto object-contain mix-blend-multiply" />
-              <span className="font-display font-bold text-blueprint text-[15px] tracking-tight">Bening Hub</span>
+            <Link href="/" className="flex items-center">
+              <img src="/logo-bening-hub-compact.png" alt="Bening Hub" className="h-7 w-auto object-contain dark:brightness-0 dark:invert" />
             </Link>
             <button onClick={() => setMobileNavOpen(true)} className="p-2 text-ink" aria-label="Buka menu">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-6 h-6">
@@ -293,6 +297,15 @@ function Shell({ Component, pageProps }) {
 
           <main className="flex-1 md:pl-60 min-w-0">
             <div className="max-w-6xl mx-auto px-5 py-6 md:px-10 md:py-10">
+              {session?.user?.role === 'viewer' && (
+                <div role="status" className="mb-6 flex items-start gap-3 bg-amber/10 border border-amber/30 border-l-4 border-l-amber rounded-lg px-4 py-3 text-sm text-ink">
+                  <svg className="w-5 h-5 text-amber shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  <span><b>Mode lihat saja.</b> Akun Anda berstatus Viewer, jadi perubahan tidak akan tersimpan. Hubungi admin kalau perlu akses ubah.</span>
+                </div>
+              )}
               <Component {...pageProps} />
             </div>
           </main>
