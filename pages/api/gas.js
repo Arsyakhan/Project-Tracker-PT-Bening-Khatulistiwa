@@ -10,6 +10,7 @@
 
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from './auth/[...nextauth]';
+import { getRoleForEmail, canWrite, canDelete, MSG_VIEWER, MSG_NOT_ADMIN } from '../../lib/roles';
 
 // Apps Script kadang lambat saat cold start; beri waktu lebih dari default Vercel.
 export const config = { maxDuration: 30 };
@@ -17,6 +18,8 @@ export const config = { maxDuration: 30 };
 // 'comments' & 'addComment' disiapkan untuk fitur komentar (backend-nya belum ada di Code.gs).
 const GET_ACTIONS = new Set(['projects', 'dashboard', 'meta', 'activityLog', 'comments', 'specs', 'meetings']);
 const POST_ACTIONS = new Set(['addProject', 'updateProject', 'updateChecklist', 'deleteProject', 'addComment', 'saveSpecs', 'saveMeeting', 'deleteMeeting']);
+// Aksi yang menghapus data: hanya admin.
+const DELETE_ACTIONS = new Set(['deleteProject', 'deleteMeeting']);
 // Parameter tambahan yang boleh diteruskan pada GET (selain action & token)
 const GET_EXTRA_PARAMS = ['projectId', 'poNumber'];
 const TIMEOUT_MS = 28000;
@@ -71,6 +74,11 @@ export default async function handler(req, res) {
       if (!body || typeof body !== 'object') return fail(res, 400, 'Body harus JSON.');
       const { action, payload } = body;
       if (!POST_ACTIONS.has(action)) return fail(res, 400, 'Action tidak dikenal.');
+
+      // Cek peran DI SERVER (tidak bisa dilewati dari DevTools).
+      const role = getRoleForEmail(email);
+      if (!canWrite(role)) return fail(res, 403, MSG_VIEWER);
+      if (DELETE_ACTIONS.has(action) && !canDelete(role)) return fail(res, 403, MSG_NOT_ADMIN);
 
       gasRes = await fetch(gasUrl, {
         method: 'POST',
