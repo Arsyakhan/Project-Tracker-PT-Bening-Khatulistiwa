@@ -1,13 +1,14 @@
 // Membuat Google Doc notulensi dari satu rapat yang sudah tersimpan.
 //
 // Alur (server-side, sama prinsipnya dengan /api/docgen.js):
-//   1) wajib login (NextAuth)
+//   1) wajib login (NextAuth); Viewer tidak boleh
 //   2) ambil data rapat TERBARU dari backend Project Tracker (GAS_API_URL + GAS_API_TOKEN),
 //      jadi dokumen selalu sesuai yang tersimpan, bukan kiriman dari browser
 //   3) panggil script Apps Script Generator Notulensi (DOCGEN_MEETING_URL, + DOCGEN_MEETING_SECRET)
 //   4) simpan link dokumen ke baris rapat (action "setMeetingDoc")
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from './auth/[...nextauth]';
+import { getRoleForEmail, canWrite, MSG_VIEWER } from '../../lib/roles';
 
 export const config = { maxDuration: 30 };
 
@@ -36,6 +37,7 @@ export default async function handler(req, res) {
   const session = await getServerSession(req, res, authOptions);
   const email = session?.user?.email;
   if (!email) return fail(res, 401, 'Sesi habis. Silakan login lagi.');
+  if (!canWrite(getRoleForEmail(email))) return fail(res, 403, MSG_VIEWER);
 
   const meetingId = typeof req.body?.meetingId === 'string' ? req.body.meetingId.trim() : '';
   if (!meetingId) return fail(res, 400, 'meetingId wajib diisi.');
