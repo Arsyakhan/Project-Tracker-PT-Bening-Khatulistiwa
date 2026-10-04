@@ -18,6 +18,7 @@
 
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from './auth/[...nextauth]';
+import { getRoleForEmail, canWrite, MSG_VIEWER } from '../../lib/roles';
 
 export const config = { maxDuration: 30 };
 
@@ -110,6 +111,9 @@ export default async function handler(req, res) {
   if (!email) return fail(res, 401, 'Sesi habis. Silakan login lagi.');
 
   if (req.method === 'GET') return handleList(req, res);
+
+  // Membuat dokumen = menulis ke Drive & spreadsheet, jadi Viewer tidak boleh.
+  if (!canWrite(getRoleForEmail(email))) return fail(res, 403, MSG_VIEWER);
 
   const body = req.body;
   if (!body || typeof body !== 'object') return fail(res, 400, 'Body harus JSON.');
