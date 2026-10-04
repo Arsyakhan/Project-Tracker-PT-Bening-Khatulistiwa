@@ -9,6 +9,7 @@ import { SkeletonStatCards, SkeletonPanel, SkeletonTable } from '../components/S
 import PageHead from '../components/PageHead';
 import AttentionPanel from '../components/AttentionPanel';
 import RefreshStatus from '../components/RefreshStatus';
+import MeetingSummary from '../components/MeetingSummary';
 
 export default function Dashboard() {
   // Data terakhir langsung tampil (kalau ada), lalu disegarkan di belakang layar.
@@ -106,6 +107,8 @@ export default function Dashboard() {
           hint={activeTab === 'completed' ? 'Sedang ditampilkan' : 'Lihat daftar ↓'}
         />
       </div>
+
+      <MeetingSummary />
 
       <AttentionPanel projects={projects} />
 
