@@ -10,6 +10,7 @@ import PageHead from '../components/PageHead';
 import AttentionPanel from '../components/AttentionPanel';
 import RefreshStatus from '../components/RefreshStatus';
 import MeetingSummary from '../components/MeetingSummary';
+import ProcurementSummary from '../components/ProcurementSummary';
 
 export default function Dashboard() {
   // Data terakhir langsung tampil (kalau ada), lalu disegarkan di belakang layar.
@@ -109,6 +110,8 @@ export default function Dashboard() {
       </div>
 
       <MeetingSummary />
+
+      <ProcurementSummary />
 
       <AttentionPanel projects={projects} />
 
