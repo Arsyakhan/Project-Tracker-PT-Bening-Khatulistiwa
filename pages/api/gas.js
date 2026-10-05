@@ -16,10 +16,10 @@ import { getRoleForEmail, canWrite, canDelete, MSG_VIEWER, MSG_NOT_ADMIN } from 
 export const config = { maxDuration: 30 };
 
 // 'comments' & 'addComment' disiapkan untuk fitur komentar (backend-nya belum ada di Code.gs).
-const GET_ACTIONS = new Set(['projects', 'dashboard', 'meta', 'activityLog', 'comments', 'specs', 'meetings']);
-const POST_ACTIONS = new Set(['addProject', 'updateProject', 'updateChecklist', 'deleteProject', 'addComment', 'saveSpecs', 'saveMeeting', 'deleteMeeting']);
+const GET_ACTIONS = new Set(['projects', 'dashboard', 'meta', 'activityLog', 'comments', 'specs', 'meetings', 'procurement']);
+const POST_ACTIONS = new Set(['addProject', 'updateProject', 'updateChecklist', 'deleteProject', 'addComment', 'saveSpecs', 'saveMeeting', 'deleteMeeting', 'saveProcurementItem', 'deleteProcurementItem']);
 // Aksi yang menghapus data: hanya admin.
-const DELETE_ACTIONS = new Set(['deleteProject', 'deleteMeeting']);
+const DELETE_ACTIONS = new Set(['deleteProject', 'deleteMeeting', 'deleteProcurementItem']);
 // Parameter tambahan yang boleh diteruskan pada GET (selain action & token)
 const GET_EXTRA_PARAMS = ['projectId', 'poNumber'];
 const TIMEOUT_MS = 28000;
