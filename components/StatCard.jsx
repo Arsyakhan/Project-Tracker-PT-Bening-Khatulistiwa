@@ -4,7 +4,7 @@ import Link from 'next/link';
 // - Tanpa href/onClick : kartu biasa (hanya tampilan)
 // - href               : tautan ke halaman lain
 // - onClick            : tombol (mis. memilih tab); active = kartu sedang terpilih
-export default function StatCard({ label, value, accent = '#1C4E73', href, onClick, active = false, hint }) {
+export default function StatCard({ label, value, accent = 'rgb(var(--color-ink))', href, onClick, active = false, hint }) {
   const interactive = !!(href || onClick);
 
   const cls = [
