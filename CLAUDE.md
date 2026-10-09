@@ -70,7 +70,7 @@ Checklist`, `Activity Log`, `Comments`, `Document Log`, `Project Specs`, `Meetin
 |---|---|---|---|
 | `apps-script/docgen/commissioning.gs` | `17YubntTUx2Blrm-z9SljsqLAGdkxl6Z8-yBYP4KkbSg` | `1tidqVbWwC7LPUoctyDcMb5K_Zo1PH2kM` | `DOCGEN_COMMISSIONING_URL` |
 | `apps-script/docgen/handover.gs` | `1EkVlnf3xQZT4vvXc8SF_W9hWz8QXfwWqgYETn4rcwf0` | `1jdQ0D_SJ7FvOLzhUGdNh0U3DzrA1DSrv` | `DOCGEN_HANDOVER_URL` |
-| generator Notulensi (**kodenya belum ada di repo**) | belum diketahui | belum diketahui | `DOCGEN_MEETING_URL` + `DOCGEN_MEETING_SECRET` |
+| `apps-script/docgen/meeting.gs` (Notulensi) | tidak pakai template: dokumen dibuat dari kode (lanskap, 4 bagian) | `1IaQoI3Swl9LNvLu7PJoZW46DY2KSztDT` | `DOCGEN_MEETING_URL` + `DOCGEN_MEETING_SECRET` |
 
 Cara kerja: `makeCopy` template, lalu `replaceText` untuk `{{PLACEHOLDER}}`. Blok
 `{{BEGIN_SECTION_X}} … {{END_SECTION_X}}` dihapus kalau flag `has_*` salah. Isi kosong jadi `.......`
@@ -142,6 +142,8 @@ mencetaknya di log/PR.
 
 ## Hal yang belum diketahui / perlu ditanyakan
 
-- Kode generator Notulensi (`DOCGEN_MEETING_URL`) belum pernah dibagikan.
+- `docgen/meeting.gs`: versi live belum memeriksa `GENERATOR_SECRET` (hanya disebut di komentar).
+  Salinan di repo sudah ditambah pengecekannya; baru berlaku setelah ditempel & di-deploy ulang, dan
+  `GENERATOR_SECRET` (Script Properties) harus sama dengan `DOCGEN_MEETING_SECRET` (Vercel).
 - Tampilan aplikasi asli belum bisa diperiksa dari sandbox (butuh login Google + data Sheet live);
   cek lewat Vercel Preview.

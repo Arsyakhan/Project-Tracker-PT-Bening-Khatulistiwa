@@ -149,7 +149,7 @@ Buka `http://localhost:3000` — kamu akan diarahkan ke halaman login dulu.
   - `WeeklyDigest.gs` — email ringkasan mingguan (trigger Senin ~07.00).
   - `Backup.gs` — salinan spreadsheet mingguan (trigger Senin ~02.00).
   - `Seed-Meetings.gs` — impor sekali jalan 2 rapat awal (21 Agu & 11 Sep 2026); tidak dipakai rutin.
-  - `docgen/commissioning.gs` & `docgen/handover.gs` — dua Apps Script **terpisah** (Web App
+  - `docgen/commissioning.gs`, `docgen/handover.gs` & `docgen/meeting.gs` — tiga Apps Script **terpisah** (Web App
     sendiri, URL sendiri) yang membuat dokumen dari template Google Docs.
   File `.gs` selain `docgen/` ditempel sebagai file terpisah di **satu** project Apps Script yang
   sama dengan `Code.gs`. Hanya `Code.gs` yang punya `doGet`/`doPost`.
