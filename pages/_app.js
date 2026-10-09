@@ -9,91 +9,7 @@ import CommandPalette from '../components/CommandPalette';
 import TopLoadingBar from '../components/TopLoadingBar';
 import { setStoredTheme } from '../lib/theme';
 import { getRecentProjects } from '../lib/recentlyViewed';
-import { roleLabel } from '../lib/roles';
-
-const NAV_ITEMS = [
-  {
-    href: '/',
-    label: 'Hari Ini',
-    icon: (
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
-      </svg>
-    ),
-  },
-  {
-    href: '/dashboard',
-    label: 'Dashboard',
-    icon: (
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
-      </svg>
-    ),
-  },
-  {
-    href: '/projects',
-    label: 'Semua Project',
-    icon: (
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
-      </svg>
-    ),
-  },
-  {
-    href: '/board',
-    label: 'Papan Kanban',
-    icon: (
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9 4.5v15m6-15v15m-10.875 0h15.75c.621 0 1.125-.504 1.125-1.125V5.625c0-.621-.504-1.125-1.125-1.125H4.125C3.504 4.5 3 5.004 3 5.625v12.75c0 .621.504 1.125 1.125 1.125z" />
-      </svg>
-    ),
-  },
-  {
-    href: '/engineering-docs',
-    label: 'Engineering Docs',
-    icon: (
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-      </svg>
-    ),
-  },
-  {
-    href: '/procurement',
-    label: 'Pengadaan',
-    icon: (
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
-      </svg>
-    ),
-  },
-  {
-    href: '/documents',
-    label: 'Dokumen',
-    icon: (
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
-      </svg>
-    ),
-  },
-  {
-    href: '/arsip',
-    label: 'Arsip',
-    icon: (
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5m6 4.125l2.25 2.25m0 0l2.25-2.25M12 13.875V7.5M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
-      </svg>
-    ),
-  },
-  {
-    href: '/activity',
-    label: 'Aktivitas',
-    icon: (
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-    ),
-  },
-];
+import Sidebar from '../components/Sidebar';
 
 function Shell({ Component, pageProps }) {
   const router = useRouter();
@@ -146,135 +62,19 @@ function Shell({ Component, pageProps }) {
     signOut({ callbackUrl: '/login' });
   };
 
-  const isActive = (path) => router.pathname === path;
-
-  const sidebarContent = (
-    <div className="flex flex-col h-full">
-      <Link
-        href="/"
-        className="flex items-center px-5 py-5 border-b border-line group"
-        onClick={() => setMobileNavOpen(false)}
-      >
-        <img
-          src="/logo-bening-hub-compact.png"
-          alt="Bening Hub"
-          className="h-9 w-auto object-contain flex-shrink-0 group-hover:opacity-80 transition-opacity dark:brightness-0 dark:invert"
-        />
-      </Link>
-
-      <div className="px-3 pt-4">
-        <button
-          onClick={() => setPaletteOpen(true)}
-          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg border border-line bg-canvas hover:bg-line/40 text-inkmute text-sm transition-colors"
-        >
-          <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-          <span className="flex-1 text-left">Cari...</span>
-          <kbd className="text-[10px] border border-line rounded px-1.5 py-0.5 bg-panel">Ctrl K</kbd>
-        </button>
-      </div>
-
-      <nav className="flex flex-col gap-0.5 px-3 pt-3">
-        <span className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-wider text-inkmute">Menu</span>
-        {NAV_ITEMS.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            onClick={() => setMobileNavOpen(false)}
-            className={`flex items-center gap-3 pl-3 pr-3 py-2.5 border-l-[3px] font-medium text-sm transition-all duration-150 ${
-              isActive(item.href)
-                ? 'border-blueprint bg-blueprint/[0.06] text-blueprint'
-                : 'border-transparent text-inkmute hover:bg-canvas hover:text-ink'
-            }`}
-          >
-            {item.icon}
-            {item.label}
-          </Link>
-        ))}
-
-        <Link
-          href="/projects/new"
-          onClick={() => setMobileNavOpen(false)}
-          className="flex items-center justify-center gap-2 px-3 py-2.5 mt-4 mx-1 bg-blueprint hover:bg-blueprintdark text-onaccent font-medium text-sm rounded-lg shadow-sm transition-all duration-200"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-          </svg>
-          Project Baru
-        </Link>
-      </nav>
-
-      {recentProjects.length > 0 && (
-        <div className="px-3 pt-4">
-          <span className="px-3 pb-2 block text-[10px] font-semibold uppercase tracking-wider text-inkmute">
-            Terakhir Dibuka
-          </span>
-          <div className="flex flex-col gap-0.5">
-            {recentProjects.map((p) => (
-              <Link
-                key={p.id}
-                href={`/projects/${encodeURIComponent(p.id)}`}
-                onClick={() => setMobileNavOpen(false)}
-                title={p.projectName}
-                className="flex items-center gap-2 pl-3 pr-3 py-2 rounded-md text-xs text-inkmute hover:bg-canvas hover:text-ink transition-colors"
-              >
-                <svg className="w-3.5 h-3.5 flex-shrink-0 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span className="truncate">{p.projectName || p.poNumber}</span>
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div className="flex-1" />
-
-      <div className="px-3 py-4 border-t border-line flex flex-col gap-2">
-        {session?.user?.email && (
-          <div className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg bg-canvas border border-line/60">
-            {session.user.image && (
-              <img src={session.user.image} alt="" className="w-7 h-7 rounded-full flex-shrink-0 ring-2 ring-panel" />
-            )}
-            <div className="min-w-0">
-              <span className="block text-xs text-ink font-medium truncate">{session.user.email}</span>
-              {session.user.role && (
-                <span className={`block text-[10px] leading-tight mt-0.5 ${session.user.role === 'viewer' ? 'text-amberink font-medium' : 'text-inkmute'}`}>
-                  {roleLabel(session.user.role)}
-                </span>
-              )}
-            </div>
-          </div>
-        )}
-
-        <button
-          onClick={toggleTheme}
-          className="flex items-center gap-3 px-3 py-2.5 text-inkmute hover:bg-canvas hover:text-ink font-medium text-sm rounded-lg transition-all duration-200"
-        >
-          {isDark ? (
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
-            </svg>
-          ) : (
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.72 9.72 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" />
-            </svg>
-          )}
-          {isDark ? 'Mode Terang' : 'Mode Gelap'}
-        </button>
-
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-3 px-3 py-2.5 text-rust hover:bg-rust/10 font-medium text-sm rounded-lg transition-all duration-200"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
-          </svg>
-          Keluar
-        </button>
-      </div>
-    </div>
+  const closeNav = () => setMobileNavOpen(false);
+  const sidebarContent = (onClose) => (
+    <Sidebar
+      pathname={router.pathname}
+      session={session}
+      recentProjects={recentProjects}
+      isDark={isDark}
+      onNavigate={closeNav}
+      onSearch={() => { closeNav(); setPaletteOpen(true); }}
+      onToggleTheme={toggleTheme}
+      onLogout={handleLogout}
+      onClose={onClose}
+    />
   );
 
   return (
@@ -300,13 +100,13 @@ function Shell({ Component, pageProps }) {
       ) : (
         <div className="min-h-screen bg-canvas md:flex">
           {/* Sidebar - desktop: selalu tampil & fixed; mobile: panel geser dari kiri */}
-          <aside className="hidden md:flex md:flex-col md:w-60 md:flex-shrink-0 md:fixed md:inset-y-0 md:left-0 bg-panel border-r border-line shadow-[1px_0_6px_-2px_rgba(12,45,72,0.08)] z-30">
-            {sidebarContent}
+          <aside className="hidden md:flex md:flex-col md:w-64 md:flex-shrink-0 md:fixed md:inset-y-0 md:left-0 bg-panel border-r border-line z-30">
+            {sidebarContent()}
           </aside>
 
           {mobileNavOpen && (
             <div className="md:hidden fixed inset-0 z-40 flex">
-              <div className="w-64 bg-panel border-r border-line shadow-xl overflow-y-auto">{sidebarContent}</div>
+              <div className="w-72 max-w-[85vw] bg-panel border-r border-line shadow-xl">{sidebarContent(closeNav)}</div>
               <div className="flex-1 bg-black/50 backdrop-blur-sm" onClick={() => setMobileNavOpen(false)} />
             </div>
           )}
@@ -323,7 +123,7 @@ function Shell({ Component, pageProps }) {
             </button>
           </header>
 
-          <main id="konten" tabIndex={-1} className="flex-1 md:pl-60 min-w-0 outline-none">
+          <main id="konten" tabIndex={-1} className="flex-1 md:pl-64 min-w-0 outline-none">
             <div className="max-w-6xl mx-auto px-5 py-6 md:px-10 md:py-10">
               {session?.user?.role === 'viewer' && (
                 <div role="status" className="mb-6 flex items-start gap-3 bg-amber/10 border border-amber/30 border-l-4 border-l-amber rounded-lg px-4 py-3 text-sm text-ink">
