@@ -113,6 +113,15 @@ inquiry sampai SAT, Commissioning Report, dan Hand Over.
 `ALLOWED_EMAILS` = editor. `ADMIN_EMAILS` kosong → semua dianggap admin. Pengecekan sebenarnya di
 server (API route), bukan di browser.
 
+**Kebijakan yang diminta pemilik:** PM = **admin**. Engineering (posisi *project engineer*) = **editor**:
+akses sama seperti PM (lihat, tambah, ubah, buat dokumen, komentar, notulensi, pengadaan) **kecuali
+menghapus project**. Jadi email PM masuk `ADMIN_EMAILS`; email engineer cukup di `ALLOWED_EMAILS`.
+Hak hapus rapat dan barang pengadaan saat ini juga hanya admin (sama dengan hapus project).
+
+> Status 9 Okt 2026: `ADMIN_EMAILS` dan `VIEWER_EMAILS` **belum diisi** di Vercel, artinya saat ini
+> semua pengguna yang boleh login adalah admin (engineer pun bisa menghapus). Variabel baru berlaku
+> setelah redeploy. `DOCGEN_MEETING_SECRET` juga belum ada di Vercel.
+
 ## Environment variable (Vercel + `.env.local`)
 
 `GAS_API_URL`, `GAS_API_TOKEN`, `DOCGEN_COMMISSIONING_URL`, `DOCGEN_HANDOVER_URL`, `DOCGEN_MEETING_URL`,
