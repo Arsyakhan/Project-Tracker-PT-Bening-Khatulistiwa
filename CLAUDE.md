@@ -3,6 +3,15 @@
 Panduan untuk Claude di repo ini. Pemilik repo bekerja dalam **Bahasa Indonesia**: selalu balas dan
 tulis teks UI, komentar, serta dokumentasi dalam Bahasa Indonesia.
 
+## Siapa pemakainya
+
+Pemilik repo adalah **Project Manager** PT Bening Khatulistiwa. Bening Hub dibuat untuk memudahkan
+pekerjaannya dan semua divisi di bawahnya: Marketing & Direksi, Engineering, Warehouse & Purchasing,
+dan Technician. Jadi setiap fitur dinilai dari satu pertanyaan: apakah PM dan tiap divisi bisa
+melihat posisi project di alur (inquiry → PO → engineering → pengadaan → fabrikasi → delivery →
+instalasi → commissioning → Hand Over) dan tahu apa yang harus dikerjakan berikutnya. Utamakan
+kejelasan status, tenggat, dan siapa yang bertanggung jawab (PIC) daripada tampilan yang rumit.
+
 ## Gambaran besar
 
 Bening Hub = pelacak project & dokumen engineering (water treatment: RO, UF, softener, dst.).
@@ -52,7 +61,7 @@ helper dari `Code.gs`:
 - GET: `projects`, `dashboard`, `meta`, `activityLog`, `comments`, `documents`, `specs`, `meetings`, `procurement`
 - POST: `addProject`, `updateProject`, `updateChecklist`, `deleteProject`, `addComment`, `logDocument`,
   `saveSpecs`, `saveMeeting`, `deleteMeeting`, `setMeetingDoc`, `saveProcurementItem`, `deleteProcurementItem`
-- Aksi hapus (`deleteProject`, `deleteMeeting`, `deleteProcurementItem`) hanya boleh admin (dicek di `/api/gas`).
+- `deleteProject` hanya boleh admin; `deleteMeeting` dan `deleteProcurementItem` boleh editor (dicek di `/api/gas`).
 - Penyimpanan data berversi (`Version` + `baseVersion`) untuk Specs, Meetings, Procurement agar edit
   bersamaan tidak saling menimpa. Respons selalu `{ ok, data }` atau `{ ok:false, error }`.
 
@@ -103,6 +112,16 @@ inquiry sampai SAT, Commissioning Report, dan Hand Over.
 `lib/roles.js`: `ADMIN_EMAILS` (boleh semua, termasuk hapus), `VIEWER_EMAILS` (hanya lihat), sisanya di
 `ALLOWED_EMAILS` = editor. `ADMIN_EMAILS` kosong → semua dianggap admin. Pengecekan sebenarnya di
 server (API route), bukan di browser.
+
+**Kebijakan yang diminta pemilik:** PM = **admin**. Engineering (posisi *project engineer*) = **editor**:
+akses sama seperti PM (lihat, tambah, ubah, buat dokumen, komentar, notulensi, pengadaan) **kecuali
+menghapus project**. Jadi email PM masuk `ADMIN_EMAILS`; email engineer cukup di `ALLOWED_EMAILS`.
+Hapus **rapat** dan **barang pengadaan** boleh untuk editor (sudah dikonfirmasi pemilik); hanya
+**hapus project** (`deleteProject`) yang khusus admin. Allowlist-nya `DELETE_ACTIONS` di `pages/api/gas.js`.
+
+> Status 9 Okt 2026: `ADMIN_EMAILS` dan `VIEWER_EMAILS` **belum diisi** di Vercel, artinya saat ini
+> semua pengguna yang boleh login adalah admin (engineer pun bisa menghapus). Variabel baru berlaku
+> setelah redeploy. `DOCGEN_MEETING_SECRET` juga belum ada di Vercel.
 
 ## Environment variable (Vercel + `.env.local`)
 

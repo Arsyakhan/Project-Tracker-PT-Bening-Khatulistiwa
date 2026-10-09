@@ -6,7 +6,7 @@ import { api } from '../lib/api';
 import useCachedResource from '../lib/useCachedResource';
 import useProjects from '../lib/useProjects';
 import { clearCache } from '../lib/persistedCache';
-import { canWrite, canDelete } from '../lib/roles';
+import { canWrite } from '../lib/roles';
 import PageHead from '../components/PageHead';
 import RefreshStatus from '../components/RefreshStatus';
 import ConfirmModal from '../components/ConfirmModal';
@@ -137,7 +137,7 @@ export default function ProcurementPage() {
   const { data: session } = useSession();
   const role = session?.user?.role || 'admin'; // pengecekan sebenarnya di server; ini hanya cerminan tampilan
   const writable = canWrite(role);
-  const deletable = canDelete(role);
+  const deletable = writable; // editor & admin boleh menghapus barang; hanya project yang khusus admin
   const { showToast } = useToast();
 
   const { data: items, error, staleError, refreshing, reload } = useCachedResource('procurement', () => api.getProcurement());
