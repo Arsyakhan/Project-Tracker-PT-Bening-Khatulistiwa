@@ -156,6 +156,13 @@ mencetaknya di log/PR.
   `components/NextActionCard.jsx` (kartu di bawah judul detail; nilainya ikut tombol "Simpan perubahan").
   `components/PicInput.jsx` = isian PIC dengan saran nama/divisi; `showDivision` hanya dipasang pada PIC
   langkah berikutnya, karena halaman Hari Ini menyaring per divisi dari teks itu (`divisionFromPic`).
+- **Terlambat / segera** dihitung di satu tempat: `buildActionItems` + `severityCounts` di `lib/today.js`
+  (aturan project-nya `isOverdue`/`isDueSoon` di `lib/projectHelpers.js`; ≤14 hari untuk tenggat kirim project,
+  ≤7 hari untuk langkah berikutnya, pengadaan, dan rapat). Halaman Hari Ini dan banner `TodayBanner` di
+  Dashboard memakai hook yang sama (`lib/useActionItems.js`), jadi angkanya selalu sama. Jangan menghitung ulang
+  terlambat/segera di halaman lain. Dashboard sengaja hanya berisi analitik (kartu, grafik, tabel); daftar yang
+  perlu ditindak ada di Hari Ini. `AttentionPanel`, `MeetingSummary`, dan `ProcurementSummary` tidak dipakai
+  lagi (filenya belum dihapus).
 - API: `pages/api/gas.js` (proxy utama), `docgen.js` (Commissioning/Hand Over + catat ke Document Log
   + update checklist), `meeting-doc.js` (Notulensi), `auth/[...nextauth].js`.
 - Pustaka: `lib/` (`api.js`, `useProjects.js`, `useCachedResource.js`, `persistedCache.js`, `stages.js`,
