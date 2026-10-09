@@ -40,7 +40,7 @@ function EtaPill({ it }) {
 }
 
 // ---------- Form tambah / ubah ----------
-function ItemModal({ initial, projects, saving, onSave, onClose }) {
+function ItemModal({ initial, projects, saving, canRemove, onRemove, onSave, onClose }) {
   const [it, setIt] = useState(initial);
   const firstRef = useRef(null);
   const set = (k, v) => setIt((x) => ({ ...x, [k]: v }));
@@ -112,7 +112,11 @@ function ItemModal({ initial, projects, saving, onSave, onClose }) {
         </div>
 
         <div className="px-5 py-4 border-t border-line flex items-center justify-end gap-3 sticky bottom-0 bg-panel">
-          <span className="hidden sm:inline text-xs text-inkmute mr-auto">Ctrl+Enter untuk simpan</span>
+          {isEdit && canRemove ? (
+            <button type="button" onClick={() => onRemove(it)} className="text-sm font-medium text-rust hover:underline px-1 h-9 mr-auto">Hapus barang...</button>
+          ) : (
+            <span className="hidden sm:inline text-xs text-inkmute mr-auto">Ctrl+Enter untuk simpan</span>
+          )}
           <button onClick={onClose} className="text-sm font-medium text-inkmute hover:text-ink px-3 h-9">Batal</button>
           <button
             onClick={() => onSave(it)}
@@ -340,7 +344,7 @@ export default function ProcurementPage() {
 
                     <ul className="divide-y divide-line">
                       {g.items.map((it) => (
-                        <li key={it.id} className="px-4 py-3 grid gap-3 md:grid-cols-[minmax(0,1fr)_150px_130px_auto] md:items-center">
+                        <li key={it.id} className="px-4 py-3 grid gap-3 md:grid-cols-[minmax(0,1fr)_180px_130px_auto] md:items-center">
                           <div className="min-w-0">
                             <p className={`text-sm font-medium ${it.status === 'Batal' ? 'line-through text-inkmute' : 'text-ink'}`}>
                               {it.item}{it.qty && <span className="text-inkmute font-normal"> · {it.qty}</span>}
@@ -372,7 +376,6 @@ export default function ProcurementPage() {
                               <button type="button" onClick={() => quickStatus(it, 'Diterima')} disabled={busyId === it.id} className="font-medium text-teal hover:underline disabled:opacity-40 whitespace-nowrap">Diterima</button>
                             )}
                             {writable && <button type="button" onClick={() => setEditing(it)} className="font-medium text-blueprint hover:underline">Ubah</button>}
-                            {deletable && <button type="button" onClick={() => setDeleting(it)} className="font-medium text-rust hover:underline">Hapus</button>}
                           </div>
                         </li>
                       ))}
@@ -385,7 +388,17 @@ export default function ProcurementPage() {
         </>
       )}
 
-      {editing && <ItemModal initial={editing} projects={projectList} saving={saving} onSave={(it) => saveItem(it)} onClose={() => setEditing(null)} />}
+      {editing && (
+        <ItemModal
+          initial={editing}
+          projects={projectList}
+          saving={saving}
+          canRemove={deletable}
+          onRemove={(it) => { setEditing(null); setDeleting(it); }}
+          onSave={(it) => saveItem(it)}
+          onClose={() => setEditing(null)}
+        />
+      )}
 
       <ConfirmModal
         open={!!deleting}
