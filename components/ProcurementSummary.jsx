@@ -54,7 +54,7 @@ export default function ProcurementSummary() {
                   <p className="text-sm font-medium text-ink truncate">{it.item}{it.qty ? ` · ${it.qty}` : ''}</p>
                   <p className="text-xs text-inkmute mt-0.5 truncate">{[nameOf(it), it.vendor, it.status].filter(Boolean).join(' · ')}</p>
                 </div>
-                {it.eta ? <Pill tone={st === 'late' ? 'rust' : st === 'soon' ? 'amber' : 'neutral'}>{etaText(it)}</Pill> : <span className="text-xs text-inkmute/70 whitespace-nowrap">ETA belum ada</span>}
+                {it.eta ? <Pill tone={st === 'late' ? 'rust' : st === 'soon' ? 'amber' : 'neutral'}>{etaText(it)}</Pill> : <span className="text-xs text-inkmute whitespace-nowrap">ETA belum ada</span>}
               </li>
             );
           })}

@@ -461,7 +461,7 @@ export default function ProjectDetailPage() {
       {/* Catatan / kendala aktif */}
       {hasRemarks && (
         <div className="flex gap-3 bg-amber/10 border border-amber/30 border-l-4 border-l-amber rounded-lg px-4 py-3">
-          <svg className="w-5 h-5 text-amber shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+          <svg className="w-5 h-5 text-amberink shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
           </svg>
           <div className="min-w-0">
@@ -662,7 +662,7 @@ export default function ProjectDetailPage() {
                 </div>
               )}
               {filterCount > 2 && (
-                <p className="text-xs text-amber">Template Hand Over hanya punya 2 slot filter. Filter ketiga perlu dicatat manual di "Item Tambahan".</p>
+                <p className="text-xs text-amberink">Template Hand Over hanya punya 2 slot filter. Filter ketiga perlu dicatat manual di "Item Tambahan".</p>
               )}
             </Panel>
 
@@ -857,7 +857,7 @@ export default function ProjectDetailPage() {
                   <button
                     onClick={submitComment}
                     disabled={postingComment || !commentDraft.trim()}
-                    className="bg-blueprint hover:bg-blueprintdark text-white rounded-md px-4 h-9 text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    className="bg-blueprint hover:bg-blueprintdark text-onaccent rounded-md px-4 h-9 text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                   >
                     {postingComment ? 'Mengirim...' : 'Kirim komentar'}
                   </button>
@@ -881,7 +881,7 @@ export default function ProjectDetailPage() {
                   <div className={`h-full rounded-full ${commPercent >= 100 ? 'bg-teal' : 'bg-blueprint'}`} style={{ width: `${commPercent}%` }} />
                 </div>
                 {readiness.commissioning.missing.length > 0 ? (
-                  <button onClick={() => setActiveTab('ringkasan')} className="text-[11px] text-amber hover:underline mt-1.5 text-left">
+                  <button onClick={() => setActiveTab('ringkasan')} className="text-[11px] text-amberink hover:underline mt-1.5 text-left">
                     Kurang: {readiness.commissioning.missing.join(', ')}
                   </button>
                 ) : (
@@ -918,7 +918,7 @@ export default function ProjectDetailPage() {
                     </div>
                     <div className={`pb-3.5 ${isLast ? 'pb-0' : ''}`}>
                       <p className="text-xs text-inkmute">{ev.label}</p>
-                      <p className={`text-sm tnum ${has ? 'font-medium text-ink' : 'text-inkmute/70'}`}>{has ? fmtDate(ev.date) : 'Belum diisi'}</p>
+                      <p className={`text-sm tnum ${has ? 'font-medium text-ink' : 'text-inkmute'}`}>{has ? fmtDate(ev.date) : 'Belum diisi'}</p>
                     </div>
                   </li>
                 );
@@ -939,11 +939,11 @@ export default function ProjectDetailPage() {
                   return (
                     <li key={item} className="flex items-center gap-2 text-xs">
                       <ChecklistStatusIcon status={status} small />
-                      <span className={`flex-1 truncate ${status === 'N/A' ? 'text-inkmute/60' : 'text-ink'}`}>{item}</span>
+                      <span className={`flex-1 truncate ${status === 'N/A' ? 'text-inkmute' : 'text-ink'}`}>{item}</span>
                       {link ? (
                         <a href={link} target="_blank" rel="noopener noreferrer" className="text-blueprint hover:underline shrink-0">Buka</a>
                       ) : (
-                        <span className="text-inkmute/70 shrink-0">{status === 'N/A' ? 'N/A' : status === 'Completed' ? 'Selesai' : status === 'Not Started' ? 'Belum' : status === 'Drafting' ? 'Draft' : 'Review'}</span>
+                        <span className="text-inkmute shrink-0">{status === 'N/A' ? 'N/A' : status === 'Completed' ? 'Selesai' : status === 'Not Started' ? 'Belum' : status === 'Drafting' ? 'Draft' : 'Review'}</span>
                       )}
                     </li>
                   );
@@ -960,7 +960,7 @@ export default function ProjectDetailPage() {
           <button
             onClick={saveProject}
             disabled={saving || deleting || !isDirty}
-            className="bg-blueprint hover:bg-blueprintdark text-white rounded-md px-4 h-9 text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="bg-blueprint hover:bg-blueprintdark text-onaccent rounded-md px-4 h-9 text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             {saving ? 'Menyimpan...' : 'Simpan perubahan'}
           </button>
@@ -1098,7 +1098,7 @@ function ChecklistLinkInput({ value, onCommit, onInvalid }) {
 
 const ICON_STYLE = {
   Completed: { cls: 'bg-teal/15 text-teal', glyph: '✓' },
-  'Under Review': { cls: 'bg-amber/15 text-amber', glyph: '◐' },
+  'Under Review': { cls: 'bg-amber/15 text-amberink', glyph: '◐' },
   Drafting: { cls: 'bg-blueprint/15 text-blueprint', glyph: '✎' },
   'N/A': { cls: 'bg-inkmute/10 text-inkmute', glyph: '–' },
   'Not Started': { cls: 'bg-inkmute/10 text-inkmute', glyph: '○' },

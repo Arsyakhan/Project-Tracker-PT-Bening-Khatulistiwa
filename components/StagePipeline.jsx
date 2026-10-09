@@ -70,7 +70,7 @@ export default function StagePipeline({ current, weights = {}, onSelect }) {
         ) : (
           'Tahap belum diatur'
         )}
-        {interactive && <span className="hidden sm:inline text-xs ml-3 text-inkmute/80">Klik titik untuk mengganti tahap</span>}
+        {interactive && <span className="hidden sm:inline text-xs ml-3 text-inkmute">Klik titik untuk mengganti tahap</span>}
       </p>
     </div>
   );

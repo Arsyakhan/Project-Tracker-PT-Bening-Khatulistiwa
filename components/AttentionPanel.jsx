@@ -35,7 +35,7 @@ function buildGroups(projects) {
 
 const TONES = {
   rust: { title: 'text-rust', badge: 'bg-rust/10 text-rust border border-rust/20', bar: 'bg-rust' },
-  amber: { title: 'text-amber', badge: 'bg-amber/10 text-amber border border-amber/20', bar: 'bg-amber' },
+  amber: { title: 'text-amberink', badge: 'bg-amber/10 text-amberink border border-amber/20', bar: 'bg-amber' },
   blueprint: { title: 'text-blueprint', badge: 'bg-blueprint/10 text-blueprint border border-blueprint/20', bar: 'bg-blueprint' },
 };
 

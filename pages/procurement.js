@@ -29,7 +29,7 @@ function Field({ label, children, className = '' }) {
 
 function EtaPill({ it }) {
   const { state } = etaState(it);
-  if (state === 'none') return <span className="text-xs text-inkmute/70">ETA belum ada</span>;
+  if (state === 'none') return <span className="text-xs text-inkmute">ETA belum ada</span>;
   const tone = state === 'late' ? 'rust' : state === 'soon' ? 'amber' : 'neutral';
   return (
     <span className="inline-flex flex-col items-start gap-0.5">
@@ -121,7 +121,7 @@ function ItemModal({ initial, projects, saving, canRemove, onRemove, onSave, onC
           <button
             onClick={() => onSave(it)}
             disabled={saving || !it.item.trim()}
-            className="bg-blueprint hover:bg-blueprintdark text-white rounded-md px-4 h-9 text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="bg-blueprint hover:bg-blueprintdark text-onaccent rounded-md px-4 h-9 text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             {saving ? 'Menyimpan...' : isEdit ? 'Simpan perubahan' : 'Tambah barang'}
           </button>
@@ -261,7 +261,7 @@ export default function ProcurementPage() {
             <button
               type="button"
               onClick={() => setEditing(emptyItem(projectFilter && projectFilter !== '__none' ? projectFilter : ''))}
-              className="bg-blueprint hover:bg-blueprintdark text-white rounded-md px-4 h-9 text-sm font-medium transition-colors"
+              className="bg-blueprint hover:bg-blueprintdark text-onaccent rounded-md px-4 h-9 text-sm font-medium transition-colors"
             >
               + Tambah barang
             </button>
@@ -282,7 +282,7 @@ export default function ProcurementPage() {
             {[
               { label: 'Belum datang', value: open.length, tone: 'text-ink' },
               { label: 'Terlambat', value: lateCount, tone: lateCount > 0 ? 'text-rust' : 'text-teal' },
-              { label: `Tiba ≤ 7 hari`, value: soonCount, tone: soonCount > 0 ? 'text-amber' : 'text-ink' },
+              { label: `Tiba ≤ 7 hari`, value: soonCount, tone: soonCount > 0 ? 'text-amberink' : 'text-ink' },
               { label: 'Sudah diterima', value: doneCount, tone: 'text-teal' },
             ].map((c) => (
               <div key={c.label} className="bg-panel border border-line rounded-lg p-4 shadow-sm">

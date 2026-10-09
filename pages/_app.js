@@ -158,7 +158,7 @@ function Shell({ Component, pageProps }) {
       </div>
 
       <nav className="flex flex-col gap-0.5 px-3 pt-3">
-        <span className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-wider text-inkmute/60">Menu</span>
+        <span className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-wider text-inkmute">Menu</span>
         {NAV_ITEMS.map((item) => (
           <Link
             key={item.href}
@@ -178,7 +178,7 @@ function Shell({ Component, pageProps }) {
         <Link
           href="/projects/new"
           onClick={() => setMobileNavOpen(false)}
-          className="flex items-center justify-center gap-2 px-3 py-2.5 mt-4 mx-1 bg-blueprint hover:bg-blueprintdark text-white font-medium text-sm rounded-lg shadow-sm transition-all duration-200"
+          className="flex items-center justify-center gap-2 px-3 py-2.5 mt-4 mx-1 bg-blueprint hover:bg-blueprintdark text-onaccent font-medium text-sm rounded-lg shadow-sm transition-all duration-200"
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -189,7 +189,7 @@ function Shell({ Component, pageProps }) {
 
       {recentProjects.length > 0 && (
         <div className="px-3 pt-4">
-          <span className="px-3 pb-2 block text-[10px] font-semibold uppercase tracking-wider text-inkmute/60">
+          <span className="px-3 pb-2 block text-[10px] font-semibold uppercase tracking-wider text-inkmute">
             Terakhir Dibuka
           </span>
           <div className="flex flex-col gap-0.5">
@@ -222,7 +222,7 @@ function Shell({ Component, pageProps }) {
             <div className="min-w-0">
               <span className="block text-xs text-ink font-medium truncate">{session.user.email}</span>
               {session.user.role && (
-                <span className={`block text-[10px] leading-tight mt-0.5 ${session.user.role === 'viewer' ? 'text-amber font-medium' : 'text-inkmute'}`}>
+                <span className={`block text-[10px] leading-tight mt-0.5 ${session.user.role === 'viewer' ? 'text-amberink font-medium' : 'text-inkmute'}`}>
                   {roleLabel(session.user.role)}
                 </span>
               )}
@@ -273,6 +273,7 @@ function Shell({ Component, pageProps }) {
         <title>Bening Hub - Bening Khatulistiwa</title>
       </Head>
 
+      <a href="#konten" className="skip-link">Lompat ke konten</a>
       <TopLoadingBar />
       {!isLoginPage && <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />}
 
@@ -304,11 +305,11 @@ function Shell({ Component, pageProps }) {
             </button>
           </header>
 
-          <main className="flex-1 md:pl-60 min-w-0">
+          <main id="konten" tabIndex={-1} className="flex-1 md:pl-60 min-w-0 outline-none">
             <div className="max-w-6xl mx-auto px-5 py-6 md:px-10 md:py-10">
               {session?.user?.role === 'viewer' && (
                 <div role="status" className="mb-6 flex items-start gap-3 bg-amber/10 border border-amber/30 border-l-4 border-l-amber rounded-lg px-4 py-3 text-sm text-ink">
-                  <svg className="w-5 h-5 text-amber shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                  <svg className="w-5 h-5 text-amberink shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>

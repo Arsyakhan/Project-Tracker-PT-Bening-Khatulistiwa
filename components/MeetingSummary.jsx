@@ -64,7 +64,7 @@ export default function MeetingSummary() {
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-sm font-semibold text-ink">
             Tindak lanjut rapat yang masih terbuka
-            <span className={`ml-2 font-data tnum ${open.length > 0 ? 'text-amber' : 'text-teal'}`}>{open.length}</span>
+            <span className={`ml-2 font-data tnum ${open.length > 0 ? 'text-amberink' : 'text-teal'}`}>{open.length}</span>
           </h2>
           <Link href="/documents/meetings" className="text-sm font-medium text-blueprint hover:underline whitespace-nowrap">Lihat semua</Link>
         </div>

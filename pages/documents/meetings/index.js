@@ -87,7 +87,7 @@ export default function MeetingsPage() {
           <Link href="/documents/meetings/new?mode=schedule" className="border border-line rounded-md px-4 h-9 inline-flex items-center text-sm font-medium text-ink bg-panel hover:border-blueprint hover:text-blueprint transition-colors">
             Jadwalkan rapat
           </Link>
-          <Link href="/documents/meetings/new" className="bg-blueprint hover:bg-blueprintdark text-white rounded-md px-4 h-9 inline-flex items-center text-sm font-medium transition-colors">
+          <Link href="/documents/meetings/new" className="bg-blueprint hover:bg-blueprintdark text-onaccent rounded-md px-4 h-9 inline-flex items-center text-sm font-medium transition-colors">
             + Catat rapat
           </Link>
         </div>
@@ -114,7 +114,7 @@ export default function MeetingsPage() {
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <Link href={`/documents/meetings/${nextMeeting.id}`} className="bg-blueprint hover:bg-blueprintdark text-white rounded-md px-4 h-9 inline-flex items-center text-sm font-medium transition-colors">Mulai catat</Link>
+                <Link href={`/documents/meetings/${nextMeeting.id}`} className="bg-blueprint hover:bg-blueprintdark text-onaccent rounded-md px-4 h-9 inline-flex items-center text-sm font-medium transition-colors">Mulai catat</Link>
                 <button
                   type="button"
                   onClick={() => downloadText(`${meetingFileBase(nextMeeting)}.ics`, buildIcs(nextMeeting), 'text/calendar;charset=utf-8')}
@@ -155,7 +155,7 @@ export default function MeetingsPage() {
             </Card>
             <Card className="p-4">
               <p className="text-xs text-inkmute">Tindak lanjut terbuka</p>
-              <p className={`font-data tnum text-2xl font-semibold mt-1 ${openItems.length > 0 ? 'text-amber' : 'text-teal'}`}>{openItems.length}</p>
+              <p className={`font-data tnum text-2xl font-semibold mt-1 ${openItems.length > 0 ? 'text-amberink' : 'text-teal'}`}>{openItems.length}</p>
             </Card>
             <Card className="p-4 col-span-2 sm:col-span-1">
               <p className="text-xs text-inkmute">Rapat terakhir</p>
