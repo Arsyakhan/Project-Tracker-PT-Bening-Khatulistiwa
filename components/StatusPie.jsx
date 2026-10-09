@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 // Warna disamakan dengan kartu statistik di atas (Pre-Delivery, Delivered, Completed),
 // supaya mata tidak perlu "menerjemahkan" dua palet berbeda.
-const COLORS = { pre: '#0077B6', del: '#009688', com: '#4A7291' };
+const COLORS = { pre: 'rgb(var(--color-blueprint))', del: 'rgb(var(--color-teal))', com: 'rgb(var(--color-inkmute))' };
 
 export default function StatusPie({ dashboard }) {
   const [hovered, setHovered] = useState(null);
@@ -49,10 +49,10 @@ export default function StatusPie({ dashboard }) {
                     cy="21"
                     r="15.91549431"
                     fill="transparent"
-                    stroke={slice.color}
                     strokeWidth={hovered?.id === slice.id ? '6' : '5'}
                     strokeDasharray={`${slice.pct} ${100 - slice.pct}`}
                     strokeDashoffset={slice.offset}
+                    style={{ stroke: slice.color }}
                     className="transition-all duration-300 cursor-pointer outline-none"
                     onMouseEnter={() => setHovered(slice)}
                     onMouseLeave={() => setHovered(null)}
