@@ -3,7 +3,8 @@ import { useRouter } from 'next/router';
 import { api } from '../lib/api';
 
 const STATIC_ACTIONS = [
-  { label: 'Dashboard', href: '/', keywords: 'dashboard beranda' },
+  { label: 'Hari Ini', href: '/', keywords: 'hari ini beranda home tindak terlambat prioritas' },
+  { label: 'Dashboard', href: '/dashboard', keywords: 'dashboard grafik statistik' },
   { label: 'Semua Project', href: '/projects', keywords: 'projects daftar list' },
   { label: 'Engineering Docs', href: '/engineering-docs', keywords: 'dokumen docs checklist' },
   { label: 'Arsip Project', href: '/arsip', keywords: 'arsip archive selesai teknologi referensi finished' },
