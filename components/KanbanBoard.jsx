@@ -63,6 +63,7 @@ function Card({ p, busy, dragging, onDragStart, onDragEnd, onMove }) {
           <p className="text-xs text-inkmute truncate mt-0.5">
             {[p.poNumber, p.client].filter(Boolean).join(' · ') || '-'}
           </p>
+          {p.blocker && <p className="text-[11px] font-medium text-rust truncate mt-1" title={p.blocker}>Terhambat: {p.blocker}</p>}
         </div>
       </div>
 

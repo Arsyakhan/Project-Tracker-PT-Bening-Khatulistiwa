@@ -25,6 +25,7 @@ database terpisah).
   otomatis tersimpan ke Checklist (status jadi "Under Review"). Lihat "Generator Dokumen" di bawah.
 - **Arsip project selesai** (`/arsip`): data tab `[ARSIP] FINISHED PROJECT` tampil sebagai alur teknologi (air baku → produk) lengkap dengan kapasitas & detail, bisa dicari/difilter per teknologi, ditambah/diubah dari web atau langsung di spreadsheet. Detail project aktif memakai alur yang sama, dan ada saran project arsip yang mirip.
 - Komentar per project, log aktivitas otomatis untuk tiap perubahan
+- **Langkah berikutnya per project**: satu langkah konkret + PIC + target tanggal, dan penanda **Terhambat** (alasan + sejak kapan). Tampil di detail project, daftar, papan kanban, dan halaman Hari Ini. Butuh Code.gs v2.6 (kolom dibuat otomatis).
 - Mode gelap/terang, command palette (`Ctrl+K` / `Cmd+K`), bisa di-"install" sebagai PWA di HP/laptop
 - Token API tersembunyi di server (`/api/gas`) — browser tidak pernah melihatnya
 
