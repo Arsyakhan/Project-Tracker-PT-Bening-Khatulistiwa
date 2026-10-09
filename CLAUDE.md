@@ -47,7 +47,7 @@ helper dari `Code.gs`:
 
 | File | Isi |
 |---|---|
-| `apps-script/Code.gs` (v2.5) | `doGet`/`doPost`, token, cache 30 dtk, proyek, checklist, komentar, activity log, document log, specs, meetings |
+| `apps-script/Code.gs` (v2.6) | `doGet`/`doPost`, token, cache 30 dtk, proyek, checklist, komentar, activity log, document log, specs, meetings |
 | `apps-script/Archive.gs` | tab `[ARSIP] FINISHED PROJECT` dibaca & ditulis dua arah (`getArchive_`, `saveArchiveProject_`, `deleteArchiveProject_`); header 2 baris, 20 grup modul (Ada/Kapasitas/Satuan/Detail). Konflik edit dideteksi lewat `rev` per baris (sidik jari isi baris), karena sheet tidak punya kolom Version. Baris lama tidak diubah kecuali diedit |
 | `apps-script/Procurement.gs` | tab Procurement (`getProcurement_`, `saveProcurementItem_`, `deleteProcurementItem_`); `doGet`/`doPost` di Code.gs yang memanggilnya |
 | `apps-script/WeeklyDigest.gs` | email ringkasan mingguan, trigger Senin ~07.00 |
@@ -68,7 +68,7 @@ helper dari `Code.gs`:
 
 ### Tab Google Sheet
 
-`Project Tracker` (kolom kunci `Project ID` = `prj_xxxx`, jangan diedit manual), `Engineering Deliverables
+`Project Tracker` (kolom kunci `Project ID` = `prj_xxxx`, jangan diedit manual; kolom tambahan dibuat otomatis: Lokasi Plant, Alamat, Kontak Owner, Sistem Terpasang, **Next Action, Next Action Owner, Next Action Due, Blocker, Blocked Since**; `Blocker` terisi = project terhambat, `Blocked Since` diisi/dikosongkan otomatis oleh `updateProject_`), `Engineering Deliverables
 Checklist`, `Activity Log`, `Comments`, `Document Log`, `Project Specs`, `Meetings`, `Procurement`
 (tab-tab ini dibuat otomatis), plus tab manual pemilik: `Dashboard`, `Reference`,
 `[ARSIP] FINISHED PROJECT`, `[ARSIP] Data HO and Commisioning- Dokumen Fisik`. Tab `[ARSIP]` dan

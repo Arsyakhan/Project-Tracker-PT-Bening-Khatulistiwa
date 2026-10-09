@@ -163,6 +163,7 @@ export default function ProjectTable({ projects }) {
                     {(p.status === 'On Hold' || p.status === 'Not Started') && (
                       <Pill tone={p.status === 'On Hold' ? 'amber' : 'neutral'} dot>{p.status}</Pill>
                     )}
+                    {p.blocker && <Pill tone="rust" dot>Terhambat</Pill>}
                   </div>
                   <div className="flex items-center gap-2.5 mt-2">
                     <ProgressBar value={p.stageProgress} className="flex-1" />
@@ -200,6 +201,7 @@ export default function ProjectTable({ projects }) {
             <div className="flex items-center gap-2 flex-wrap">
               <StageBadge stage={p.currentStage} />
               <DeliveryHint p={p} />
+              {p.blocker && <Pill tone="rust" dot>Terhambat</Pill>}
             </div>
 
             <div className="flex items-center gap-2.5">

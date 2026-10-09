@@ -14,7 +14,7 @@ import {
 
 const DIVISION_KEY = 'ptbk_today_division';
 const PREVIEW = 8;
-const KIND_LABEL = { project: 'Project', doc: 'Dokumen', proc: 'Pengadaan', meeting: 'Rapat' };
+const KIND_LABEL = { project: 'Project', doc: 'Dokumen', proc: 'Pengadaan', meeting: 'Rapat', blocked: 'Terhambat', next: 'Langkah berikutnya' };
 const SEV_TONE = {
   0: { bar: 'border-l-rust', pill: 'rust', title: 'text-rust' },
   1: { bar: 'border-l-amber', pill: 'amber', title: 'text-amberink' },

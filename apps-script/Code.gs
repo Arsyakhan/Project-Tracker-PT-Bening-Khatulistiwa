@@ -1,9 +1,15 @@
 /**
- * PT BENING KHATULISTIWA — BENING HUB API  (v2.5)
+ * PT BENING KHATULISTIWA — BENING HUB API  (v2.6)
  * ---------------------------------------------------
  * Backend untuk aplikasi web "Bening Hub". Paste seluruh file ini ke:
  * Extensions > Apps Script (dibuka DARI spreadsheet
  * "Project Tracker_PT Bening Khatulistiwa", jadi otomatis terikat ke sheet-nya).
+ *
+ * YANG BARU DI v2.6:
+ *   - 5 kolom baru di sheet Project Tracker (dibuat OTOMATIS): "Next Action", "Next Action Owner",
+ *     "Next Action Due", "Blocker", "Blocked Since". Menjawab "apa langkah berikutnya, siapa, kapan" per project
+ *     dan menandai project yang terhambat (Blocker terisi = terhambat; "Blocked Since" diisi/dikosongkan otomatis).
+ *     Tidak ada aksi API baru: dibaca lewat `projects`, diubah lewat `updateProject`/`addProject`.
  *
  * YANG BARU DI v2.5:
  *   - Arsip project selesai bisa dibaca & diubah dari web (file terpisah "Archive"). Aksi baru: GET `archive`,
@@ -79,7 +85,13 @@ const COL_LOKASI = 'Lokasi Plant';
 const COL_ALAMAT = 'Alamat';
 const COL_KONTAK = 'Kontak Owner';
 const COL_SISTEM = 'Sistem Terpasang';
-const PROJECT_EXTRA_COLUMNS = [COL_LOKASI, COL_ALAMAT, COL_KONTAK, COL_SISTEM];
+const COL_NEXT = 'Next Action';
+const COL_NEXT_OWNER = 'Next Action Owner';
+const COL_NEXT_DUE = 'Next Action Due';
+const COL_BLOCKER = 'Blocker';              // terisi = project terhambat (isinya = alasan / menunggu apa)
+const COL_BLOCKED_SINCE = 'Blocked Since';  // diisi otomatis saat Blocker terisi, dikosongkan saat Blocker dikosongkan
+const NEXT_FIELD_MAX = 200;
+const PROJECT_EXTRA_COLUMNS = [COL_LOKASI, COL_ALAMAT, COL_KONTAK, COL_SISTEM, COL_NEXT, COL_NEXT_OWNER, COL_NEXT_DUE, COL_BLOCKER, COL_BLOCKED_SINCE];
 
 // Kunci sistem terpasang yang valid (urutan ini dipakai saat menyimpan).
 // Harus sama dengan lib/systems.js di frontend.
@@ -166,12 +178,16 @@ const TEXT_FIELDS = [
   ['lokasiPlant', COL_LOKASI],
   ['alamat', COL_ALAMAT],
   ['kontakOwner', COL_KONTAK],
-  ['sistemTerpasang', COL_SISTEM]
+  ['sistemTerpasang', COL_SISTEM],
+  ['nextAction', COL_NEXT],
+  ['nextActionOwner', COL_NEXT_OWNER],
+  ['blocker', COL_BLOCKER]
 ];
 const DATE_FIELDS = [
   ['tanggalPO', 'Tanggal PO'],
   ['tanggalDP', 'Tanggal DP'],
-  ['targetFinishDate', 'Target Finish Date']
+  ['targetFinishDate', 'Target Finish Date'],
+  ['nextActionDue', COL_NEXT_DUE]
 ];
 
 
@@ -444,6 +460,11 @@ function parseDateInput_(s) {
   const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(s));
   if (!m) return String(s);
   return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+}
+
+
+function todayString_() {
+  return Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
 }
 
 
@@ -720,6 +741,11 @@ function getProjects_() {
       alamat: cleanText_(p[COL_ALAMAT]),
       kontakOwner: cleanText_(p[COL_KONTAK]),
       sistemTerpasang: parseSystems_(p[COL_SISTEM]),
+      nextAction: cleanText_(p[COL_NEXT]),
+      nextActionOwner: cleanText_(p[COL_NEXT_OWNER]),
+      nextActionDue: formatDate_(p[COL_NEXT_DUE]),
+      blocker: cleanText_(p[COL_BLOCKER]),
+      blockedSince: formatDate_(p[COL_BLOCKED_SINCE]),
       checklist: c ? {
         row: c._row,
         overallStatus: c['Overall Status'],
@@ -824,6 +850,11 @@ function addProject_(payload) {
   rowObj[COL_ALAMAT] = cleanText_(payload.alamat);
   rowObj[COL_KONTAK] = cleanText_(payload.kontakOwner);
   rowObj[COL_SISTEM] = serializeSystems_(payload.sistemTerpasang);
+  rowObj[COL_NEXT] = cleanText_(payload.nextAction).substring(0, NEXT_FIELD_MAX);
+  rowObj[COL_NEXT_OWNER] = cleanText_(payload.nextActionOwner).substring(0, NEXT_FIELD_MAX);
+  rowObj[COL_NEXT_DUE] = parseDateInput_(cleanText_(payload.nextActionDue));
+  rowObj[COL_BLOCKER] = cleanText_(payload.blocker).substring(0, NEXT_FIELD_MAX);
+  rowObj[COL_BLOCKED_SINCE] = rowObj[COL_BLOCKER] ? parseDateInput_(todayString_()) : '';
   rowObj[ID_HEADER] = id;
 
 
@@ -915,7 +946,18 @@ function updateProject_(payload) {
   }
 
 
+  // Langkah berikutnya & hambatan: dipangkas, dan "Blocked Since" mengikuti Blocker (diisi / dikosongkan otomatis).
+  ['nextAction', 'nextActionOwner', 'blocker'].forEach(function (k) {
+    if (payload[k] !== undefined) payload[k] = cleanText_(payload[k]).substring(0, NEXT_FIELD_MAX);
+  });
+  const oldBlocker = col(COL_BLOCKER) > -1 ? currentText(col(COL_BLOCKER)) : '';
+
+
   TEXT_FIELDS.forEach(function (f) { applyText(f[1], payload[f[0]]); });
+  if (payload.blocker !== undefined) {
+    if (!oldBlocker && payload.blocker) applyDate(COL_BLOCKED_SINCE, todayString_());
+    else if (oldBlocker && !payload.blocker) applyDate(COL_BLOCKED_SINCE, '');
+  }
   applyText('Priority', payload.priority, PRIORITIES);
   applyText('Status', payload.status, STATUSES);
   DATE_FIELDS.forEach(function (f) { applyDate(f[1], payload[f[0]]); });
