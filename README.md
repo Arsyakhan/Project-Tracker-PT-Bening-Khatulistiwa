@@ -75,7 +75,9 @@ Buka `.env.local`, isi semua variabel (lihat komentar di dalam file untuk penjel
 |---|---|
 | `GAS_API_URL` | Bagian 1, langkah 7 |
 | `GAS_API_TOKEN` | Bagian 1, langkah 5 |
-| `DOCGEN_COMMISSIONING_URL`, `DOCGEN_HANDOVER_URL` | Sudah terisi contohnya di `.env.local.example` -- lihat "Generator Dokumen" di bawah |
+| `DOCGEN_COMMISSIONING_URL`, `DOCGEN_HANDOVER_URL` | URL Web App `apps-script/docgen/*.gs` -- lihat "Generator Dokumen" di bawah |
+| `DOCGEN_MEETING_URL`, `DOCGEN_MEETING_SECRET` | URL Web App generator Notulensi + secret bersama (dipakai `pages/api/meeting-doc.js`) |
+| `ADMIN_EMAILS`, `VIEWER_EMAILS` | (Opsional) Peran pengguna, lihat `lib/roles.js`. Kosong = semua admin |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Lihat "Setup login Google" di bawah |
 | `ALLOWED_EMAILS` | Email yang boleh login, pisah koma |
 | `NEXTAUTH_SECRET` | Generate sendiri: `openssl rand -base64 32` |
@@ -138,11 +140,19 @@ Buka `http://localhost:3000` — kamu akan diarahkan ke halaman login dulu.
 
 ## Struktur & cara kerja
 
-- **`apps-script/Code.gs`** — satu-satunya backend. Baca/tulis langsung ke sheet "Project Tracker"
-  dan "Engineering Deliverables Checklist", bikin sheet "Activity Log" & "Comments" sendiri kalau
-  belum ada, dan mewajibkan token (`API_TOKEN`) di setiap request. File ini adalah salinan persis
-  dari yang aktif di spreadsheet kamu — kalau kamu edit langsung di Apps Script editor, tolong
-  copy-tempel balik ke sini juga supaya repo tidak ketinggalan.
+- **`apps-script/`** — seluruh backend, salinan persis dari yang aktif di Apps Script (project
+  yang terikat ke spreadsheet). Kalau kamu edit langsung di editor Apps Script, copy-tempel balik
+  ke sini juga supaya repo tidak ketinggalan. Isinya:
+  - `Code.gs` (v2.4) — API utama: baca/tulis sheet Project Tracker, Checklist, Activity Log,
+    Comments, Document Log, Project Specs, Meetings; mewajibkan token (`API_TOKEN`) di tiap request.
+  - `Procurement.gs` — tab "Procurement" (pengadaan material).
+  - `WeeklyDigest.gs` — email ringkasan mingguan (trigger Senin ~07.00).
+  - `Backup.gs` — salinan spreadsheet mingguan (trigger Senin ~02.00).
+  - `Seed-Meetings.gs` — impor sekali jalan 2 rapat awal (21 Agu & 11 Sep 2026); tidak dipakai rutin.
+  - `docgen/commissioning.gs` & `docgen/handover.gs` — dua Apps Script **terpisah** (Web App
+    sendiri, URL sendiri) yang membuat dokumen dari template Google Docs.
+  File `.gs` selain `docgen/` ditempel sebagai file terpisah di **satu** project Apps Script yang
+  sama dengan `Code.gs`. Hanya `Code.gs` yang punya `doGet`/`doPost`.
 - **`pages/api/gas.js`** — satu-satunya bagian yang tahu `GAS_API_URL` & `GAS_API_TOKEN`. Semua
   halaman React memanggil `/api/gas`, bukan Apps Script langsung, dan route ini mewajibkan sesi
   login sebelum meneruskan request.
@@ -167,7 +177,7 @@ Buka `http://localhost:3000` — kamu akan diarahkan ke halaman login dulu.
 `/documents` menghasilkan Commissioning Report & Handover Report dari template Google Docs yang
 sama seperti tool lama kamu (repo `Dokumen-Generator-PT-Bening-Khatulistiwa`) -- **kedua script
 Apps Script di repo itu sengaja tidak diubah sama sekali**, masih memakai template & folder Drive
-yang sama seperti sebelumnya. Yang baru cuma cara memanggilnya:
+yang sama seperti sebelumnya. Salinan kodenya sekarang juga disimpan di `apps-script/docgen/`. Yang baru cuma cara memanggilnya:
 
 - Dulu: halaman HTML statis memanggil kedua URL Apps Script itu langsung dari browser (URL-nya
   kelihatan siapa saja yang buka "View Source", tanpa login).
