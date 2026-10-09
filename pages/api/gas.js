@@ -18,8 +18,9 @@ export const config = { maxDuration: 30 };
 // 'comments' & 'addComment' disiapkan untuk fitur komentar (backend-nya belum ada di Code.gs).
 const GET_ACTIONS = new Set(['projects', 'dashboard', 'meta', 'activityLog', 'comments', 'specs', 'meetings', 'procurement']);
 const POST_ACTIONS = new Set(['addProject', 'updateProject', 'updateChecklist', 'deleteProject', 'addComment', 'saveSpecs', 'saveMeeting', 'deleteMeeting', 'saveProcurementItem', 'deleteProcurementItem']);
-// Aksi yang menghapus data: hanya admin.
-const DELETE_ACTIONS = new Set(['deleteProject', 'deleteMeeting', 'deleteProcurementItem']);
+// Aksi yang hanya boleh dilakukan admin (PM). Engineer (editor) boleh menghapus rapat & barang
+// pengadaan, tapi TIDAK boleh menghapus project.
+const DELETE_ACTIONS = new Set(['deleteProject']);
 // Parameter tambahan yang boleh diteruskan pada GET (selain action & token)
 const GET_EXTRA_PARAMS = ['projectId', 'poNumber'];
 const TIMEOUT_MS = 28000;
