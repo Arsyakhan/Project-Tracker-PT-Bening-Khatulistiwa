@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
+import { useSession } from 'next-auth/react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { api } from '../../lib/api';
@@ -8,10 +9,11 @@ import { DOC_GENERATOR_ROUTE } from '../../lib/docgen/schema';
 import StageGauge from '../../components/StageGauge';
 import StagePipeline from '../../components/StagePipeline';
 import { StatusBadge, PriorityBadge, DeliveryHint, Pill } from '../../components/Badges';
-import { fmtDate, todayISO, deliveryHint, initialOf, nameFromEmail, timeAgo } from '../../lib/projectHelpers';
+import { fmtDate, todayISO, initialOf, nameFromEmail, timeAgo } from '../../lib/projectHelpers';
 import { SYSTEMS, RO_OPTIONS, normalizeSystems, detectSystems, effectiveSystems, systemLabel, docReadiness } from '../../lib/systems';
 import SpecsEditor from '../../components/SpecsEditor';
 import { packSpecs, buildSpecValues, visibleSections, overallProgress } from '../../lib/docgen/specs';
+import { canDelete } from '../../lib/roles';
 import ConfirmModal from '../../components/ConfirmModal';
 import { useToast } from '../../components/Toast';
 import { SkeletonBlock } from '../../components/Skeleton';
@@ -46,6 +48,7 @@ export default function ProjectDetailPage() {
   const router = useRouter();
   const { id } = router.query;
   const { showToast } = useToast();
+  const { data: session } = useSession();
 
   const [meta, setMeta] = useState(null);
   const [project, setProject] = useState(null);
@@ -356,6 +359,12 @@ export default function ProjectDetailPage() {
   const reviewCount = applicable.filter((i) => statusOf(i) === 'Under Review').length;
   const hasRemarks = project.remarks && String(project.remarks).trim() && String(project.remarks).trim() !== '-';
   const today = todayISO();
+  const canDeleteProject = canDelete(session?.user?.role || 'admin'); // pengecekan sebenarnya di server
+  const targetDays = project.targetFinishDate
+    ? Math.round((new Date(`${project.targetFinishDate}T00:00:00`) - new Date(`${today}T00:00:00`)) / 86400000)
+    : null;
+  const targetHint =
+    targetDays === null ? '' : targetDays < 0 ? `Terlewat ${Math.abs(targetDays)} hari` : targetDays === 0 ? 'Hari ini' : `${targetDays} hari lagi`;
 
   const savedSystems = normalizeSystems(project.sistemTerpasang);
   const detectedKeys = detectSystems(project);
@@ -429,13 +438,7 @@ export default function ProjectDetailPage() {
               <Pill tone="amber" dot>Belum disimpan</Pill>
             )}
           </div>
-          <input
-            className="font-display text-2xl sm:text-[28px] leading-tight font-semibold text-ink bg-transparent rounded border-b-2 border-transparent hover:border-line focus:border-blueprint outline-none w-full pb-1 transition-colors"
-            value={project.projectName}
-            onChange={(e) => update('projectName', e.target.value)}
-            title="Klik untuk mengedit nama project"
-            aria-label="Nama project"
-          />
+          <AutoGrowTitle value={project.projectName} onChange={(v) => update('projectName', v)} />
           {shownSystems.keys.length > 0 && (
             <div className="flex flex-wrap items-center gap-1.5">
               {shownSystems.keys.filter((k) => !['ro_large', 'recycle'].includes(k)).map((k) => (
@@ -505,12 +508,19 @@ export default function ProjectDetailPage() {
 
         <div className="bg-panel border border-line rounded-lg p-4 flex flex-col gap-2 shadow-sm">
           <span className="text-xs text-inkmute">Target selesai</span>
-          <span className="font-data tnum text-lg font-semibold text-ink">
-            {project.targetFinishDate ? fmtDate(project.targetFinishDate) : '-'}
-          </span>
-          <span className="text-xs text-inkmute">
-            {deliveryHint(project)?.text || (project.deliveryDate ? '' : 'Delivery Date belum diisi')}
-          </span>
+          {project.targetFinishDate ? (
+            <>
+              <span className="font-data tnum text-lg font-semibold text-ink">{fmtDate(project.targetFinishDate)}</span>
+              <span className={`text-xs ${targetDays < 0 ? 'text-rust font-medium' : 'text-inkmute'}`}>{targetHint}</span>
+            </>
+          ) : (
+            <>
+              <span className="text-sm text-inkmute">Belum diatur</span>
+              <button type="button" onClick={() => setActiveTab('jadwal')} className="text-xs font-medium text-blueprint hover:underline self-start">
+                Atur di tab Jadwal
+              </button>
+            </>
+          )}
         </div>
       </section>
 
@@ -655,6 +665,28 @@ export default function ProjectDetailPage() {
                 <p className="text-xs text-amber">Template Hand Over hanya punya 2 slot filter. Filter ketiga perlu dicatat manual di "Item Tambahan".</p>
               )}
             </Panel>
+
+            {canDeleteProject && (
+              <details className="group rounded-lg border border-rust/30 bg-panel">
+                <summary className="cursor-pointer select-none list-none px-4 py-3 text-sm font-medium text-rust flex items-center justify-between">
+                  Zona berbahaya
+                  <span className="text-xs text-inkmute group-open:hidden">Klik untuk membuka</span>
+                </summary>
+                <div className="px-4 pb-4 pt-1 flex flex-col sm:flex-row sm:items-center gap-3 border-t border-rust/20">
+                  <p className="text-sm text-inkmute flex-1">
+                    Menghapus project menghapus barisnya dari spreadsheet secara permanen. Hanya admin yang bisa melakukannya.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmDeleteOpen(true)}
+                    disabled={saving || deleting}
+                    className="text-sm font-medium text-rust border border-rust/40 hover:bg-rust/10 rounded-md px-3 h-9 disabled:opacity-60 transition-colors whitespace-nowrap"
+                  >
+                    Hapus project...
+                  </button>
+                </div>
+              </details>
+            )}
             </>
           )}
 
@@ -944,13 +976,6 @@ export default function ProjectDetailPage() {
             {isDirty ? 'Ada perubahan yang belum disimpan · Ctrl+S untuk simpan' : 'Semua perubahan sudah tersimpan'}
           </span>
           {error && <span className="text-rust text-sm truncate">{error}</span>}
-          <button
-            onClick={() => setConfirmDeleteOpen(true)}
-            disabled={saving || deleting}
-            className="ml-auto text-sm font-medium text-rust hover:bg-rust/10 rounded-md px-3 h-9 disabled:opacity-60 transition-colors"
-          >
-            Hapus project
-          </button>
         </div>
       </div>
 
@@ -975,6 +1000,29 @@ export default function ProjectDetailPage() {
         onCancel={cancelLeave}
       />
     </div>
+  );
+}
+
+// Judul project: textarea yang tingginya menyesuaikan isi, supaya nama panjang tidak terpotong di HP.
+function AutoGrowTitle({ value, onChange }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  }, [value]);
+  return (
+    <textarea
+      ref={ref}
+      rows={1}
+      className="font-display text-2xl sm:text-[28px] leading-tight font-semibold text-ink bg-transparent rounded border-b-2 border-transparent hover:border-line focus:border-blueprint outline-none w-full pb-1 transition-colors resize-none overflow-hidden block"
+      value={value}
+      onChange={(e) => onChange(e.target.value.replace(/\n/g, ' '))}
+      onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
+      title="Klik untuk mengedit nama project"
+      aria-label="Nama project"
+    />
   );
 }
 
