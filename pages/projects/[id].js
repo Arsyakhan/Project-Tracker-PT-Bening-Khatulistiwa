@@ -427,13 +427,13 @@ export default function ProjectDetailPage() {
 
   const dateWarnings = [];
   if (project.tanggalPO && project.tanggalDP && project.tanggalDP < project.tanggalPO) dateWarnings.push('Tanggal DP lebih awal dari Tanggal PO.');
-  if (project.tanggalPO && project.deliveryDate && project.deliveryDate < project.tanggalPO) dateWarnings.push('Delivery Date lebih awal dari Tanggal PO.');
-  if (project.tanggalDP && project.deliveryDate && project.deliveryDate < project.tanggalDP) dateWarnings.push('Delivery Date lebih awal dari Tanggal DP.');
+  if (project.tanggalPO && project.deliveryDate && project.deliveryDate < project.tanggalPO) dateWarnings.push('Tanggal kirim lebih awal dari Tanggal PO.');
+  if (project.tanggalDP && project.deliveryDate && project.deliveryDate < project.tanggalDP) dateWarnings.push('Tanggal kirim lebih awal dari Tanggal DP.');
 
   const scheduleEvents = [
     { label: 'Tanggal PO', date: project.tanggalPO },
     { label: 'Tanggal DP', date: project.tanggalDP },
-    { label: 'Delivery Date', date: project.deliveryDate },
+    { label: 'Tanggal kirim', date: project.deliveryDate },
     { label: 'Target selesai', date: project.targetFinishDate },
   ];
 
@@ -608,7 +608,7 @@ export default function ProjectDetailPage() {
             <>
             <Panel title="Info umum" hint="Perubahan baru tersimpan setelah menekan Simpan perubahan.">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Row label="Current stage">
+                <Row label="Stage saat ini">
                   <select className="input" value={project.currentStage} onChange={(e) => update('currentStage', e.target.value)}>
                     {meta.stages.map((s) => <option key={s} value={s}>{s} ({meta.stageWeights[s]}%)</option>)}
                   </select>
@@ -618,7 +618,7 @@ export default function ProjectDetailPage() {
                     {meta.statuses.map((s) => <option key={s} value={s}>{s}</option>)}
                   </select>
                 </Row>
-                <Row label="Priority">
+                <Row label="Prioritas">
                   <select className="input" value={project.priority} onChange={(e) => update('priority', e.target.value)}>
                     {meta.priorities.map((s) => <option key={s} value={s}>{s}</option>)}
                   </select>
@@ -629,7 +629,7 @@ export default function ProjectDetailPage() {
                 <Row label="Client">
                   <input className="input" value={project.client || ''} onChange={(e) => update('client', e.target.value)} />
                 </Row>
-                <Row label="Technology / capacity">
+                <Row label="Teknologi / kapasitas">
                   <input className="input" value={project.technology || ''} onChange={(e) => update('technology', e.target.value)} />
                 </Row>
               </div>
@@ -776,14 +776,14 @@ export default function ProjectDetailPage() {
                 <Row label="Tanggal DP">
                   <input type="date" className="input" value={project.tanggalDP || ''} onChange={(e) => update('tanggalDP', e.target.value)} />
                 </Row>
-                <Row label="Delivery Date">
+                <Row label="Tanggal kirim">
                   <input type="date" className="input" value={project.deliveryDate || ''} onChange={(e) => update('deliveryDate', e.target.value)} />
                 </Row>
-                <Row label="Target Finish Date">
+                <Row label="Target selesai">
                   <input type="date" className="input" value={project.targetFinishDate || ''} onChange={(e) => update('targetFinishDate', e.target.value)} />
                 </Row>
               </div>
-              <Row label="Remarks (kendala, menunggu material, dll.)">
+              <Row label="Catatan (kendala, menunggu material, dll.)">
                 <textarea className="input" rows={3} value={project.remarks || ''} onChange={(e) => update('remarks', e.target.value)} />
               </Row>
             </Panel>
