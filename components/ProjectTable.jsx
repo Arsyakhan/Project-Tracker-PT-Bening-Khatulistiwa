@@ -146,10 +146,11 @@ export default function ProjectTable({ projects }) {
                 onClick={() => router.push(hrefOf(p))}
                 className="hover:bg-blueprint/[0.04] transition-colors cursor-pointer group align-middle"
               >
-                <td className="px-2.5 py-3.5 min-w-[220px] max-w-[300px]">
-                  <span className="block text-[11px] font-data text-inkmute truncate">{p.poNumber}</span>
+                <td className="px-2.5 py-3.5 min-w-[200px] max-w-[220px]">
+                  <span className="block text-xs font-data text-inkmute truncate">{p.poNumber}</span>
                   <Link
                     href={hrefOf(p)}
+                    title={p.projectName}
                     onClick={(e) => e.stopPropagation()}
                     className="font-medium text-ink group-hover:text-blueprint transition-colors line-clamp-2 leading-snug mt-0.5"
                   >
@@ -204,7 +205,7 @@ export default function ProjectTable({ projects }) {
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <span className="block text-[10px] font-data text-inkmute">{p.poNumber}</span>
+                <span className="block text-xs font-data text-inkmute">{p.poNumber}</span>
                 <span className="block font-medium text-ink leading-snug line-clamp-2 mt-0.5">{p.projectName}</span>
               </div>
               <PriorityBadge priority={p.priority} />
