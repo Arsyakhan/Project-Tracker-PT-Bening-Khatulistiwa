@@ -1,13 +1,10 @@
+import { STAGE_PHASES } from '../lib/stagePhases';
+
 // Jalur tahapan project: seperti garis proses di diagram alir (P&ID) —
 // setiap tahap adalah titik, tahap yang sudah lewat terisi, tahap saat ini diberi cincin.
 // Klik sebuah titik untuk memindahkan project ke tahap itu (baru tersimpan setelah "Simpan perubahan").
 
-const GROUPS = [
-  { label: 'Desain & approval', stages: ['PO', 'SOS', 'BOM, PID, EWD, GAD', 'Review & Approval'] },
-  { label: 'Pengadaan & fabrikasi', stages: ['Procurement of Material', 'Collecting Material / Inspection', 'Fabrication'] },
-  { label: 'Pengiriman & pemasangan', stages: ['Delivery', 'Installation', 'Commissioning'] },
-  { label: 'Serah terima', stages: ['Preparation Manual Book', 'Hand Over and Finished'] },
-];
+const GROUPS = STAGE_PHASES;
 
 const ALL_STAGES = GROUPS.flatMap((g) => g.stages);
 

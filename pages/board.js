@@ -74,12 +74,13 @@ export default function BoardPage() {
         <div>
           <h1 className="font-display text-2xl font-semibold text-ink">Papan Kanban</h1>
           <p className="text-sm text-inkmute mt-1">
-            Seret kartu ke kolom stage baru, atau pakai dropdown di kartu. Perubahan langsung tersimpan ke
-            spreadsheet dan tercatat di Aktivitas.
+            <span className="hidden md:inline">Seret kartu ke tahap baru, atau pakai menu tahap di kartu. </span>
+            <span className="md:hidden">Ubah tahap lewat menu di tiap kartu. </span>
+            Perubahan langsung tersimpan ke spreadsheet dan tercatat di Aktivitas.
           </p>
         </div>
 
-        <div className="relative w-full sm:w-72">
+        <div className="relative w-full sm:w-72 sm:flex-shrink-0">
           <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-inkmute" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
@@ -94,11 +95,9 @@ export default function BoardPage() {
       </div>
 
       {!projects ? (
-        <div className="flex gap-3 overflow-hidden">
+        <div className="grid grid-cols-1 md:grid-cols-2 min-[1340px]:grid-cols-4 gap-3" aria-hidden="true">
           {[0, 1, 2, 3].map((i) => (
-            <div key={i} className="w-64 flex-shrink-0">
-              <SkeletonPanel className="h-72" />
-            </div>
+            <SkeletonPanel key={i} className="h-72" />
           ))}
         </div>
       ) : (
@@ -109,6 +108,9 @@ export default function BoardPage() {
             </p>
             <RefreshStatus refreshing={refreshing} staleError={staleError} />
           </div>
+          {query.trim() && filtered.length === 0 && (
+            <p className="text-sm text-inkmute">Tidak ada project yang cocok dengan &ldquo;{query.trim()}&rdquo;.</p>
+          )}
           <KanbanBoard projects={filtered} busy={!!savingId} onMove={handleMove} />
         </>
       )}
