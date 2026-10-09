@@ -45,15 +45,24 @@ function ItemModal({ initial, projects, saving, canRemove, onRemove, onSave, onC
   const firstRef = useRef(null);
   const set = (k, v) => setIt((x) => ({ ...x, [k]: v }));
 
+  // Pintasan keyboard memakai ref supaya listener tidak dipasang ulang tiap ketikan.
+  const live = useRef({ it, saving, onSave, onClose });
+  live.current = { it, saving, onSave, onClose };
+
+  // Fokus ke kolom pertama SEKALI saja saat modal dibuka (bukan tiap isi form berubah).
   useEffect(() => {
     firstRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
     function onKey(e) {
-      if (e.key === 'Escape') onClose();
-      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); if (it.item.trim() && !saving) onSave(it); }
+      const cur = live.current;
+      if (e.key === 'Escape') cur.onClose();
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); if (cur.it.item.trim() && !cur.saving) cur.onSave(cur.it); }
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [it, saving]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   const isEdit = !!it.id;
   return (
