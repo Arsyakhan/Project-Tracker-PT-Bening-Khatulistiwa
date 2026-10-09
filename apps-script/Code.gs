@@ -1,9 +1,19 @@
 /**
- * PT BENING KHATULISTIWA — BENING HUB API  (v2.2)
+ * PT BENING KHATULISTIWA — BENING HUB API  (v2.4)
  * ---------------------------------------------------
  * Backend untuk aplikasi web "Bening Hub". Paste seluruh file ini ke:
  * Extensions > Apps Script (dibuka DARI spreadsheet
  * "Project Tracker_PT Bening Khatulistiwa", jadi otomatis terikat ke sheet-nya).
+ *
+ * YANG BARU DI v2.4:
+ *   - Tab baru "Meetings" (dibuat OTOMATIS): notulensi rapat (kehadiran, agenda & progress,
+ *     tindak lanjut, jadwal rapat berikutnya). Aksi baru: GET `meetings`, POST `saveMeeting`
+ *     (dengan pengecekan versi), `deleteMeeting`, `setMeetingDoc`.
+ *
+ * YANG BARU DI v2.3:
+ *   - Tab baru "Project Specs" (dibuat OTOMATIS): menyimpan spesifikasi peralatan per project
+ *     (pompa, membran, vessel, tangki, dst.) yang dipakai mengisi form Hand Over.
+ *     Aksi baru: GET `specs`, POST `saveSpecs` (dengan pengecekan versi supaya tidak saling menimpa).
  *
  * YANG BARU DI v2.2:
  *   - 4 kolom baru di sheet Project Tracker (dibuat OTOMATIS, tidak perlu ditambah manual):
@@ -16,7 +26,7 @@
  *      - membuat API_TOKEN rahasia (disimpan di Script Properties, BUKAN di kode)
  *      - menambah kolom "Project ID" + 4 kolom baru di sheet Project Tracker & Checklist
  *      - membuat baris checklist untuk project yang belum punya
- *      - membuat tab "Activity Log" dan "Document Log" kalau belum ada
+ *      - membuat tab "Activity Log", "Document Log", "Project Specs", dan "Meetings" kalau belum ada
  *   2. Buka View > Execution log, copy API_TOKEN yang tampil.
  *      Tempel ke Vercel sebagai GAS_API_TOKEN.
  *   3. (Opsional) Project Settings > Script Properties > tambah
@@ -48,6 +58,8 @@ const SHEET_CHECKLIST = 'Engineering Deliverables Checklist';
 const SHEET_ACTIVITY_LOG = 'Activity Log'; // dibuat otomatis kalau belum ada
 const SHEET_COMMENTS = 'Comments';         // dibuat otomatis kalau belum ada
 const SHEET_DOCUMENTS = 'Document Log';    // dibuat otomatis kalau belum ada (riwayat dokumen yang di-generate)
+const SHEET_SPECS = 'Project Specs';       // dibuat otomatis kalau belum ada (spesifikasi peralatan per project)
+const SHEET_MEETINGS = 'Meetings';         // dibuat otomatis kalau belum ada (notulensi rapat)
 const COMMENT_MAX_LENGTH = 2000;
 
 
@@ -72,6 +84,27 @@ const SYSTEM_KEYS = [
   'mixedbed', 'int_tank', 'panel', 'ro_large', 'recycle'
 ];
 
+
+// Spesifikasi peralatan per project: 1 baris per project, isi JSON { idField: nilai }.
+const SPECS_COLUMNS = ['Project ID', 'Specs JSON', 'Version', 'Updated At', 'Updated By'];
+const SPECS_MAX_KEYS = 400;
+const SPECS_MAX_VALUE_LENGTH = 2000;
+const SPECS_MAX_JSON_LENGTH = 45000;   // batas sel Google Sheets = 50.000 karakter
+const SPECS_KEY_PATTERN = /^[a-z0-9_]{1,60}$/;
+
+// Notulensi rapat: 1 baris per rapat. Kehadiran & agenda disimpan sebagai JSON di sel.
+const MEETING_COLUMNS = [
+  'Meeting ID', 'Date', 'Start Time', 'End Time', 'Status', 'Kind', 'Location', 'Agenda',
+  'Notes', 'Next Agenda', 'Attendees JSON', 'Items JSON', 'Doc URL', 'Version',
+  'Created At', 'Created By', 'Updated At', 'Updated By'
+];
+const MEETING_STATUSES = ['Terjadwal', 'Selesai'];
+const ITEM_STATUSES = ['Open', 'Selesai', 'Batal'];
+const ATTENDANCE_STATUSES = ['Hadir', 'Izin', 'Sakit', 'Tidak Hadir'];
+const MEETING_MAX_ATTENDEES = 40;
+const MEETING_MAX_ITEMS = 80;
+const MEETING_MAX_JSON_LENGTH = 45000;  // batas sel Google Sheets = 50.000 karakter
+const MEETING_LIMIT = 300;
 
 // Riwayat dokumen (Commissioning Report / Handover Report) yang dibuat lewat Generator Dokumen.
 const DOCUMENT_LOG_COLUMNS = ['Timestamp', 'User', 'Type', 'PO Number', 'Project Name', 'File Name', 'Document URL', 'Project ID'];
@@ -203,6 +236,9 @@ function doGet(e) {
     else if (action === 'activityLog') data = getActivityLog_();
     else if (action === 'comments') data = getComments_(params.projectId);
     else if (action === 'documents') data = getDocuments_(params.projectId);
+    else if (action === 'specs') data = getSpecs_(params.projectId);
+    else if (action === 'meetings') data = getMeetings_();
+    else if (action === 'procurement') data = getProcurement_();
     else throw new Error('Unknown action: ' + action);
     return jsonOut_({ ok: true, data: data });
   } catch (err) {
@@ -224,6 +260,12 @@ function doPost(e) {
       if (action === 'deleteProject') return deleteProject_(payload);
       if (action === 'addComment') return addComment_(payload);
       if (action === 'logDocument') return logDocument_(payload);
+      if (action === 'saveSpecs') return saveSpecs_(payload);
+      if (action === 'saveMeeting') return saveMeeting_(payload);
+      if (action === 'saveProcurementItem') return saveProcurementItem_(payload);
+      if (action === 'deleteProcurementItem') return deleteProcurementItem_(payload);
+      if (action === 'deleteMeeting') return deleteMeeting_(payload);
+      if (action === 'setMeetingDoc') return setMeetingDoc_(payload);
       throw new Error('Unknown action: ' + action);
     });
     return jsonOut_({ ok: true, data: data });
@@ -231,7 +273,6 @@ function doPost(e) {
     return jsonOut_({ ok: false, error: err.message });
   }
 }
-
 
 function jsonOut_(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj))
@@ -297,6 +338,8 @@ function setup() {
     const r = migrateSchema_();
     getOrCreateActivityLogSheet_();
     getOrCreateDocumentLogSheet_();
+    getOrCreateSpecsSheet_();
+    getOrCreateMeetingsSheet_();
     return r;
   });
   Logger.log('Migrasi selesai: ' + JSON.stringify(result));
@@ -1057,7 +1100,7 @@ function deleteProject_(payload) {
 
 
   const pVals = projSheet.getRange(pf.rowIndex, 1, 1, pf.headers.length).getValues()[0];
-  const snapshot = { project: rowToSnapshot_(pf.headers, pVals), checklist: null };
+  const snapshot = { project: rowToSnapshot_(pf.headers, pVals), checklist: null, specs: null };
   const projectName = snapshot.project['Project Name'] || '';
   const poNumber = snapshot.project['PO Number'] || '';
 
@@ -1068,6 +1111,12 @@ function deleteProject_(payload) {
     const cVals = checkSheet.getRange(cf.rowIndex, 1, 1, cf.headers.length).getValues()[0];
     snapshot.checklist = rowToSnapshot_(cf.headers, cVals);
     checkSheet.deleteRow(cf.rowIndex);
+  }
+  const specsSheet = getOrCreateSpecsSheet_();
+  const sf = findSpecsRow_(specsSheet, id);
+  if (sf) {
+    snapshot.specs = parseSpecsJson_(sf.json);
+    specsSheet.deleteRow(sf.rowIndex);
   }
   projSheet.deleteRow(pf.rowIndex);
 
@@ -1332,6 +1381,409 @@ function getDocuments_(projectId) {
   }
   rows.reverse();
   return id ? rows : rows.slice(0, DOCUMENT_LIMIT);
+}
+
+
+// ------------------------------------------------------------------
+// Project Specs (spesifikasi peralatan untuk form Hand Over)
+// ------------------------------------------------------------------
+function getOrCreateSpecsSheet_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sh = ss.getSheetByName(SHEET_SPECS);
+  if (!sh) {
+    sh = ss.insertSheet(SHEET_SPECS);
+    sh.appendRow(SPECS_COLUMNS);
+    sh.setFrozenRows(1);
+    sh.setColumnWidth(1, 150);
+    sh.setColumnWidth(2, 500);
+    sh.setColumnWidth(4, 150);
+    sh.setColumnWidth(5, 220);
+  }
+  return sh;
+}
+
+
+function parseSpecsJson_(text) {
+  try {
+    const obj = JSON.parse(String(text || '{}'));
+    return obj && typeof obj === 'object' && !Array.isArray(obj) ? obj : {};
+  } catch (e) {
+    return {};
+  }
+}
+
+
+// Cari baris spesifikasi berdasarkan Project ID. Return { rowIndex, json, version, updatedAt, updatedBy } atau null.
+function findSpecsRow_(sh, projectId) {
+  const id = cleanText_(projectId);
+  if (!id) return null;
+  const lastRow = sh.getLastRow();
+  if (lastRow < 2) return null;
+  const data = sh.getRange(2, 1, lastRow - 1, SPECS_COLUMNS.length).getValues();
+  for (let i = 0; i < data.length; i++) {
+    if (cleanText_(data[i][0]) === id) {
+      return {
+        rowIndex: i + 2,
+        json: data[i][1],
+        version: Number(data[i][2]) || 0,
+        updatedAt: data[i][3] instanceof Date ? data[i][3].toISOString() : String(data[i][3] || ''),
+        updatedBy: cleanText_(data[i][4])
+      };
+    }
+  }
+  return null;
+}
+
+
+function getSpecs_(projectId) {
+  const id = cleanText_(projectId);
+  if (!id) throw new Error('Project ID wajib diisi.');
+  const found = findSpecsRow_(getOrCreateSpecsSheet_(), id);
+  if (!found) return { projectId: id, specs: {}, version: 0, updatedAt: '', updatedBy: '' };
+  return {
+    projectId: id,
+    specs: parseSpecsJson_(found.json),
+    version: found.version,
+    updatedAt: found.updatedAt,
+    updatedBy: found.updatedBy
+  };
+}
+
+
+// Rapikan isian dari website: hanya kunci yang valid, nilai berupa teks, yang kosong dibuang.
+function sanitizeSpecs_(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new Error('Format spesifikasi tidak valid.');
+  const out = {};
+  let count = 0;
+  Object.keys(raw).forEach(function (key) {
+    if (!SPECS_KEY_PATTERN.test(key)) return;
+    const value = cleanText_(raw[key]);
+    if (!value) return;
+    if (value.length > SPECS_MAX_VALUE_LENGTH) {
+      throw new Error('Isian "' + key + '" terlalu panjang (maksimal ' + SPECS_MAX_VALUE_LENGTH + ' karakter).');
+    }
+    out[key] = value;
+    count++;
+  });
+  if (count > SPECS_MAX_KEYS) throw new Error('Terlalu banyak kolom spesifikasi.');
+  return out;
+}
+
+
+function saveSpecs_(payload) {
+  const id = cleanText_(payload.projectId);
+  if (!id) throw new Error('Project ID wajib diisi.');
+
+
+  // Pastikan project-nya masih ada, sekalian ambil PO & nama untuk Activity Log.
+  const projSheet = getSheet_(SHEET_PROJECTS);
+  const pf = findRowById_(projSheet, id);
+  if (!pf) throw new Error('Project tidak ditemukan. Mungkin sudah dihapus — muat ulang halaman.');
+  const pVals = projSheet.getRange(pf.rowIndex, 1, 1, pf.headers.length).getValues()[0];
+  const poCol = pf.headers.indexOf('PO Number');
+  const nameCol = pf.headers.indexOf('Project Name');
+  const poNumber = poCol > -1 ? pVals[poCol] : '';
+  const projectName = nameCol > -1 ? pVals[nameCol] : '';
+
+
+  const specs = sanitizeSpecs_(payload.specs);
+  const json = JSON.stringify(specs);
+  if (json.length > SPECS_MAX_JSON_LENGTH) throw new Error('Data spesifikasi terlalu besar untuk disimpan.');
+  const baseVersion = Number(payload.baseVersion) || 0;
+  const user = payload.user || 'Tidak diketahui';
+
+
+  const sh = getOrCreateSpecsSheet_();
+  const found = findSpecsRow_(sh, id);
+  const currentVersion = found ? found.version : 0;
+
+
+  // Pengecekan versi: kalau orang lain sudah menyimpan setelah halaman ini dimuat, jangan menimpa diam-diam.
+  if (found && baseVersion !== currentVersion) {
+    throw new Error('Spesifikasi sudah diubah oleh ' + (found.updatedBy || 'pengguna lain') +
+      '. Muat ulang halaman untuk melihat versi terbaru, lalu ulangi perubahan Anda.');
+  }
+
+
+  // Hitung apa saja yang berubah (untuk Activity Log)
+  const before = found ? parseSpecsJson_(found.json) : {};
+  const touched = [];
+  let added = 0, changed = 0, removed = 0;
+  Object.keys(specs).forEach(function (k) {
+    if (!before.hasOwnProperty(k)) { added++; touched.push(k); }
+    else if (String(before[k]) !== specs[k]) { changed++; touched.push(k); }
+  });
+  Object.keys(before).forEach(function (k) {
+    if (!specs.hasOwnProperty(k)) { removed++; touched.push(k); }
+  });
+  if (found && touched.length === 0) {
+    return { version: currentVersion, updatedAt: found.updatedAt, updatedBy: found.updatedBy, count: Object.keys(specs).length, unchanged: true };
+  }
+
+
+  const now = new Date();
+  const newVersion = currentVersion + 1;
+  const row = [id, json, newVersion, now, sheetSafe_(user)];
+  if (found) sh.getRange(found.rowIndex, 1, 1, SPECS_COLUMNS.length).setValues([row]);
+  else sh.appendRow(row);
+
+
+  logActivity_(user, 'Update Spesifikasi', id, poNumber, projectName,
+    added + ' ditambah, ' + changed + ' diubah, ' + removed + ' dihapus: ' + clip_(touched.slice(0, 15).join(', '), 250));
+
+
+  return { version: newVersion, updatedAt: now.toISOString(), updatedBy: user, count: Object.keys(specs).length };
+}
+
+
+// ------------------------------------------------------------------
+// Meetings (notulensi rapat, jadwal, kehadiran, tindak lanjut)
+// ------------------------------------------------------------------
+function getOrCreateMeetingsSheet_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sh = ss.getSheetByName(SHEET_MEETINGS);
+  if (!sh) {
+    sh = ss.insertSheet(SHEET_MEETINGS);
+    sh.appendRow(MEETING_COLUMNS);
+    sh.setFrozenRows(1);
+    // Tanggal & jam disimpan sebagai TEKS supaya Google Sheets tidak mengubahnya jadi tipe tanggal/jam.
+    sh.getRange(1, 2, 1000, 3).setNumberFormat('@');
+    sh.setColumnWidth(1, 130);
+    sh.setColumnWidth(8, 300);
+    sh.setColumnWidth(11, 300);
+    sh.setColumnWidth(12, 400);
+  }
+  return sh;
+}
+
+
+function meetingDateStr_(v) {
+  if (v instanceof Date) return Utilities.formatDate(v, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  const m = /^(\d{4}-\d{2}-\d{2})/.exec(cleanText_(v));
+  return m ? m[1] : '';
+}
+
+
+function meetingTimeStr_(v) {
+  if (v instanceof Date) return Utilities.formatDate(v, Session.getScriptTimeZone(), 'HH:mm');
+  const m = /^(\d{1,2}):(\d{2})/.exec(cleanText_(v));
+  return m ? ('0' + m[1]).slice(-2) + ':' + m[2] : '';
+}
+
+
+function parseJsonArray_(text) {
+  try {
+    const v = JSON.parse(String(text || '[]'));
+    return Array.isArray(v) ? v : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+
+function meetingFromRow_(r) {
+  const iso = function (v) { return v instanceof Date ? v.toISOString() : cleanText_(v); };
+  return {
+    id: cleanText_(r[0]),
+    date: meetingDateStr_(r[1]),
+    startTime: meetingTimeStr_(r[2]),
+    endTime: meetingTimeStr_(r[3]),
+    status: cleanText_(r[4]) || 'Selesai',
+    kind: cleanText_(r[5]),
+    location: cleanText_(r[6]),
+    agenda: cleanText_(r[7]),
+    notes: cleanText_(r[8]),
+    nextAgenda: cleanText_(r[9]),
+    attendees: parseJsonArray_(r[10]),
+    items: parseJsonArray_(r[11]),
+    docUrl: cleanText_(r[12]),
+    version: Number(r[13]) || 1,
+    createdAt: iso(r[14]),
+    createdBy: cleanText_(r[15]),
+    updatedAt: iso(r[16]),
+    updatedBy: cleanText_(r[17])
+  };
+}
+
+
+function findMeetingRow_(sh, id) {
+  const target = cleanText_(id);
+  if (!target) return null;
+  const lastRow = sh.getLastRow();
+  if (lastRow < 2) return null;
+  const data = sh.getRange(2, 1, lastRow - 1, MEETING_COLUMNS.length).getValues();
+  for (let i = 0; i < data.length; i++) {
+    if (cleanText_(data[i][0]) === target) return { rowIndex: i + 2, values: data[i] };
+  }
+  return null;
+}
+
+
+// Semua rapat, terbaru di atas.
+function getMeetings_() {
+  const sh = getOrCreateMeetingsSheet_();
+  const lastRow = sh.getLastRow();
+  if (lastRow < 2) return [];
+  const data = sh.getRange(2, 1, lastRow - 1, MEETING_COLUMNS.length).getValues();
+  const rows = [];
+  data.forEach(function (r) { if (cleanText_(r[0])) rows.push(meetingFromRow_(r)); });
+  rows.sort(function (a, b) {
+    if (a.date !== b.date) return a.date < b.date ? 1 : -1;
+    return a.startTime < b.startTime ? 1 : a.startTime > b.startTime ? -1 : 0;
+  });
+  return rows.slice(0, MEETING_LIMIT);
+}
+
+
+function meetingTitle_(m) {
+  return 'Rapat ' + m.date + (m.kind ? ' (' + m.kind + ')' : '');
+}
+
+
+// Rapikan isian dari website. Melempar Error kalau ada yang tidak valid.
+function sanitizeMeeting_(p) {
+  const date = cleanText_(p.date);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error('Tanggal rapat wajib diisi.');
+
+  function time(label, v) {
+    const t = cleanText_(v);
+    if (!t) return '';
+    if (!/^([01]?\d|2[0-3]):[0-5]\d$/.test(t)) throw new Error('Jam ' + label + ' tidak valid: "' + t + '".');
+    return meetingTimeStr_(t);
+  }
+
+  const status = cleanText_(p.status) || 'Terjadwal';
+  assertEnum_('Status rapat', status, MEETING_STATUSES);
+
+  const attendees = [];
+  (Array.isArray(p.attendees) ? p.attendees : []).forEach(function (a) {
+    const name = clip_(cleanText_(a && a.name), 100);
+    if (!name) return;
+    const st = cleanText_(a.status) || 'Hadir';
+    assertEnum_('Status kehadiran', st, ATTENDANCE_STATUSES);
+    attendees.push({ name: name, division: clip_(cleanText_(a.division), 100), status: st });
+  });
+  if (attendees.length > MEETING_MAX_ATTENDEES) throw new Error('Peserta terlalu banyak (maksimal ' + MEETING_MAX_ATTENDEES + ').');
+
+  const items = [];
+  const usedIds = {};
+  (Array.isArray(p.items) ? p.items : []).forEach(function (it) {
+    if (!it) return;
+    const topic = clip_(cleanText_(it.topic), 200);
+    const content = clip_(cleanText_(it.content), 3000);
+    const cta = clip_(cleanText_(it.cta), 500);
+    if (!topic && !content && !cta) return;
+    let id = cleanText_(it.id);
+    if (!/^[a-z0-9_]{3,40}$/.test(id) || usedIds[id]) id = 'it_' + Utilities.getUuid().replace(/-/g, '').substring(0, 8);
+    usedIds[id] = true;
+    const st = cleanText_(it.status) || 'Open';
+    assertEnum_('Status agenda', st, ITEM_STATUSES);
+    const target = cleanText_(it.target);
+    items.push({
+      id: id,
+      topic: topic,
+      type: clip_(cleanText_(it.type), 60),
+      content: content,
+      cta: cta,
+      pic: clip_(cleanText_(it.pic), 150),
+      target: /^\d{4}-\d{2}-\d{2}$/.test(target) ? target : '',
+      status: st,
+      projectId: clip_(cleanText_(it.projectId), 40),
+      carriedFrom: clip_(cleanText_(it.carriedFrom), 80),
+      prevNote: clip_(cleanText_(it.prevNote), 1000)
+    });
+  });
+  if (items.length > MEETING_MAX_ITEMS) throw new Error('Agenda terlalu banyak (maksimal ' + MEETING_MAX_ITEMS + ').');
+
+  const attendeesJson = JSON.stringify(attendees);
+  const itemsJson = JSON.stringify(items);
+  if (attendeesJson.length > MEETING_MAX_JSON_LENGTH || itemsJson.length > MEETING_MAX_JSON_LENGTH) {
+    throw new Error('Isi notulensi terlalu besar untuk disimpan. Ringkas isi bahasan atau pecah jadi dua rapat.');
+  }
+
+  return {
+    date: date,
+    startTime: time('mulai', p.startTime),
+    endTime: time('selesai', p.endTime),
+    status: status,
+    kind: clip_(cleanText_(p.kind), 100),
+    location: clip_(cleanText_(p.location), 200),
+    agenda: clip_(cleanText_(p.agenda), 500),
+    notes: clip_(cleanText_(p.notes), 4000),
+    nextAgenda: clip_(cleanText_(p.nextAgenda), 4000),
+    attendeesJson: attendeesJson,
+    itemsJson: itemsJson,
+    attendees: attendees,
+    items: items
+  };
+}
+
+
+function saveMeeting_(payload) {
+  const m = sanitizeMeeting_(payload);
+  const user = payload.user || 'Tidak diketahui';
+  const sh = getOrCreateMeetingsSheet_();
+  const now = new Date();
+  const id = cleanText_(payload.id);
+
+  if (id) {
+    const found = findMeetingRow_(sh, id);
+    if (!found) throw new Error('Rapat tidak ditemukan. Mungkin sudah dihapus — muat ulang halaman.');
+    const cur = meetingFromRow_(found.values);
+    if ((Number(payload.baseVersion) || 0) !== cur.version) {
+      throw new Error('Notulensi ini sudah diubah oleh ' + (cur.updatedBy || 'pengguna lain') +
+        '. Muat ulang halaman untuk melihat versi terbaru, lalu ulangi perubahan Anda.');
+    }
+    const version = cur.version + 1;
+    const row = [
+      id, m.date, m.startTime, m.endTime, m.status, sheetSafe_(m.kind), sheetSafe_(m.location), sheetSafe_(m.agenda),
+      sheetSafe_(m.notes), sheetSafe_(m.nextAgenda), m.attendeesJson, m.itemsJson, cur.docUrl, version,
+      found.values[14], found.values[15], now, sheetSafe_(user)
+    ];
+    sh.getRange(found.rowIndex, 1, 1, MEETING_COLUMNS.length).setValues([row]);
+    logActivity_(user, 'Update Rapat', '', '', meetingTitle_(m),
+      m.items.length + ' agenda, ' + m.attendees.filter(function (a) { return a.status === 'Hadir'; }).length + ' hadir, status ' + m.status);
+    return meetingFromRow_(sh.getRange(found.rowIndex, 1, 1, MEETING_COLUMNS.length).getValues()[0]);
+  }
+
+  const newId = 'mtg_' + Utilities.getUuid().replace(/-/g, '').substring(0, 12);
+  const row = [
+    newId, m.date, m.startTime, m.endTime, m.status, sheetSafe_(m.kind), sheetSafe_(m.location), sheetSafe_(m.agenda),
+    sheetSafe_(m.notes), sheetSafe_(m.nextAgenda), m.attendeesJson, m.itemsJson, '', 1,
+    now, sheetSafe_(user), now, sheetSafe_(user)
+  ];
+  sh.appendRow(row);
+  logActivity_(user, 'Tambah Rapat', '', '', meetingTitle_(m), 'Rapat ' + m.status.toLowerCase() + ' dibuat, ' + m.items.length + ' agenda');
+  return meetingFromRow_(sh.getRange(sh.getLastRow(), 1, 1, MEETING_COLUMNS.length).getValues()[0]);
+}
+
+
+function deleteMeeting_(payload) {
+  const id = cleanText_(payload.id);
+  if (!id) throw new Error('ID rapat wajib diisi.');
+  const sh = getOrCreateMeetingsSheet_();
+  const found = findMeetingRow_(sh, id);
+  if (!found) throw new Error('Rapat tidak ditemukan atau sudah dihapus.');
+  const m = meetingFromRow_(found.values);
+  sh.deleteRow(found.rowIndex);
+  logActivity_(payload.user, 'Hapus Rapat', '', '', meetingTitle_(m),
+    'Snapshot data sebelum dihapus: ' + clip_(JSON.stringify(m), 45000));
+  return { deleted: true, id: id };
+}
+
+
+// Dipanggil server Next.js (/api/meeting-doc) setelah Google Doc notulensi berhasil dibuat.
+// Tidak menaikkan versi, jadi tidak membuat editor yang sedang terbuka kena "konflik".
+function setMeetingDoc_(payload) {
+  const id = cleanText_(payload.id);
+  const url = cleanText_(payload.docUrl);
+  if (!/^https?:\/\//i.test(url)) throw new Error('Link dokumen harus diawali http:// atau https://');
+  const sh = getOrCreateMeetingsSheet_();
+  const found = findMeetingRow_(sh, id);
+  if (!found) throw new Error('Rapat tidak ditemukan.');
+  sh.getRange(found.rowIndex, MEETING_COLUMNS.indexOf('Doc URL') + 1).setValue(url);
+  logActivity_(payload.user, 'Dokumen Rapat', '', '', meetingTitle_(meetingFromRow_(found.values)), 'Google Doc notulensi dibuat');
+  return { id: id, docUrl: url };
 }
 
 
