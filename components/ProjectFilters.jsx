@@ -65,7 +65,7 @@ function FacetDropdown({ facet, options, selected, open, onToggleOpen, onToggleV
       >
         {facet.label}
         {hasSelection && (
-          <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-blueprint text-white text-[10px] font-bold flex items-center justify-center">
+          <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-blueprint text-onaccent text-[10px] font-bold flex items-center justify-center">
             {selected.length}
           </span>
         )}
@@ -122,7 +122,7 @@ function FacetDropdown({ facet, options, selected, open, onToggleOpen, onToggleV
                         checked={checked}
                         onChange={() => onToggleValue(o.value)}
                       />
-                      <span className={`flex-1 truncate ${o.count === 0 && !checked ? 'text-inkmute/60' : 'text-ink'}`}>
+                      <span className={`flex-1 truncate ${o.count === 0 && !checked ? 'text-inkmute' : 'text-ink'}`}>
                         {o.value}
                       </span>
                       <span className="text-xs font-data tnum text-inkmute">{o.count}</span>
@@ -136,7 +136,7 @@ function FacetDropdown({ facet, options, selected, open, onToggleOpen, onToggleV
               <button
                 type="button"
                 onClick={onToggleOpen}
-                className="w-full h-10 rounded-md bg-blueprint text-white text-sm font-medium"
+                className="w-full h-10 rounded-md bg-blueprint text-onaccent text-sm font-medium"
               >
                 Selesai
               </button>

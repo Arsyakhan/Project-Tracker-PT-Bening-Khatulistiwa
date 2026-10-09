@@ -17,11 +17,15 @@ module.exports = {
         blueprintdark: 'rgb(var(--color-blueprintdark) / <alpha-value>)',
         teal: 'rgb(var(--color-teal) / <alpha-value>)',
         amber: 'rgb(var(--color-amber) / <alpha-value>)',
+        amberink: 'rgb(var(--color-amberink) / <alpha-value>)',
         rust: 'rgb(var(--color-rust) / <alpha-value>)',
+        rustdark: 'rgb(var(--color-rustdark) / <alpha-value>)',
+        onaccent: 'rgb(var(--color-onaccent) / <alpha-value>)',
       },
       fontFamily: {
-        display: ['Inter', 'sans-serif'], 
-        data: ['JetBrains Mono', 'monospace'], 
+        sans: ['Inter', 'sans-serif'],
+        display: ['Space Grotesk', 'sans-serif'],
+        data: ['IBM Plex Mono', 'monospace'],
       }
     },
   },

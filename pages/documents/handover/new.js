@@ -234,7 +234,7 @@ export default function NewHandoverReport() {
             <span className="w-8 h-8 rounded-full bg-teal/15 flex items-center justify-center">&#10003;</span>
             Dokumen berhasil dibuat
           </div>
-          <a href={result.documentUrl} target="_blank" rel="noreferrer" className="inline-flex w-fit items-center gap-2 px-4 py-2.5 rounded-md bg-blueprint hover:bg-blueprintdark text-white text-sm font-medium transition-colors">
+          <a href={result.documentUrl} target="_blank" rel="noreferrer" className="inline-flex w-fit items-center gap-2 px-4 py-2.5 rounded-md bg-blueprint hover:bg-blueprintdark text-onaccent text-sm font-medium transition-colors">
             Buka Dokumen
           </a>
           {linkedProject && (
@@ -260,7 +260,7 @@ export default function NewHandoverReport() {
               <div className="min-w-0">
                 <span>Membuat dokumen untuk: <b className="text-ink">{linkedProject.projectName}</b> -- data project (PO, client, lokasi, sistem terpasang) sudah terisi otomatis. Periksa kembali sebelum generate.</span>
                 {!readiness.ready && (
-                  <span className="block text-xs text-amber mt-1">
+                  <span className="block text-xs text-amberink mt-1">
                     Belum lengkap di project: {readiness.missing.join(', ')}.{' '}
                     <Link href={`/projects/${encodeURIComponent(linkedProject.id)}`} className="underline font-medium">Lengkapi di detail project</Link>
                   </span>
@@ -322,7 +322,7 @@ export default function NewHandoverReport() {
             <button
               onClick={handleSubmit}
               disabled={submitting}
-              className="bg-blueprint hover:bg-blueprintdark text-white rounded-md px-6 py-2.5 font-medium disabled:opacity-60 transition-colors"
+              className="bg-blueprint hover:bg-blueprintdark text-onaccent rounded-md px-6 py-2.5 font-medium disabled:opacity-60 transition-colors"
             >
               {submitting ? 'Membuat dokumen...' : 'Generate Hand Over Document'}
             </button>

@@ -12,9 +12,9 @@ const STAGE_WEIGHTS = {
 };
 
 function colorFor(progress) {
-  if (progress >= 100) return '#3F8361';
-  if (progress >= 90) return '#C98A2B';
-  return '#1C4E73';
+  if (progress >= 100) return 'rgb(var(--color-teal))';
+  if (progress >= 90) return 'rgb(var(--color-amber))';
+  return 'rgb(var(--color-blueprint))';
 }
 
 export default function StageGauge({ progress = 0, showLabel = true, compact = false, activeStage }) {

@@ -5,7 +5,7 @@ const TONES = {
   neutral: 'bg-inkmute/10 text-inkmute border-inkmute/25',
   blueprint: 'bg-blueprint/10 text-blueprint border-blueprint/25',
   teal: 'bg-teal/10 text-teal border-teal/25',
-  amber: 'bg-amber/10 text-amber border-amber/30',
+  amber: 'bg-amber/10 text-amberink border-amber/30',
   rust: 'bg-rust/10 text-rust border-rust/25',
 };
 

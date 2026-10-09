@@ -140,8 +140,8 @@ export default function EngineeringDocs() {
                 {/* Status Badges Premium */}
                 <td className="px-5 py-4">
                   <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold tracking-wide uppercase border ${
-                    doc.status === 'Completed' ? 'bg-[#4E7B5B]/10 text-[#4E7B5B] border-[#4E7B5B]/20' :
-                    doc.status === 'Under Review' ? 'bg-amber/10 text-amber border-amber/20' :
+                    doc.status === 'Completed' ? 'bg-teal/10 text-teal border-teal/20' :
+                    doc.status === 'Under Review' ? 'bg-amber/10 text-amberink border-amber/20' :
                     doc.status === 'Drafting' ? 'bg-blueprint/10 text-blueprint border-blueprint/20' :
                     doc.status === 'N/A' ? 'bg-transparent text-inkmute border-line border-dashed' :
                     'bg-canvas text-inkmute border-line' // Not Started
@@ -157,7 +157,7 @@ export default function EngineeringDocs() {
                       href={doc.link} 
                       target="_blank" 
                       rel="noreferrer" 
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-canvas hover:bg-blueprint border border-line hover:border-blueprint text-ink hover:text-white transition-all shadow-sm group/btn"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-canvas hover:bg-blueprint border border-line hover:border-blueprint text-ink hover:text-onaccent transition-all shadow-sm group/btn"
                     >
                       Buka
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3 h-3 group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5 transition-transform">
@@ -167,7 +167,7 @@ export default function EngineeringDocs() {
                   ) : DOC_GENERATOR_ROUTE[doc.docName] ? (
                     <Link
                       href={`/documents/${DOC_GENERATOR_ROUTE[doc.docName]}/new?projectId=${encodeURIComponent(doc.id)}`}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-blueprint/10 hover:bg-blueprint border border-blueprint/30 hover:border-blueprint text-blueprint hover:text-white transition-all"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-blueprint/10 hover:bg-blueprint border border-blueprint/30 hover:border-blueprint text-blueprint hover:text-onaccent transition-all"
                     >
                       + Buat Dokumen
                     </Link>

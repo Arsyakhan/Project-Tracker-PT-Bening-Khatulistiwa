@@ -100,13 +100,10 @@ export default function NewProjectPage() {
           </Row>
         </div>
 
-        <button disabled={saving} className="mt-4 bg-blueprint hover:bg-blueprintdark text-white rounded-md py-2.5 font-medium disabled:opacity-60">
+        <button disabled={saving} className="btn btn-primary mt-4 w-full">
           {saving ? 'Menyimpan...' : 'Simpan Project'}
         </button>
       </form>
-      <style jsx global>{`
-        .input { border: 1px solid #D7E0E3; border-radius: 6px; padding: 8px 10px; font-size: 14px; background: white; width: 100%; }
-      `}</style>
     </div>
   );
 }

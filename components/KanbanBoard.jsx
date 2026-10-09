@@ -19,7 +19,7 @@ function DeadlineBadge({ p }) {
     d < 0
       ? 'bg-rust/10 text-rust border border-rust/20'
       : d <= 14
-      ? 'bg-amber/10 text-amber border border-amber/20'
+      ? 'bg-amber/10 text-amberink border border-amber/20'
       : 'bg-canvas text-inkmute border border-line';
   return (
     <span className={`text-[10px] font-semibold rounded px-1.5 py-0.5 whitespace-nowrap ${cls}`}>
@@ -151,7 +151,7 @@ export default function KanbanBoard({ projects, busy, onMove }) {
 
             <div className="p-2 flex flex-col gap-2 min-h-[120px] max-h-[65vh] overflow-y-auto">
               {col.items.length === 0 ? (
-                <p className="text-[11px] text-inkmute/70 text-center py-6">
+                <p className="text-[11px] text-inkmute text-center py-6">
                   {col.droppable ? 'Kosong — seret kartu ke sini' : 'Kosong'}
                 </p>
               ) : (

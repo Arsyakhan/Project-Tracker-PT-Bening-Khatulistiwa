@@ -17,6 +17,14 @@ export default function ConfirmModal({
     if (open) setTyped('');
   }, [open]);
 
+  // Escape menutup dialog (sama seperti tombol Batal)
+  useEffect(() => {
+    if (!open) return undefined;
+    const onKey = (e) => { if (e.key === 'Escape') onCancel(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, onCancel]);
+
   if (!open) return null;
 
   const canConfirm = !requireText || typed === requireText;
@@ -27,12 +35,16 @@ export default function ConfirmModal({
       onClick={onCancel}
     >
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="confirm-title"
+        aria-describedby={description ? 'confirm-desc' : undefined}
         className="bg-panel rounded-xl border border-line shadow-xl w-full max-w-sm p-6 flex flex-col gap-4"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex flex-col gap-1.5">
-          <h3 className="font-display text-lg font-semibold text-ink">{title}</h3>
-          {description && <p className="text-sm text-inkmute">{description}</p>}
+          <h3 id="confirm-title" className="font-display text-lg font-semibold text-ink">{title}</h3>
+          {description && <p id="confirm-desc" className="text-sm text-inkmute">{description}</p>}
         </div>
 
         {requireText && (
@@ -50,18 +62,14 @@ export default function ConfirmModal({
         )}
 
         <div className="flex gap-3 justify-end mt-2">
-          <button
-            onClick={onCancel}
-            className="px-4 py-2 rounded-md text-sm font-medium text-inkmute hover:bg-canvas transition-colors"
-          >
+          <button type="button" onClick={onCancel} className="btn btn-ghost">
             {cancelText}
           </button>
           <button
+            type="button"
             onClick={onConfirm}
             disabled={!canConfirm}
-            className={`px-4 py-2 rounded-md text-sm font-medium text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
-              danger ? 'bg-rust hover:bg-red-800' : 'bg-blueprint hover:bg-blueprintdark'
-            }`}
+            className={`btn ${danger ? 'btn-danger' : 'btn-primary'}`}
           >
             {confirmText}
           </button>

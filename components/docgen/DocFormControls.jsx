@@ -14,7 +14,7 @@ export function ModuleToggleGrid({ modules, values, onChange }) {
           <label
             key={m.id}
             className={`cursor-pointer text-center text-sm font-medium border rounded-lg py-3 px-2 transition-colors ${
-              active ? 'bg-blueprint text-white border-blueprint' : 'bg-canvas text-ink border-line hover:border-blueprint/50'
+              active ? 'bg-blueprint text-onaccent border-blueprint' : 'bg-canvas text-ink border-line hover:border-blueprint/50'
             }`}
           >
             <input type="checkbox" className="sr-only" checked={active} onChange={(e) => onChange(m.id, e.target.checked)} />

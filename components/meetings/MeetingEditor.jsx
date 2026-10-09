@@ -435,7 +435,7 @@ export default function MeetingEditor({ meetingId, schedule = false }) {
         </div>
         <textarea readOnly className="input font-data text-xs leading-relaxed" rows={12} value={waText} aria-label="Pratinjau pesan WhatsApp" onFocus={(e) => e.target.select()} />
         <div className="flex flex-wrap items-center gap-2">
-          <button type="button" onClick={copyWa} className="bg-blueprint hover:bg-blueprintdark text-white rounded-md px-4 h-9 text-sm font-medium transition-colors">Salin untuk WhatsApp</button>
+          <button type="button" onClick={copyWa} className="bg-blueprint hover:bg-blueprintdark text-onaccent rounded-md px-4 h-9 text-sm font-medium transition-colors">Salin untuk WhatsApp</button>
           <a href={whatsappLink(waText)} target="_blank" rel="noopener noreferrer" className="border border-line rounded-md px-4 h-9 inline-flex items-center text-sm font-medium text-ink hover:border-blueprint hover:text-blueprint transition-colors">Buka WhatsApp</a>
           <button type="button" onClick={() => downloadText(`${meetingFileBase(meeting)}.txt`, waText)} className="border border-line rounded-md px-4 h-9 text-sm font-medium text-ink hover:border-blueprint hover:text-blueprint transition-colors">Unduh .txt</button>
           <button type="button" onClick={() => downloadText(`${meetingFileBase(meeting)}.ics`, buildIcs(meeting), 'text/calendar;charset=utf-8')} className="border border-line rounded-md px-4 h-9 text-sm font-medium text-ink hover:border-blueprint hover:text-blueprint transition-colors">Tambah ke kalender (.ics)</button>
@@ -448,7 +448,7 @@ export default function MeetingEditor({ meetingId, schedule = false }) {
           <button
             onClick={() => save()}
             disabled={saving || (!dirty && !isNew)}
-            className="bg-blueprint hover:bg-blueprintdark text-white rounded-md px-4 h-9 text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="bg-blueprint hover:bg-blueprintdark text-onaccent rounded-md px-4 h-9 text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             {saving ? 'Menyimpan...' : isNew ? 'Simpan rapat' : 'Simpan perubahan'}
           </button>

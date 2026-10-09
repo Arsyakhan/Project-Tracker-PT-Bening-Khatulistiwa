@@ -45,7 +45,7 @@ function ProgressBar({ value, className = '' }) {
 function DocCell({ p }) {
   const v = p.engineeringDocProgress;
   const gap = hasDocGap(p);
-  const tone = v >= 100 ? 'text-teal' : gap ? (v < 70 ? 'text-rust' : 'text-amber') : 'text-inkmute';
+  const tone = v >= 100 ? 'text-teal' : gap ? (v < 70 ? 'text-rust' : 'text-amberink') : 'text-inkmute';
   const bar = v >= 100 ? 'bg-teal' : gap ? (v < 70 ? 'bg-rust' : 'bg-amber') : 'bg-inkmute/60';
   return (
     <div className="flex flex-col gap-1 w-16" title={`Dokumen engineering ${v}%`}>

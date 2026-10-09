@@ -1,25 +1,31 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 
-/* ---- Palet warna: light (default) ---- */
+/* ---- Palet warna: light (default) ----
+   Semua warna teks (ink, inkmute, blueprint, teal, rust, amberink) lolos kontras WCAG AA (>= 4,5:1)
+   di atas panel, canvas, dan tint 10% dirinya sendiri. Warna isian (bar, titik) tetap memakai amber asli. */
 :root {
+  color-scheme: light;
   --color-canvas: 232 243 247;      /* #E8F3F7 */
   --color-panel: 255 255 255;       /* #FFFFFF */
   --color-line: 198 221 230;        /* #C6DDE6 */
   --color-ink: 12 45 72;            /* #0C2D48 */
-  --color-inkmute: 74 114 145;      /* #4A7291 */
-  --color-blueprint: 0 119 182;     /* #0077B6 */
-  --color-blueprintdark: 0 91 143;  /* #005B8F */
-  --color-teal: 0 150 136;          /* #009688 */
-  --color-amber: 217 138 0;         /* #D98A00 */
-  --color-rust: 217 72 72;          /* #D94848 */
+  --color-inkmute: 67 103 131;      /* #436783 (dulu #4A7291, 4,5:1 -> 5,6:1 di canvas) */
+  --color-blueprint: 0 104 160;     /* #0068A0 (dulu #0077B6, teks di canvas 4,3:1 -> 5,7:1) */
+  --color-blueprintdark: 0 79 124;  /* #004F7C hover */
+  --color-teal: 0 112 102;          /* #007066 (dulu #009688, teks 3,7:1 -> 5,9:1) */
+  --color-amber: 217 138 0;         /* #D98A00 untuk isian: bar, titik, garis */
+  --color-amberink: 139 89 0;       /* #8B5900 untuk TEKS amber (dulu 2,8:1 -> 6,2:1) */
+  --color-rust: 188 39 39;          /* #BC2727 (dulu #D94848, teks 4,2:1 -> 5,9:1) */
+  --color-rustdark: 143 29 29;      /* #8F1D1D hover */
+  --color-onaccent: 255 255 255;    /* teks di atas isian blueprint/rust/teal */
 }
 
 /* ---- Palet warna: dark mode ---- */
 .dark {
+  color-scheme: dark;
   --color-canvas: 13 22 30;         /* navy sangat gelap */
   --color-panel: 22 34 45;          /* sedikit lebih terang dari canvas, buat card */
   --color-line: 42 60 74;
@@ -29,7 +35,10 @@
   --color-blueprintdark: 92 183 232;/* hover jadi LEBIH terang, bukan lebih gelap, di dark mode */
   --color-teal: 43 199 176;
   --color-amber: 235 168 68;
+  --color-amberink: 235 168 68;     /* di dark mode amber sudah cukup terang untuk teks */
   --color-rust: 236 111 111;
+  --color-rustdark: 242 139 139;    /* hover juga LEBIH terang */
+  --color-onaccent: 13 22 30;       /* teks gelap di atas isian terang (dulu putih: 2,7:1 -> 6,6:1) */
 }
 
 html, body {
@@ -163,3 +172,43 @@ summary:focus-visible {
   animation: progress-bar-indeterminate 0.9s ease-in-out infinite;
   width: 40%;
 }
+
+
+/* Hormati preferensi "kurangi gerakan" di seluruh aplikasi */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Tombol seragam. Tinggi minimum 38px (sama dengan .input) supaya mudah disentuh. */
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors;
+    min-height: 38px;
+  }
+  .btn:disabled { @apply cursor-not-allowed opacity-50; }
+  .btn-primary { @apply bg-blueprint text-onaccent hover:bg-blueprintdark; }
+  .btn-secondary { @apply border border-line bg-panel text-ink hover:bg-canvas; }
+  .btn-ghost { @apply text-inkmute hover:bg-canvas hover:text-ink; }
+  .btn-danger { @apply bg-rust text-onaccent hover:bg-rustdark; }
+}
+
+/* Lompat ke konten untuk pengguna keyboard */
+.skip-link {
+  position: absolute;
+  left: 8px;
+  top: -48px;
+  z-index: 300;
+  padding: 8px 14px;
+  border-radius: 6px;
+  background: rgb(var(--color-blueprint));
+  color: rgb(var(--color-onaccent));
+  font-size: 14px;
+  font-weight: 500;
+  transition: top 0.15s ease;
+}
+.skip-link:focus { top: 8px; }

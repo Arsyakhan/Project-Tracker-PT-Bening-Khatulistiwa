@@ -138,7 +138,7 @@ export default function ProjectsPage() {
           </div>
           <Link
             href="/projects/new"
-            className="mt-2 inline-flex items-center gap-2 bg-blueprint hover:bg-blueprintdark text-white font-medium text-sm rounded-lg px-4 py-2 shadow-sm transition-colors"
+            className="mt-2 inline-flex items-center gap-2 bg-blueprint hover:bg-blueprintdark text-onaccent font-medium text-sm rounded-lg px-4 py-2 shadow-sm transition-colors"
           >
             Tambah project pertama
           </Link>
