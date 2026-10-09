@@ -15,6 +15,7 @@ database terpisah).
 ## Fitur yang sudah berjalan
 
 - Login Google, dibatasi ke daftar email tertentu (`ALLOWED_EMAILS`)
+- **Hari Ini** (beranda): daftar hal yang perlu ditindak hari ini, urut dari yang terlambat (project lewat tanggal kirim, barang pengadaan lewat ETA, tindak lanjut rapat lewat target), bisa disaring per divisi, plus posisi project per divisi. Dashboard grafik ada di `/dashboard`.
 - Dashboard, daftar project (cari/filter), detail project (edit inline, tab checklist & komentar),
   daftar dokumen engineering lintas-project, dan log aktivitas
 - Checklist 7 dokumen engineering (BOM, P&ID, EWD, GAD, Commissioning Report, Manual Book,
