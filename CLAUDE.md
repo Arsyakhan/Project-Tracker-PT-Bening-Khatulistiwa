@@ -3,6 +3,15 @@
 Panduan untuk Claude di repo ini. Pemilik repo bekerja dalam **Bahasa Indonesia**: selalu balas dan
 tulis teks UI, komentar, serta dokumentasi dalam Bahasa Indonesia.
 
+## Siapa pemakainya
+
+Pemilik repo adalah **Project Manager** PT Bening Khatulistiwa. Bening Hub dibuat untuk memudahkan
+pekerjaannya dan semua divisi di bawahnya: Marketing & Direksi, Engineering, Warehouse & Purchasing,
+dan Technician. Jadi setiap fitur dinilai dari satu pertanyaan: apakah PM dan tiap divisi bisa
+melihat posisi project di alur (inquiry → PO → engineering → pengadaan → fabrikasi → delivery →
+instalasi → commissioning → Hand Over) dan tahu apa yang harus dikerjakan berikutnya. Utamakan
+kejelasan status, tenggat, dan siapa yang bertanggung jawab (PIC) daripada tampilan yang rumit.
+
 ## Gambaran besar
 
 Bening Hub = pelacak project & dokumen engineering (water treatment: RO, UF, softener, dst.).
