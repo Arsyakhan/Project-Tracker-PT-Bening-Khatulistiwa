@@ -16,6 +16,8 @@ import { packSpecs, buildSpecValues, visibleSections, overallProgress } from '..
 import { canDelete, canWrite } from '../../lib/roles';
 import TechFlow from '../../components/TechFlow';
 import SimilarArchive from '../../components/SimilarArchive';
+import NextActionCard from '../../components/NextActionCard';
+import PicInput from '../../components/PicInput';
 import ModulePicker from '../../components/ModulePicker';
 import {
   TECH_SCHEMA, TECH_DETAIL_MAX, TECH_EXTRA_KEYS, currentTech, writeTech, deriveSystemKeys, hasDosingModule,
@@ -24,8 +26,7 @@ import {
 import ConfirmModal from '../../components/ConfirmModal';
 import { useToast } from '../../components/Toast';
 import { SkeletonBlock } from '../../components/Skeleton';
-import { DIVISIONS as TODAY_DIVISIONS } from '../../lib/today';
-import { DEFAULT_ATTENDEES, daysBetween, fmtShort } from '../../lib/meetings';
+import { daysBetween, fmtShort } from '../../lib/meetings';
 
 // Field yang diedit lewat tombol "Simpan Perubahan". Checklist disimpan otomatis & terpisah,
 // jadi TIDAK ikut menentukan status "Belum disimpan".
@@ -505,17 +506,7 @@ export default function ProjectDetailPage() {
           </div>
         </div>
       )}
-      {project.nextAction && (
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 bg-panel border border-line border-l-4 border-l-blueprint rounded-lg px-4 py-3">
-          <span className="text-xs font-semibold uppercase tracking-wide text-inkmute">Langkah berikutnya</span>
-          <span className="text-sm font-medium text-ink break-words min-w-0">{project.nextAction}</span>
-          {project.nextActionOwner && <span className="text-xs text-inkmute">PIC {project.nextActionOwner}</span>}
-          {project.nextActionDue && (() => {
-            const d = daysBetween(todayISO(), project.nextActionDue);
-            return <Pill tone={d < 0 ? 'rust' : d <= 7 ? 'amber' : 'neutral'}>{fmtShort(project.nextActionDue)}{d < 0 ? ` · lewat ${Math.abs(d)} hari` : d === 0 ? ' · hari ini' : ` · ${d} hari lagi`}</Pill>;
-          })()}
-        </div>
-      )}
+      <NextActionCard project={project} writable={writable} update={update} />
 
       {/* Catatan / kendala aktif */}
       {hasRemarks && (
@@ -615,33 +606,6 @@ export default function ProjectDetailPage() {
 
           {activeTab === 'ringkasan' && (
             <>
-            <Panel
-              title="Langkah berikutnya"
-              hint="Satu hal konkret yang harus terjadi berikutnya, siapa yang mengerjakan, dan kapan. Tampil di halaman Hari Ini saat mendekati tanggalnya."
-              aside={(project.nextAction || project.nextActionOwner || project.nextActionDue) && (
-                <button type="button" onClick={() => { update('nextAction', ''); update('nextActionOwner', ''); update('nextActionDue', ''); }} className="text-sm font-medium text-teal hover:underline whitespace-nowrap">Langkah ini selesai</button>
-              )}
-            >
-              <div className="grid grid-cols-1 sm:grid-cols-[1fr_220px_170px] gap-4">
-                <Row label="Langkah berikutnya">
-                  <input className="input" maxLength={200} placeholder="ex: Kirim revisi P&ID ke client" value={project.nextAction || ''} onChange={(e) => update('nextAction', e.target.value)} />
-                </Row>
-                <Row label="PIC (siapa)">
-                  <input className="input" list="next-owner-options" maxLength={200} placeholder="Nama atau divisi" value={project.nextActionOwner || ''} onChange={(e) => update('nextActionOwner', e.target.value)} />
-                  <datalist id="next-owner-options">
-                    {[...DEFAULT_ATTENDEES.map((a) => a.name), ...TODAY_DIVISIONS].map((n) => <option key={n} value={n} />)}
-                  </datalist>
-                </Row>
-                <Row label="Target tanggal">
-                  <input type="date" className="input" value={project.nextActionDue || ''} onChange={(e) => update('nextActionDue', e.target.value)} />
-                </Row>
-              </div>
-              <Row label="Hambatan (kosongkan kalau tidak ada)">
-                <input className="input" maxLength={200} placeholder="ex: Menunggu izin impor membran, menunggu pembayaran DP" value={project.blocker || ''} onChange={(e) => update('blocker', e.target.value)} />
-              </Row>
-              {project.blocker && <p className="text-xs text-inkmute">Project ditandai <b className="text-rust">Terhambat</b> di daftar, papan kanban, dan halaman Hari Ini sampai kolom ini dikosongkan.</p>}
-            </Panel>
-
             <Panel title="Info umum" hint="Perubahan baru tersimpan setelah menekan Simpan perubahan.">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Row label="Current stage">
@@ -660,7 +624,7 @@ export default function ProjectDetailPage() {
                   </select>
                 </Row>
                 <Row label="PIC">
-                  <input className="input" value={project.pic || ''} onChange={(e) => update('pic', e.target.value)} />
+                  <PicInput value={project.pic} onChange={(v) => update('pic', v)} />
                 </Row>
                 <Row label="Client">
                   <input className="input" value={project.client || ''} onChange={(e) => update('client', e.target.value)} />
