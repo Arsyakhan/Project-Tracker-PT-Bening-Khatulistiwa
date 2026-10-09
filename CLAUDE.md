@@ -137,6 +137,7 @@ mencetaknya di log/PR.
 - Halaman: `/` **Hari Ini** (beranda: hal yang perlu ditindak lintas project, pengadaan, tindak lanjut rapat, dokumen; filter per divisi; logika di `lib/today.js`, pemetaan stage → divisi pemegang di `STAGE_OWNER`, ubah di sana kalau pembagian kerja berbeda), `/dashboard` grafik & tabel project, `/board` kanban, `/projects` (+ `/new`, `/[id]`), `/engineering-docs`,
   `/procurement`, `/documents` (+ `commissioning/new`, `handover/new`, `meetings` + `new`/`[id]`),
   `/arsip` (+ `/new`, `/[id]`; arsip project selesai, bisa ditambah/diubah dari web dan dari spreadsheet), `/activity`, `/login`.
+- Shell: `pages/_app.js` + `components/Sidebar.jsx` (menu `NAV_GROUPS` dikelompokkan Harian / Project / Dokumen & Arsip; tambah halaman baru di sana). `pages/login.js` memakai panel merek dua kolom.
 - Alur teknologi: `lib/techflow.js` + `components/TechFlow.jsx` dipakai bersama oleh arsip dan detail project
   (modul urut dari air baku sampai produk; project aktif dipetakan dari sistem terpasang + spesifikasi).
   `SimilarArchive` menyarankan project arsip yang mirip di tab Teknologi.
