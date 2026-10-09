@@ -10,13 +10,17 @@ import StageGauge from '../../components/StageGauge';
 import StagePipeline from '../../components/StagePipeline';
 import { StatusBadge, PriorityBadge, DeliveryHint, Pill } from '../../components/Badges';
 import { fmtDate, todayISO, initialOf, nameFromEmail, timeAgo } from '../../lib/projectHelpers';
-import { SYSTEMS, RO_OPTIONS, normalizeSystems, detectSystems, effectiveSystems, systemLabel, docReadiness } from '../../lib/systems';
+import { SYSTEMS, RO_OPTIONS, normalizeSystems, effectiveSystems, docReadiness } from '../../lib/systems';
 import SpecsEditor from '../../components/SpecsEditor';
 import { packSpecs, buildSpecValues, visibleSections, overallProgress } from '../../lib/docgen/specs';
 import { canDelete, canWrite } from '../../lib/roles';
 import TechFlow from '../../components/TechFlow';
 import SimilarArchive from '../../components/SimilarArchive';
-import { projectFlowModules, SYSTEM_DISPLAY_ORDER } from '../../lib/techflow';
+import ModulePicker from '../../components/ModulePicker';
+import {
+  TECH_SCHEMA, TECH_DETAIL_MAX, TECH_EXTRA_KEYS, currentTech, writeTech, deriveSystemKeys, hasDosingModule,
+  projectTechModules, fillSpecCaps, readTech,
+} from '../../lib/techflow';
 import ConfirmModal from '../../components/ConfirmModal';
 import { useToast } from '../../components/Toast';
 import { SkeletonBlock } from '../../components/Skeleton';
@@ -39,6 +43,7 @@ function pickEditable(p) {
 
 const TABS = [
   { key: 'ringkasan', label: 'Ringkasan' },
+  { key: 'teknologi', label: 'Teknologi' },
   { key: 'jadwal', label: 'Jadwal' },
   { key: 'spesifikasi', label: 'Spesifikasi Peralatan' },
   { key: 'checklist', label: 'Checklist Engineering' },
@@ -262,13 +267,17 @@ export default function ProjectDetailPage() {
       }
       if (specsDirty) {
         try {
+          // Kapasitas di Spesifikasi yang masih kosong diisi dari Teknologi (yang sudah terisi tidak ditimpa).
+          const techNow = readTech(specsValues);
+          const readyValues = techNow ? fillSpecCaps(specsValues, techNow) : specsValues;
           const res = await api.saveSpecs({
             projectId: project.id,
-            specs: packSpecs(specsValues),
+            specs: packSpecs(readyValues),
             baseVersion: specsVersion,
           });
           setSpecsVersion(res.version);
-          setSpecsSaved(specsValues);
+          setSpecsSaved(readyValues);
+          setSpecsValues(readyValues);
         } catch (err) {
           // Data project sudah tersimpan; hanya spesifikasi yang gagal (mis. bentrok versi).
           if (projectSaved) await load();
@@ -363,7 +372,8 @@ export default function ProjectDetailPage() {
   const hasRemarks = project.remarks && String(project.remarks).trim() && String(project.remarks).trim() !== '-';
   const today = todayISO();
   const canDeleteProject = canDelete(session?.user?.role || 'admin'); // pengecekan sebenarnya di server
-  const canArchive = canWrite(session?.user?.role || 'admin') && project.currentStage === 'Hand Over and Finished';
+  const writable = canWrite(session?.user?.role || 'admin');
+  const canArchive = writable && project.currentStage === 'Hand Over and Finished';
   const targetDays = project.targetFinishDate
     ? Math.round((new Date(`${project.targetFinishDate}T00:00:00`) - new Date(`${today}T00:00:00`)) / 86400000)
     : null;
@@ -371,7 +381,6 @@ export default function ProjectDetailPage() {
     targetDays === null ? '' : targetDays < 0 ? `Terlewat ${Math.abs(targetDays)} hari` : targetDays === 0 ? 'Hari ini' : `${targetDays} hari lagi`;
 
   const savedSystems = normalizeSystems(project.sistemTerpasang);
-  const detectedKeys = detectSystems(project);
   const shownSystems = effectiveSystems(project);
   const filterCount = ['birm', 'mmf', 'acf'].filter((k) => savedSystems.includes(k)).length;
   const readiness = {
@@ -380,8 +389,9 @@ export default function ProjectDetailPage() {
   };
   const allMissing = Array.from(new Set([...readiness.commissioning.missing, ...readiness.handover.missing]));
   const specSections = visibleSections(project);
-  const flowModules = projectFlowModules(project, specsValues);
-  const displaySystems = SYSTEM_DISPLAY_ORDER.map((k) => SYSTEMS.find((x) => x.key === k)).filter(Boolean);
+  const flowModules = projectTechModules(project, specsValues || {});
+  const techValue = currentTech(project, specsValues || {});
+  const techSaved = !!readTech(specsValues || {});
   const specProgress = specsValues ? overallProgress(specSections, specsValues) : null;
   const commPercent = Math.round(((4 - readiness.commissioning.missing.length) / 4) * 100);
 
@@ -400,6 +410,15 @@ export default function ProjectDetailPage() {
     let next = cur.includes(key) ? cur.filter((k) => k !== key) : [...cur, key];
     if (key === 'ro' && !next.includes('ro')) next = next.filter((k) => k !== 'ro_large' && k !== 'recycle');
     update('sistemTerpasang', normalizeSystems(next));
+  }
+
+  // Ubah teknologi: simpan modulnya di Spesifikasi (tech_*) dan turunkan "sistem terpasang" dari situ.
+  function setTech(modules) {
+    const prevDosing = hasDosingModule(techValue);
+    // Opsi tambahan yang dipilih manual tetap dipertahankan; "dosing" yang tadinya turunan modul tidak ikut tersisa.
+    const extras = savedSystems.filter((k) => TECH_EXTRA_KEYS.includes(k) && !(k === 'dosing' && prevDosing));
+    setSpecsValues((v) => ({ ...(v || {}), ...writeTech(modules) }));
+    update('sistemTerpasang', normalizeSystems(deriveSystemKeys(modules, extras)));
   }
 
   const dateWarnings = [];
@@ -633,50 +652,18 @@ export default function ProjectDetailPage() {
               </Row>
             </Panel>
 
-            <Panel title="Sistem terpasang" hint="Urut sesuai alur pengolahan air (air baku sampai air produk). Modul yang dipilih otomatis aktif di form Commissioning dan Hand Over, lengkap dengan nomor tag P&ID.">
-              {savedSystems.length === 0 && detectedKeys.length > 0 && (
-                <div className="flex flex-wrap items-center justify-between gap-2 bg-blueprint/10 border border-blueprint/25 rounded-md px-3 py-2 text-sm">
-                  <span className="text-ink">Terdeteksi dari nama project: <b>{detectedKeys.map(systemLabel).join(', ')}</b></span>
-                  <button type="button" onClick={() => update('sistemTerpasang', normalizeSystems(detectedKeys))} className="text-sm font-medium text-blueprint hover:underline">
-                    Terapkan
-                  </button>
+            <Panel
+              title="Teknologi & sistem terpasang"
+              hint="Satu data: alur teknologi di bawah juga menentukan sistem terpasang, dan otomatis dipakai di form Commissioning dan Hand Over."
+              aside={writable && <button type="button" onClick={() => setActiveTab('teknologi')} className="text-sm font-medium text-blueprint hover:underline">Atur teknologi</button>}
+            >
+              {flowModules.length > 0 ? (
+                <div className="flex flex-col gap-2">
+                  <TechFlow modules={flowModules} />
+                  {!techSaved && <p className="text-[11px] text-inkmute">Dibaca dari data lama (sistem terpasang dan spesifikasi). Buka tab Teknologi untuk melengkapinya.</p>}
                 </div>
-              )}
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {displaySystems.map((sys) => {
-                  const checked = savedSystems.includes(sys.key);
-                  return (
-                    <label
-                      key={sys.key}
-                      className={`flex items-start gap-2.5 rounded-md border px-3 py-2 cursor-pointer transition-colors ${checked ? 'border-blueprint/50 bg-blueprint/10' : 'border-line hover:border-blueprint/40'}`}
-                    >
-                      <input type="checkbox" className="mt-0.5 w-4 h-4 accent-blueprint" checked={checked} onChange={() => toggleSystem(sys.key)} />
-                      <span className="text-sm text-ink leading-snug">
-                        {sys.label}
-                        {sys.hint && <span className="block text-[11px] text-inkmute">{sys.hint}</span>}
-                      </span>
-                    </label>
-                  );
-                })}
-              </div>
-              {savedSystems.includes('ro') && (
-                <div className="flex flex-wrap gap-2 pt-1">
-                  {RO_OPTIONS.map((opt) => {
-                    const checked = savedSystems.includes(opt.key);
-                    return (
-                      <label
-                        key={opt.key}
-                        className={`inline-flex items-center gap-2 rounded-md border px-3 py-1.5 cursor-pointer text-sm transition-colors ${checked ? 'border-blueprint/50 bg-blueprint/10 text-ink' : 'border-line text-ink hover:border-blueprint/40'}`}
-                      >
-                        <input type="checkbox" className="w-4 h-4 accent-blueprint" checked={checked} onChange={() => toggleSystem(opt.key)} />
-                        {opt.label}
-                      </label>
-                    );
-                  })}
-                </div>
-              )}
-              {filterCount > 2 && (
-                <p className="text-xs text-amberink">Template Hand Over hanya punya 2 slot filter. Filter ketiga perlu dicatat manual di "Item Tambahan".</p>
+              ) : (
+                <p className="text-sm text-inkmute">Belum ada teknologi yang dicatat. Buka tab Teknologi untuk menyusun alurnya.</p>
               )}
             </Panel>
 
@@ -702,6 +689,60 @@ export default function ProjectDetailPage() {
               </details>
             )}
             </>
+          )}
+
+          {activeTab === 'teknologi' && (
+            <div className="flex flex-col gap-4">
+              {specsLoading && specsValues === null ? (
+                <Panel title="Teknologi"><p className="text-sm text-inkmute">Memuat...</p></Panel>
+              ) : specsError ? (
+                <Panel title="Teknologi">
+                  <p className="text-sm text-rust">Gagal memuat data teknologi: {specsError}</p>
+                  <button type="button" onClick={loadSpecs} className="w-fit text-sm font-medium text-blueprint hover:underline">Coba lagi</button>
+                </Panel>
+              ) : (
+                <>
+                  <Panel
+                    title="Alur teknologi"
+                    hint="Urut dari air baku sampai air produk, sama dengan data arsip project selesai. Sistem terpasang ikut berubah otomatis, dan kapasitas di Spesifikasi Peralatan yang masih kosong ikut terisi saat disimpan."
+                  >
+                    {!techSaved && (
+                      <div className="flex flex-wrap items-center justify-between gap-2 bg-blueprint/10 border border-blueprint/25 rounded-md px-3 py-2 text-sm">
+                        <span className="text-ink">Terisi dari data lama (sistem terpasang dan spesifikasi). Belum tersimpan sebagai teknologi.</span>
+                        {writable && <button type="button" onClick={() => setTech(techValue)} className="text-sm font-medium text-blueprint hover:underline">Pakai data ini</button>}
+                      </div>
+                    )}
+                    <TechFlow modules={techValue.map((m) => ({ ...m, label: (TECH_SCHEMA.find((x) => x.key === m.key) || {}).label }))} emptyText="Centang modul di bawah untuk menyusun alurnya." />
+                  </Panel>
+
+                  <ModulePicker schema={TECH_SCHEMA} value={techValue} onChange={setTech} detailMax={TECH_DETAIL_MAX} disabled={!writable} />
+
+                  <Panel title="Opsi tambahan" hint="Hanya untuk dokumen. Tidak masuk alur teknologi.">
+                    <div className="flex flex-wrap gap-2">
+                      {SYSTEMS.filter((x) => TECH_EXTRA_KEYS.includes(x.key)).concat(RO_OPTIONS.filter(() => savedSystems.includes('ro'))).map((opt) => {
+                        const derived = opt.key === 'dosing' && hasDosingModule(techValue);
+                        const checked = derived || savedSystems.includes(opt.key);
+                        return (
+                          <label
+                            key={opt.key}
+                            className={`inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm transition-colors ${derived || !writable ? 'opacity-70' : 'cursor-pointer'} ${checked ? 'border-blueprint/50 bg-blueprint/10 text-ink' : 'border-line text-ink hover:border-blueprint/40'}`}
+                          >
+                            <input type="checkbox" className="w-4 h-4 accent-blueprint" checked={checked} disabled={derived || !writable} onChange={() => toggleSystem(opt.key)} />
+                            {opt.key === 'dosing' ? 'Chemical Dosing / CIP terpisah' : opt.label}
+                            {derived && <span className="text-[11px] text-inkmute">otomatis dari pompa dosing</span>}
+                          </label>
+                        );
+                      })}
+                    </div>
+                    {filterCount > 2 && (
+                      <p className="text-xs text-amberink">Template Hand Over hanya punya 2 slot filter. Filter ketiga perlu dicatat manual di "Item Tambahan".</p>
+                    )}
+                  </Panel>
+
+                  {flowModules.length > 0 && <SimilarArchive modules={flowModules} />}
+                </>
+              )}
+            </div>
           )}
 
           {activeTab === 'jadwal' && (
@@ -730,8 +771,6 @@ export default function ProjectDetailPage() {
               </Row>
             </Panel>
           )}
-
-          {activeTab === 'spesifikasi' && flowModules.length > 0 && <SimilarArchive modules={flowModules} />}
 
           {activeTab === 'spesifikasi' && (
             <SpecsEditor

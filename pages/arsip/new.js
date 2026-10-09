@@ -8,7 +8,8 @@ import { useToast } from '../../components/Toast';
 import { api } from '../../lib/api';
 import { clearCache } from '../../lib/persistedCache';
 import { canWrite } from '../../lib/roles';
-import { projectFlowModules, toArchiveUnit } from '../../lib/techflow';
+import { unpackSpecs } from '../../lib/docgen/specs';
+import { projectFlowModules, readTech, toArchiveUnit } from '../../lib/techflow';
 import useArchive from '../../lib/useArchive';
 import useProjects from '../../lib/useProjects';
 
@@ -39,17 +40,21 @@ export default function ArsipNewPage() {
       try { specs = (await api.getSpecs(p.id)).specs || {}; } catch (e) { /* tanpa spesifikasi: kapasitas dikosongkan */ }
       if (cancelled) return;
       const keys = new Set(schema.map((s) => s.key));
-      const flow = projectFlowModules(p, specs);
-      const skipped = flow.filter((m) => !keys.has(m.key)).map((m) => m.key);
       // Tahun selesai: ambil dari nama project (konvensi "..., 2026"), kalau tidak ada pakai tahun berjalan.
       const nameYear = (String(p.projectName || '').match(/\b(20\d{2})\b(?!.*\b20\d{2}\b)/) || [])[1];
       const year = nameYear || String(new Date().getFullYear());
+      // Teknologi yang sudah dicatat di project (tab Teknologi) dipakai apa adanya; kalau belum ada, dibaca dari data lama.
+      const saved = readTech(unpackSpecs(specs));
+      const flow = saved || projectFlowModules(p, specs).map((m) => ({ ...m, unit: toArchiveUnit(m.unit) }));
+      const skipped = flow.filter((m) => !keys.has(m.key)).map((m) => m.key);
       setInitial({
         name: p.projectName,
         year,
-        modules: flow.filter((m) => keys.has(m.key)).map((m) => ({ key: m.key, cap: m.cap, unit: toArchiveUnit(m.unit), detail: '' })),
+        modules: flow.filter((m) => keys.has(m.key)).map((m) => ({ key: m.key, cap: m.cap, unit: m.unit, detail: m.detail || '' })),
       });
-      setNotice(`Terisi dari project "${p.projectName}". Periksa kapasitas dan satuannya sebelum menyimpan.${skipped.length ? ` Modul yang tidak punya kolom di arsip dilewati: ${skipped.join(', ')}.` : ''}`);
+      setNotice(saved
+        ? `Terisi dari teknologi yang sudah dicatat di project "${p.projectName}". Periksa sebelum menyimpan.${skipped.length ? ` Modul yang tidak punya kolom di arsip dilewati: ${skipped.join(', ')}.` : ''}`
+        : `Terisi dari data lama project "${p.projectName}" (belum ada teknologi yang dicatat). Periksa kapasitas dan satuannya sebelum menyimpan.${skipped.length ? ` Modul yang tidak punya kolom di arsip dilewati: ${skipped.join(', ')}.` : ''}`);
     })();
     return () => { cancelled = true; };
   }, [router.isReady, fromId, projects, schema, initial]);
