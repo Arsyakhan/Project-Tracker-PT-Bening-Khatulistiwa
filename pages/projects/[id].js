@@ -13,7 +13,10 @@ import { fmtDate, todayISO, initialOf, nameFromEmail, timeAgo } from '../../lib/
 import { SYSTEMS, RO_OPTIONS, normalizeSystems, detectSystems, effectiveSystems, systemLabel, docReadiness } from '../../lib/systems';
 import SpecsEditor from '../../components/SpecsEditor';
 import { packSpecs, buildSpecValues, visibleSections, overallProgress } from '../../lib/docgen/specs';
-import { canDelete } from '../../lib/roles';
+import { canDelete, canWrite } from '../../lib/roles';
+import TechFlow from '../../components/TechFlow';
+import SimilarArchive from '../../components/SimilarArchive';
+import { projectFlowModules, SYSTEM_DISPLAY_ORDER } from '../../lib/techflow';
 import ConfirmModal from '../../components/ConfirmModal';
 import { useToast } from '../../components/Toast';
 import { SkeletonBlock } from '../../components/Skeleton';
@@ -360,6 +363,7 @@ export default function ProjectDetailPage() {
   const hasRemarks = project.remarks && String(project.remarks).trim() && String(project.remarks).trim() !== '-';
   const today = todayISO();
   const canDeleteProject = canDelete(session?.user?.role || 'admin'); // pengecekan sebenarnya di server
+  const canArchive = canWrite(session?.user?.role || 'admin') && project.currentStage === 'Hand Over and Finished';
   const targetDays = project.targetFinishDate
     ? Math.round((new Date(`${project.targetFinishDate}T00:00:00`) - new Date(`${today}T00:00:00`)) / 86400000)
     : null;
@@ -376,6 +380,8 @@ export default function ProjectDetailPage() {
   };
   const allMissing = Array.from(new Set([...readiness.commissioning.missing, ...readiness.handover.missing]));
   const specSections = visibleSections(project);
+  const flowModules = projectFlowModules(project, specsValues);
+  const displaySystems = SYSTEM_DISPLAY_ORDER.map((k) => SYSTEMS.find((x) => x.key === k)).filter(Boolean);
   const specProgress = specsValues ? overallProgress(specSections, specsValues) : null;
   const commPercent = Math.round(((4 - readiness.commissioning.missing.length) / 4) * 100);
 
@@ -440,11 +446,9 @@ export default function ProjectDetailPage() {
           </div>
           <AutoGrowTitle value={project.projectName} onChange={(v) => update('projectName', v)} />
           {shownSystems.keys.length > 0 && (
-            <div className="flex flex-wrap items-center gap-1.5">
-              {shownSystems.keys.filter((k) => !['ro_large', 'recycle'].includes(k)).map((k) => (
-                <Pill key={k} tone="blueprint">{systemLabel(k)}</Pill>
-              ))}
-              {shownSystems.detected && <span className="text-[11px] text-inkmute">terdeteksi otomatis, belum disimpan</span>}
+            <div className="flex flex-col gap-1.5 pt-1">
+              <TechFlow modules={flowModules} />
+              {shownSystems.detected && <span className="text-[11px] text-inkmute">terdeteksi otomatis dari nama project, belum disimpan</span>}
             </div>
           )}
         </div>
@@ -457,6 +461,16 @@ export default function ProjectDetailPage() {
           <TitleCell className="col-span-2 md:col-span-1" label="Delivery" value={project.deliveryDate ? fmtDate(project.deliveryDate) : ''} extra={<DeliveryHint p={project} />} />
         </dl>
       </header>
+
+      {/* Project selesai: tawarkan mencatat teknologinya ke arsip */}
+      {canArchive && (
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 bg-teal/10 border border-teal/30 rounded-lg px-4 py-3">
+          <p className="text-sm text-ink flex-1">
+            <b>Project ini sudah selesai.</b> Catat teknologinya ke arsip sebagai acuan untuk project berikutnya. Alur dan kapasitas terisi otomatis dari data project.
+          </p>
+          <Link href={`/arsip/new?from=${encodeURIComponent(project.id)}`} className="btn btn-secondary whitespace-nowrap">Arsipkan teknologi</Link>
+        </div>
+      )}
 
       {/* Catatan / kendala aktif */}
       {hasRemarks && (
@@ -619,7 +633,7 @@ export default function ProjectDetailPage() {
               </Row>
             </Panel>
 
-            <Panel title="Sistem terpasang" hint="Modul yang dipilih di sini otomatis aktif di form Commissioning dan Hand Over, lengkap dengan nomor tag P&ID.">
+            <Panel title="Sistem terpasang" hint="Urut sesuai alur pengolahan air (air baku sampai air produk). Modul yang dipilih otomatis aktif di form Commissioning dan Hand Over, lengkap dengan nomor tag P&ID.">
               {savedSystems.length === 0 && detectedKeys.length > 0 && (
                 <div className="flex flex-wrap items-center justify-between gap-2 bg-blueprint/10 border border-blueprint/25 rounded-md px-3 py-2 text-sm">
                   <span className="text-ink">Terdeteksi dari nama project: <b>{detectedKeys.map(systemLabel).join(', ')}</b></span>
@@ -629,7 +643,7 @@ export default function ProjectDetailPage() {
                 </div>
               )}
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {SYSTEMS.map((sys) => {
+                {displaySystems.map((sys) => {
                   const checked = savedSystems.includes(sys.key);
                   return (
                     <label
@@ -716,6 +730,8 @@ export default function ProjectDetailPage() {
               </Row>
             </Panel>
           )}
+
+          {activeTab === 'spesifikasi' && flowModules.length > 0 && <SimilarArchive modules={flowModules} />}
 
           {activeTab === 'spesifikasi' && (
             <SpecsEditor

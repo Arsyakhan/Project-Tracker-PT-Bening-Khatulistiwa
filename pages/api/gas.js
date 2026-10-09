@@ -16,11 +16,11 @@ import { getRoleForEmail, canWrite, canDelete, MSG_VIEWER, MSG_NOT_ADMIN } from 
 export const config = { maxDuration: 30 };
 
 // 'comments' & 'addComment' disiapkan untuk fitur komentar (backend-nya belum ada di Code.gs).
-const GET_ACTIONS = new Set(['projects', 'dashboard', 'meta', 'activityLog', 'comments', 'specs', 'meetings', 'procurement']);
-const POST_ACTIONS = new Set(['addProject', 'updateProject', 'updateChecklist', 'deleteProject', 'addComment', 'saveSpecs', 'saveMeeting', 'deleteMeeting', 'saveProcurementItem', 'deleteProcurementItem']);
+const GET_ACTIONS = new Set(['projects', 'dashboard', 'meta', 'activityLog', 'comments', 'specs', 'meetings', 'procurement', 'archive']);
+const POST_ACTIONS = new Set(['addProject', 'updateProject', 'updateChecklist', 'deleteProject', 'addComment', 'saveSpecs', 'saveMeeting', 'deleteMeeting', 'saveProcurementItem', 'deleteProcurementItem', 'saveArchiveProject', 'deleteArchiveProject']);
 // Aksi yang hanya boleh dilakukan admin (PM). Engineer (editor) boleh menghapus rapat & barang
-// pengadaan, tapi TIDAK boleh menghapus project.
-const DELETE_ACTIONS = new Set(['deleteProject']);
+// pengadaan, tapi TIDAK boleh menghapus project maupun data arsip.
+const DELETE_ACTIONS = new Set(['deleteProject', 'deleteArchiveProject']);
 // Parameter tambahan yang boleh diteruskan pada GET (selain action & token)
 const GET_EXTRA_PARAMS = ['projectId', 'poNumber'];
 const TIMEOUT_MS = 28000;

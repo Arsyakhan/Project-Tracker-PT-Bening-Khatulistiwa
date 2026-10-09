@@ -1,9 +1,13 @@
 /**
- * PT BENING KHATULISTIWA — BENING HUB API  (v2.4)
+ * PT BENING KHATULISTIWA — BENING HUB API  (v2.5)
  * ---------------------------------------------------
  * Backend untuk aplikasi web "Bening Hub". Paste seluruh file ini ke:
  * Extensions > Apps Script (dibuka DARI spreadsheet
  * "Project Tracker_PT Bening Khatulistiwa", jadi otomatis terikat ke sheet-nya).
+ *
+ * YANG BARU DI v2.5:
+ *   - Arsip project selesai bisa dibaca & diubah dari web (file terpisah "Archive"). Aksi baru: GET `archive`,
+ *     POST `saveArchiveProject`, `deleteArchiveProject`. Tab "[ARSIP] FINISHED PROJECT" tetap dipakai apa adanya.
  *
  * YANG BARU DI v2.4:
  *   - Tab baru "Meetings" (dibuat OTOMATIS): notulensi rapat (kehadiran, agenda & progress,
@@ -239,6 +243,7 @@ function doGet(e) {
     else if (action === 'specs') data = getSpecs_(params.projectId);
     else if (action === 'meetings') data = getMeetings_();
     else if (action === 'procurement') data = getProcurement_();
+    else if (action === 'archive') data = getArchive_();
     else throw new Error('Unknown action: ' + action);
     return jsonOut_({ ok: true, data: data });
   } catch (err) {
@@ -265,6 +270,8 @@ function doPost(e) {
       if (action === 'saveProcurementItem') return saveProcurementItem_(payload);
       if (action === 'deleteProcurementItem') return deleteProcurementItem_(payload);
       if (action === 'deleteMeeting') return deleteMeeting_(payload);
+      if (action === 'saveArchiveProject') return saveArchiveProject_(payload);
+      if (action === 'deleteArchiveProject') return deleteArchiveProject_(payload);
       if (action === 'setMeetingDoc') return setMeetingDoc_(payload);
       throw new Error('Unknown action: ' + action);
     });
