@@ -90,7 +90,7 @@ Cara kerja: `makeCopy` template, lalu `replaceText` untuk `{{PLACEHOLDER}}`. Blo
 
 | Hal | Di sisi backend | Di sisi frontend |
 |---|---|---|
-| 12 stage & bobot progress | `STAGE_WEIGHTS` di `Code.gs` (+ tab `Reference`) | `lib/stages.js` |
+| 12 stage & bobot progress | `STAGE_WEIGHTS` di `Code.gs` (+ tab `Reference`) | `lib/stages.js` (pengelompokan 4 fase ada di `lib/stagePhases.js`, hanya frontend) |
 | Kunci sistem terpasang | `SYSTEM_KEYS` di `Code.gs` | `lib/systems.js` |
 | Item checklist (7 dokumen) | `CHECKLIST_ITEMS` di `Code.gs` | `lib/docgen/schema.js` (`DOC_GENERATOR_ROUTE`), `pages/api/docgen.js` |
 | Status pengadaan | `PROC_STATUSES` di `Procurement.gs` | `lib/procurement.js` |
@@ -138,6 +138,12 @@ mencetaknya di log/PR.
   `/procurement`, `/documents` (+ `commissioning/new`, `handover/new`, `meetings` + `new`/`[id]`),
   `/arsip` (+ `/new`, `/[id]`; arsip project selesai, bisa ditambah/diubah dari web dan dari spreadsheet), `/activity`, `/login`.
 - Shell: `pages/_app.js` + `components/Sidebar.jsx` (menu `NAV_GROUPS` dikelompokkan Harian / Project / Dokumen & Arsip; tambah halaman baru di sana). `pages/login.js` memakai panel merek dua kolom.
+- Papan Kanban (`pages/board.js` + `components/KanbanBoard.jsx`): dikelompokkan per **fase** (`STAGE_PHASES` di
+  `lib/stagePhases.js`, juga dipakai `StagePipeline`): 4 kolom di layar ≥1340px, 2 kolom di tablet, daftar bertingkat
+  yang bisa dilipat di HP. Tahap kosong hanya setipis satu baris tapi tetap bisa jadi tujuan seret. Saat kartu
+  diseret muncul papan tujuan di bawah layar (`DropTray`), dipasang **sesudah** seretan mulai: kalau dipasang
+  seketika dan menutupi titik yang dipegang, Chrome membatalkan seretan. Di HP tidak ada seret-lepas; pindah tahap
+  lewat menu di kartu.
 - Alur teknologi: `lib/techflow.js` + `components/TechFlow.jsx` dipakai bersama oleh arsip dan detail project
   (modul urut dari air baku sampai produk; project aktif dipetakan dari sistem terpasang + spesifikasi).
   `SimilarArchive` menyarankan project arsip yang mirip di tab Teknologi.
