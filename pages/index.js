@@ -79,14 +79,14 @@ export default function Dashboard() {
         <StatCard
           label="Total Project"
           value={dashboard.total}
-          accent="#0C2D48"
+          accent="rgb(var(--color-ink))"
           href="/projects"
           hint="Buka semua project →"
         />
         <StatCard
           label="Pre-Delivery"
           value={dashboard.preDelivery}
-          accent="#0077B6"
+          accent="rgb(var(--color-blueprint))"
           onClick={() => showTab('preDelivery')}
           active={activeTab === 'preDelivery'}
           hint={activeTab === 'preDelivery' ? 'Sedang ditampilkan' : 'Lihat daftar ↓'}
@@ -94,7 +94,7 @@ export default function Dashboard() {
         <StatCard
           label="Delivered"
           value={dashboard.delivered}
-          accent="#009688"
+          accent="rgb(var(--color-teal))"
           onClick={() => showTab('delivered')}
           active={activeTab === 'delivered'}
           hint={activeTab === 'delivered' ? 'Sedang ditampilkan' : 'Lihat daftar ↓'}
@@ -102,7 +102,7 @@ export default function Dashboard() {
         <StatCard
           label="Completed"
           value={dashboard.completed}
-          accent="#4A7291"
+          accent="rgb(var(--color-inkmute))"
           onClick={() => showTab('completed')}
           active={activeTab === 'completed'}
           hint={activeTab === 'completed' ? 'Sedang ditampilkan' : 'Lihat daftar ↓'}
