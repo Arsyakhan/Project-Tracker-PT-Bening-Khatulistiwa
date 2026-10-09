@@ -91,7 +91,7 @@ export default function Login() {
 
               <div className="mt-8">
                 <StageTrack />
-                <div className="flex justify-between font-data text-[11px] text-white/80 mt-2">
+                <div className="flex justify-between font-data text-xs text-white/80 mt-2">
                   <span>PO</span>
                   <span>Fabrikasi</span>
                   <span>Hand Over</span>
@@ -147,7 +147,7 @@ export default function Login() {
               </p>
             </div>
 
-            <p className="text-[11px] text-inkmute mt-8 text-center lg:text-left">© PT Bening Khatulistiwa</p>
+            <p className="text-xs text-inkmute mt-8 text-center lg:text-left">© PT Bening Khatulistiwa</p>
           </div>
         </main>
       </div>

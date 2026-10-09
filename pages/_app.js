@@ -38,6 +38,21 @@ function Shell({ Component, pageProps }) {
     setIsDark(document.documentElement.classList.contains('dark'));
   }, []);
 
+  // Panel menu di HP: Esc menutupnya, dan halaman di belakangnya tidak ikut tergulir.
+  useEffect(() => {
+    if (!mobileNavOpen) return undefined;
+    function onKey(e) {
+      if (e.key === 'Escape') setMobileNavOpen(false);
+    }
+    window.addEventListener('keydown', onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [mobileNavOpen]);
+
   function toggleTheme() {
     const next = isDark ? 'light' : 'dark';
     setStoredTheme(next);
@@ -105,7 +120,7 @@ function Shell({ Component, pageProps }) {
           </aside>
 
           {mobileNavOpen && (
-            <div className="md:hidden fixed inset-0 z-40 flex">
+            <div role="dialog" aria-modal="true" aria-label="Menu navigasi" className="md:hidden fixed inset-0 z-40 flex">
               <div className="w-72 max-w-[85vw] bg-panel border-r border-line shadow-xl">{sidebarContent(closeNav)}</div>
               <div className="flex-1 bg-black/50 backdrop-blur-sm" onClick={() => setMobileNavOpen(false)} />
             </div>
@@ -113,7 +128,7 @@ function Shell({ Component, pageProps }) {
 
           {/* Top bar mobile - cuma logo + tombol hamburger */}
           <header className="md:hidden sticky top-0 z-20 bg-panel border-b border-line flex items-center justify-between px-4 py-3">
-            <Link href="/" className="flex items-center">
+            <Link href="/" className="flex items-center py-1.5 -my-1.5">
               <img src="/logo-bening-hub-compact.png" alt="Bening Hub" className="h-7 w-auto object-contain dark:brightness-0 dark:invert" />
             </Link>
             <button onClick={() => setMobileNavOpen(true)} className="p-2 text-ink" aria-label="Buka menu">

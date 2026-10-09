@@ -50,12 +50,12 @@ export default function MeetingSummary() {
               </p>
               <p className="text-sm font-medium text-blueprint mt-1">{relativeDay(next.date)}</p>
             </div>
-            <Link href={`/documents/meetings/${next.id}`} className="text-sm font-medium text-blueprint hover:underline mt-auto">Mulai catat</Link>
+            <Link href={`/documents/meetings/${next.id}`} className="tap text-sm font-medium text-blueprint hover:underline mt-auto">Mulai catat</Link>
           </>
         ) : (
           <>
             <p className="text-sm text-inkmute">Belum ada rapat terjadwal. Saran: {fmtLong(suggestNextDate(meetings))}.</p>
-            <Link href="/documents/meetings/new?mode=schedule" className="text-sm font-medium text-blueprint hover:underline mt-auto">Jadwalkan sekarang</Link>
+            <Link href="/documents/meetings/new?mode=schedule" className="tap text-sm font-medium text-blueprint hover:underline mt-auto">Jadwalkan sekarang</Link>
           </>
         )}
       </section>
@@ -66,7 +66,7 @@ export default function MeetingSummary() {
             Tindak lanjut rapat yang masih terbuka
             <span className={`ml-2 font-data tnum ${open.length > 0 ? 'text-amberink' : 'text-teal'}`}>{open.length}</span>
           </h2>
-          <Link href="/documents/meetings" className="text-sm font-medium text-blueprint hover:underline whitespace-nowrap">Lihat semua</Link>
+          <Link href="/documents/meetings" className="tap text-sm font-medium text-blueprint hover:underline whitespace-nowrap">Lihat semua</Link>
         </div>
 
         {top.length === 0 ? (

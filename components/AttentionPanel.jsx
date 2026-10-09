@@ -71,7 +71,7 @@ function AttentionGroup({ title, hint, items, tone, renderBadge }) {
                   {[p.poNumber, p.client].filter(Boolean).join(' · ') || '-'}
                 </p>
               </div>
-              <span className={`flex-shrink-0 text-[10px] font-semibold rounded px-2 py-0.5 whitespace-nowrap ${t.badge}`}>
+              <span className={`flex-shrink-0 text-xs font-semibold rounded px-2 py-0.5 whitespace-nowrap ${t.badge}`}>
                 {renderBadge(p)}
               </span>
             </Link>
@@ -82,7 +82,7 @@ function AttentionGroup({ title, hint, items, tone, renderBadge }) {
       {items.length > PREVIEW_COUNT && (
         <button
           onClick={() => setExpanded((v) => !v)}
-          className="text-xs font-medium text-blueprint hover:underline self-start"
+          className="tap text-xs font-medium text-blueprint hover:underline self-start"
         >
           {expanded ? 'Tampilkan lebih sedikit' : `Tampilkan ${hiddenCount} lainnya`}
         </button>

@@ -34,7 +34,7 @@ function EtaPill({ it }) {
   return (
     <span className="inline-flex flex-col items-start gap-0.5">
       <Pill tone={tone}>{etaText(it)}</Pill>
-      {isOpen(it) && <span className="text-[11px] text-inkmute tnum">{fmtShort(it.eta)}</span>}
+      {isOpen(it) && <span className="text-xs text-inkmute tnum">{fmtShort(it.eta)}</span>}
     </span>
   );
 }
@@ -70,7 +70,7 @@ function ItemModal({ initial, projects, saving, canRemove, onRemove, onSave, onC
       <div role="dialog" aria-modal="true" aria-label={isEdit ? 'Ubah barang' : 'Tambah barang'} className="bg-panel border border-line shadow-xl w-full sm:max-w-2xl max-h-[92vh] overflow-y-auto rounded-t-2xl sm:rounded-lg">
         <div className="px-5 py-4 border-b border-line flex items-center justify-between sticky top-0 bg-panel z-10">
           <h2 className="font-display font-semibold text-ink">{isEdit ? 'Ubah barang' : 'Tambah barang'}</h2>
-          <button onClick={onClose} className="text-inkmute hover:text-ink text-sm px-2 h-8" aria-label="Tutup">Tutup</button>
+          <button onClick={onClose} className="text-inkmute hover:text-ink text-sm px-2 h-8 max-md:h-10" aria-label="Tutup">Tutup</button>
         </div>
 
         <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -122,15 +122,15 @@ function ItemModal({ initial, projects, saving, canRemove, onRemove, onSave, onC
 
         <div className="px-5 py-4 border-t border-line flex items-center justify-end gap-3 sticky bottom-0 bg-panel">
           {isEdit && canRemove ? (
-            <button type="button" onClick={() => onRemove(it)} className="text-sm font-medium text-rust hover:underline px-1 h-9 mr-auto">Hapus barang...</button>
+            <button type="button" onClick={() => onRemove(it)} className="text-sm font-medium text-rust hover:underline px-1 h-9 max-md:h-10 mr-auto">Hapus barang...</button>
           ) : (
             <span className="hidden sm:inline text-xs text-inkmute mr-auto">Ctrl+Enter untuk simpan</span>
           )}
-          <button onClick={onClose} className="text-sm font-medium text-inkmute hover:text-ink px-3 h-9">Batal</button>
+          <button onClick={onClose} className="text-sm font-medium text-inkmute hover:text-ink px-3 h-9 max-md:h-10">Batal</button>
           <button
             onClick={() => onSave(it)}
             disabled={saving || !it.item.trim()}
-            className="bg-blueprint hover:bg-blueprintdark text-onaccent rounded-md px-4 h-9 text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="bg-blueprint hover:bg-blueprintdark text-onaccent rounded-md px-4 h-9 max-md:h-10 text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             {saving ? 'Menyimpan...' : isEdit ? 'Simpan perubahan' : 'Tambah barang'}
           </button>
@@ -262,7 +262,7 @@ export default function ProcurementPage() {
             type="button"
             onClick={copyRecap}
             disabled={!items || filtered.filter(isOpen).length === 0}
-            className="border border-line rounded-md px-4 h-9 text-sm font-medium text-ink bg-panel hover:border-blueprint hover:text-blueprint disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="border border-line rounded-md px-4 h-9 max-md:h-10 text-sm font-medium text-ink bg-panel hover:border-blueprint hover:text-blueprint disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             Salin rekap untuk WhatsApp
           </button>
@@ -270,7 +270,7 @@ export default function ProcurementPage() {
             <button
               type="button"
               onClick={() => setEditing(emptyItem(projectFilter && projectFilter !== '__none' ? projectFilter : ''))}
-              className="bg-blueprint hover:bg-blueprintdark text-onaccent rounded-md px-4 h-9 text-sm font-medium transition-colors"
+              className="bg-blueprint hover:bg-blueprintdark text-onaccent rounded-md px-4 h-9 max-md:h-10 text-sm font-medium transition-colors"
             >
               + Tambah barang
             </button>
@@ -302,24 +302,24 @@ export default function ProcurementPage() {
           </div>
 
           <div className="bg-panel border border-line rounded-lg p-3 sm:p-4 flex flex-col gap-3 shadow-sm">
-            <input type="search" className="input" placeholder="Cari barang, vendor, project, atau catatan..." value={query} onChange={(e) => setQuery(e.target.value)} />
+            <input type="search" className="input" aria-label="Cari barang pengadaan" placeholder="Cari barang, vendor, project, atau catatan..." value={query} onChange={(e) => setQuery(e.target.value)} />
             <div className="flex flex-wrap items-center gap-2">
-              <select className="input !w-auto !min-h-[36px] !py-1" aria-label="Filter status" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+              <select className="input !w-auto !min-h-[36px] max-md:!min-h-[40px] !py-1" aria-label="Filter status" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
                 <option value="open">Belum selesai</option>
                 <option value="all">Semua status</option>
                 {PROC_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
-              <select className="input !w-auto !min-h-[36px] !py-1 max-w-[260px]" aria-label="Filter project" value={projectFilter} onChange={(e) => setProjectFilter(e.target.value)}>
+              <select className="input !w-auto !min-h-[36px] max-md:!min-h-[40px] !py-1 max-w-[260px]" aria-label="Filter project" value={projectFilter} onChange={(e) => setProjectFilter(e.target.value)}>
                 <option value="">Semua project</option>
                 <option value="__none">Tanpa project</option>
                 {projectList.map((p) => <option key={p.id} value={p.id}>{p.projectName}</option>)}
               </select>
-              <label className="inline-flex items-center gap-2 text-sm cursor-pointer">
-                <input type="checkbox" className="w-4 h-4 accent-blueprint" checked={onlyLate} onChange={(e) => setOnlyLate(e.target.checked)} />
+              <label className="inline-flex items-center gap-2 max-md:min-h-[40px] text-sm cursor-pointer">
+                <input type="checkbox" className="w-4 h-4 max-md:w-5 max-md:h-5 accent-blueprint" checked={onlyLate} onChange={(e) => setOnlyLate(e.target.checked)} />
                 Hanya yang terlambat
               </label>
               {filtersActive && (
-                <button type="button" onClick={() => { setQuery(''); setStatusFilter('open'); setProjectFilter(''); setOnlyLate(false); }} className="text-sm font-medium text-blueprint hover:underline ml-auto">
+                <button type="button" onClick={() => { setQuery(''); setStatusFilter('open'); setProjectFilter(''); setOnlyLate(false); }} className="tap text-sm font-medium text-blueprint hover:underline ml-auto">
                   Reset filter
                 </button>
               )}
@@ -366,7 +366,7 @@ export default function ProcurementPage() {
 
                           {writable ? (
                             <select
-                              className="input !min-h-[34px] !py-1 text-sm"
+                              className="input !min-h-[34px] max-md:!min-h-[40px] !py-1 text-sm"
                               aria-label={`Status ${it.item}`}
                               value={it.status}
                               disabled={busyId === it.id}
@@ -382,9 +382,9 @@ export default function ProcurementPage() {
 
                           <div className="flex items-center gap-3 md:justify-end text-sm">
                             {writable && isOpen(it) && (
-                              <button type="button" onClick={() => quickStatus(it, 'Diterima')} disabled={busyId === it.id} className="font-medium text-teal hover:underline disabled:opacity-40 whitespace-nowrap">Diterima</button>
+                              <button type="button" onClick={() => quickStatus(it, 'Diterima')} disabled={busyId === it.id} className="font-medium text-teal hover:underline disabled:opacity-40 whitespace-nowrap max-md:min-h-[40px] max-md:px-3.5 max-md:rounded-md max-md:border max-md:border-line max-md:bg-canvas">Diterima</button>
                             )}
-                            {writable && <button type="button" onClick={() => setEditing(it)} className="font-medium text-blueprint hover:underline">Ubah</button>}
+                            {writable && <button type="button" onClick={() => setEditing(it)} className="font-medium text-blueprint hover:underline max-md:min-h-[40px] max-md:px-3.5 max-md:rounded-md max-md:border max-md:border-line max-md:bg-canvas">Ubah</button>}
                           </div>
                         </li>
                       ))}

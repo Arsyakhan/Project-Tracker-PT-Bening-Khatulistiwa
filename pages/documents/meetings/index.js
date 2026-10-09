@@ -84,10 +84,10 @@ export default function MeetingsPage() {
         </div>
         <div className="flex items-center gap-2">
           <RefreshStatus refreshing={refreshing && !!meetings} staleError={staleError} />
-          <Link href="/documents/meetings/new?mode=schedule" className="border border-line rounded-md px-4 h-9 inline-flex items-center text-sm font-medium text-ink bg-panel hover:border-blueprint hover:text-blueprint transition-colors">
+          <Link href="/documents/meetings/new?mode=schedule" className="border border-line rounded-md px-4 h-9 max-md:h-10 inline-flex items-center text-sm font-medium text-ink bg-panel hover:border-blueprint hover:text-blueprint transition-colors">
             Jadwalkan rapat
           </Link>
-          <Link href="/documents/meetings/new" className="bg-blueprint hover:bg-blueprintdark text-onaccent rounded-md px-4 h-9 inline-flex items-center text-sm font-medium transition-colors">
+          <Link href="/documents/meetings/new" className="bg-blueprint hover:bg-blueprintdark text-onaccent rounded-md px-4 h-9 max-md:h-10 inline-flex items-center text-sm font-medium transition-colors">
             + Catat rapat
           </Link>
         </div>
@@ -114,11 +114,11 @@ export default function MeetingsPage() {
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <Link href={`/documents/meetings/${nextMeeting.id}`} className="bg-blueprint hover:bg-blueprintdark text-onaccent rounded-md px-4 h-9 inline-flex items-center text-sm font-medium transition-colors">Mulai catat</Link>
+                <Link href={`/documents/meetings/${nextMeeting.id}`} className="bg-blueprint hover:bg-blueprintdark text-onaccent rounded-md px-4 h-9 max-md:h-10 inline-flex items-center text-sm font-medium transition-colors">Mulai catat</Link>
                 <button
                   type="button"
                   onClick={() => downloadText(`${meetingFileBase(nextMeeting)}.ics`, buildIcs(nextMeeting), 'text/calendar;charset=utf-8')}
-                  className="border border-line rounded-md px-4 h-9 text-sm font-medium text-ink hover:border-blueprint hover:text-blueprint transition-colors"
+                  className="border border-line rounded-md px-4 h-9 max-md:h-10 text-sm font-medium text-ink hover:border-blueprint hover:text-blueprint transition-colors"
                 >
                   Tambah ke kalender
                 </button>
@@ -130,7 +130,7 @@ export default function MeetingsPage() {
                 <p className="font-medium text-ink">Belum ada rapat terjadwal</p>
                 <p className="text-sm text-inkmute mt-0.5">Saran jadwal berikutnya (2 minggu sekali): {fmtLong(suggestNextDate(meetings))}</p>
               </div>
-              <Link href="/documents/meetings/new?mode=schedule" className="text-sm font-medium text-blueprint hover:underline">Jadwalkan sekarang</Link>
+              <Link href="/documents/meetings/new?mode=schedule" className="tap text-sm font-medium text-blueprint hover:underline">Jadwalkan sekarang</Link>
             </Card>
           )}
 
@@ -140,7 +140,7 @@ export default function MeetingsPage() {
               {missed.map((m, i) => (
                 <span key={m.id}>
                   {i > 0 && ', '}
-                  <Link href={`/documents/meetings/${m.id}`} className="font-medium text-blueprint hover:underline">{fmtShort(m.date)}</Link>
+                  <Link href={`/documents/meetings/${m.id}`} className="tap font-medium text-blueprint hover:underline">{fmtShort(m.date)}</Link>
                 </span>
               ))}
               .
@@ -171,7 +171,7 @@ export default function MeetingsPage() {
                 <p className="text-xs text-inkmute mt-1">Dari semua rapat. Agenda yang sudah dibawa ke rapat lebih baru tidak dihitung lagi di sini.</p>
               </div>
               {openItems.length > 0 && (
-                <button type="button" onClick={() => copy(buildOpenItemsText(openItems), 'Rekap tindak lanjut disalin.')} className="text-sm font-medium text-blueprint hover:underline whitespace-nowrap">
+                <button type="button" onClick={() => copy(buildOpenItemsText(openItems), 'Rekap tindak lanjut disalin.')} className="tap text-sm font-medium text-blueprint hover:underline whitespace-nowrap">
                   Salin rekap untuk WhatsApp
                 </button>
               )}
@@ -188,7 +188,7 @@ export default function MeetingsPage() {
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-ink">{src.item.topic || '(tanpa judul)'}</p>
                         <p className="text-xs text-inkmute mt-0.5">
-                          <Link href={`/documents/meetings/${src.meeting.id}`} className="hover:text-blueprint hover:underline">Rapat {fmtShort(src.meeting.date)}</Link>
+                          <Link href={`/documents/meetings/${src.meeting.id}`} className="tap hover:text-blueprint hover:underline">Rapat {fmtShort(src.meeting.date)}</Link>
                           {src.item.pic ? ` · ${src.item.pic}` : ''}
                         </p>
                         {src.item.cta && <p className="text-xs text-ink/80 mt-1">Tindak lanjut: {src.item.cta}</p>}
@@ -202,7 +202,7 @@ export default function MeetingsPage() {
                         type="button"
                         onClick={() => markDone(src)}
                         disabled={!!busyItem}
-                        className="text-sm font-medium text-teal hover:underline whitespace-nowrap disabled:opacity-40"
+                        className="tap text-sm font-medium text-teal hover:underline whitespace-nowrap disabled:opacity-40"
                       >
                         {busyItem === key ? 'Menyimpan...' : 'Tandai selesai'}
                       </button>
@@ -221,6 +221,7 @@ export default function MeetingsPage() {
                 <input
                   type="search"
                   placeholder="Cari topik, isi bahasan, atau PIC..."
+                  aria-label="Cari riwayat rapat"
                   className="input !w-full sm:!w-72"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
@@ -264,12 +265,12 @@ export default function MeetingsPage() {
                         </p>
                       )}
 
-                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm pt-2 border-t border-line/70">
-                        <Link href={`/documents/meetings/${m.id}`} className="font-medium text-blueprint hover:underline">Buka</Link>
-                        <button type="button" onClick={() => copy(buildWhatsAppText(m), 'Teks WhatsApp disalin.')} className="font-medium text-blueprint hover:underline">Salin untuk WA</button>
-                        <button type="button" onClick={() => downloadText(`${meetingFileBase(m)}.txt`, buildWhatsAppText(m))} className="font-medium text-blueprint hover:underline">Unduh .txt</button>
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-3 text-sm pt-2 border-t border-line/70">
+                        <Link href={`/documents/meetings/${m.id}`} className="tap font-medium text-blueprint hover:underline">Buka</Link>
+                        <button type="button" onClick={() => copy(buildWhatsAppText(m), 'Teks WhatsApp disalin.')} className="tap font-medium text-blueprint hover:underline">Salin untuk WA</button>
+                        <button type="button" onClick={() => downloadText(`${meetingFileBase(m)}.txt`, buildWhatsAppText(m))} className="tap font-medium text-blueprint hover:underline">Unduh .txt</button>
                         {m.docUrl ? (
-                          <a href={m.docUrl} target="_blank" rel="noopener noreferrer" className="font-medium text-blueprint hover:underline">Google Doc</a>
+                          <a href={m.docUrl} target="_blank" rel="noopener noreferrer" className="tap font-medium text-blueprint hover:underline">Google Doc</a>
                         ) : (
                           <span className="text-xs text-inkmute">Belum ada Google Doc</span>
                         )}
@@ -281,7 +282,7 @@ export default function MeetingsPage() {
             )}
 
             {!query && filtered.length > 8 && (
-              <button onClick={() => setShowAll((v) => !v)} className="text-xs font-medium text-blueprint hover:underline self-start">
+              <button onClick={() => setShowAll((v) => !v)} className="tap text-xs font-medium text-blueprint hover:underline self-start">
                 {showAll ? 'Tampilkan lebih sedikit' : `Tampilkan semua (${filtered.length})`}
               </button>
             )}

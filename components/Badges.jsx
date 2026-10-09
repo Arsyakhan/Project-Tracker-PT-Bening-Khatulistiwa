@@ -19,7 +19,7 @@ const DOTS = {
 
 export function Pill({ tone = 'neutral', dot = false, className = '', children }) {
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border text-[11px] font-medium leading-5 whitespace-nowrap ${TONES[tone]} ${className}`}>
+    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border text-xs font-medium leading-5 whitespace-nowrap ${TONES[tone]} ${className}`}>
       {dot && <span className={`w-1.5 h-1.5 rounded-full ${DOTS[tone]}`} />}
       {children}
     </span>

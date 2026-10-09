@@ -17,10 +17,14 @@ export default function StagePipeline({ current, weights = {}, onSelect }) {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-start gap-3 sm:gap-5">
+      <div className="flex items-end gap-2 sm:items-start sm:gap-5">
         {GROUPS.map((group) => (
           <div key={group.label} className="flex flex-col gap-2 min-w-0" style={{ flex: group.stages.length }}>
-            <span className="text-[11px] text-inkmute truncate" title={group.label}>{group.label}</span>
+            <span className="text-xs leading-4 text-inkmute overflow-hidden text-ellipsis sm:truncate" title={group.label}>
+              {/* Di HP kolomnya sempit: pakai kata kunci sebelum "&" saja. Nama lengkap ada di tooltip. */}
+              <span className="sm:hidden">{group.label.split(' & ')[0]}</span>
+              <span className="hidden sm:inline">{group.label}</span>
+            </span>
             <div className="flex items-center">
               {group.stages.map((stage, i) => {
                 const idx = ALL_STAGES.indexOf(stage);

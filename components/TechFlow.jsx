@@ -25,7 +25,7 @@ export default function TechFlow({ modules, selectedKey, onSelect, emptyText = '
     <ol className="flex flex-wrap items-stretch gap-y-4 gap-x-1" aria-label="Alur teknologi dari air baku ke air produk">
       {phases.map((ph, pi) => (
         <li key={ph.key} className="flex flex-col gap-1.5 min-w-0">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-inkmute px-0.5">{ph.label}</span>
+          <span className="text-xs font-semibold uppercase tracking-wider text-inkmute px-0.5">{ph.label}</span>
           <div className="flex items-stretch gap-1">
             {ph.items.map((m, i) => {
               const cap = formatCapacity(m.cap, m.unit);

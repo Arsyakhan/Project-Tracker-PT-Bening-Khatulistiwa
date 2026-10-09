@@ -16,7 +16,7 @@ function Chip({ active, onClick, children, count }) {
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`rounded-full border px-3 h-8 text-sm transition-colors ${active ? 'bg-blueprint text-onaccent border-blueprint' : 'bg-panel text-ink border-line hover:border-blueprint hover:text-blueprint'}`}
+      className={`rounded-full border px-3 h-8 max-md:h-10 text-sm transition-colors ${active ? 'bg-blueprint text-onaccent border-blueprint' : 'bg-panel text-ink border-line hover:border-blueprint hover:text-blueprint'}`}
     >
       {children}
       {count !== undefined && <span className={`ml-1.5 font-data tnum text-xs ${active ? 'text-onaccent' : 'text-inkmute'}`}>{count}</span>}
@@ -129,7 +129,7 @@ export default function ArsipPage() {
                 {filtersActive && (
                   <button type="button" onClick={() => { setQuery(''); setYear(''); setTechs([]); }} className="btn btn-ghost">Reset filter</button>
                 )}
-                <select className="input !w-auto !min-h-[36px] !py-1" aria-label="Urutkan" value={sort} onChange={(e) => setSort(e.target.value)}>
+                <select className="input !w-auto !min-h-[36px] max-md:!min-h-[40px] !py-1" aria-label="Urutkan" value={sort} onChange={(e) => setSort(e.target.value)}>
                   <option value="terbaru">Terbaru dulu</option>
                   <option value="terlama">Terlama dulu</option>
                   <option value="nama">Nama A-Z</option>
@@ -158,7 +158,7 @@ export default function ArsipPage() {
                       <p className="text-sm text-blueprint font-medium mt-2 min-h-[1.25rem]">{chain || 'Tidak ada modul proses tercatat'}</p>
                       <div className="flex flex-wrap gap-1.5 mt-3">
                         {sortModules(p.modules).map((m) => (
-                          <span key={m.key} className="text-[11px] rounded-full bg-canvas border border-line text-inkmute px-2 py-0.5">{moduleLabel(m, true)}</span>
+                          <span key={m.key} className="text-xs rounded-full bg-canvas border border-line text-inkmute px-2 py-0.5">{moduleLabel(m, true)}</span>
                         ))}
                       </div>
                       {ro && formatCapacity(ro.cap, ro.unit) && <span className="sr-only">Kapasitas RO {formatCapacity(ro.cap, ro.unit)}</span>}

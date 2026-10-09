@@ -66,13 +66,13 @@ export default function SpecsEditor({
           </div>
           <div className="text-right shrink-0">
             <span className="font-data tnum text-lg font-semibold text-blueprint">{total.percent}%</span>
-            <p className="text-[11px] text-inkmute tnum">{total.filled} dari {total.total} kolom</p>
+            <p className="text-xs text-inkmute tnum">{total.filled} dari {total.total} kolom</p>
           </div>
         </div>
         <div className="h-2 bg-line/60 rounded-full overflow-hidden">
           <div className={`h-full rounded-full ${total.percent >= 100 ? 'bg-teal' : 'bg-blueprint'}`} style={{ width: `${total.percent}%` }} />
         </div>
-        {version > 0 && <p className="text-[11px] text-inkmute">Versi tersimpan: {version}</p>}
+        {version > 0 && <p className="text-xs text-inkmute">Versi tersimpan: {version}</p>}
       </div>
 
       {hasRef && (

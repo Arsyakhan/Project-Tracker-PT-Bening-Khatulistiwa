@@ -445,9 +445,9 @@ export default function ProjectDetailPage() {
 
       {/* Breadcrumb */}
       <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs text-inkmute">
-        <Link href="/projects" className="hover:text-blueprint transition-colors">Semua Project</Link>
+        <Link href="/projects" className="tap hover:text-blueprint transition-colors">Semua Project</Link>
         <span aria-hidden="true">/</span>
-        <span className="font-data truncate">{project.poNumber || 'Tanpa PO'}</span>
+        <span aria-current="page" className="font-data truncate">{project.poNumber || 'Tanpa PO'}</span>
       </nav>
 
       {/* Kepala halaman: gaya title block gambar teknik */}
@@ -455,7 +455,7 @@ export default function ProjectDetailPage() {
         <div className="bp-grid px-5 pt-5 pb-4 flex flex-col gap-3">
           <div className="flex flex-wrap items-center gap-2">
             <input
-              className="text-xs font-data text-inkmute bg-panel/70 rounded border border-transparent hover:border-line focus:border-blueprint outline-none w-fit max-w-full px-1.5 py-0.5 transition-colors"
+              className="text-xs font-data text-inkmute bg-panel/70 rounded border border-transparent hover:border-line focus:border-blueprint outline-none w-fit max-w-full px-1.5 py-0.5 max-md:py-2 max-md:text-sm transition-colors"
               value={project.poNumber}
               onChange={(e) => update('poNumber', e.target.value)}
               title="Klik untuk mengedit PO Number"
@@ -467,11 +467,12 @@ export default function ProjectDetailPage() {
               <Pill tone="amber" dot>Belum disimpan</Pill>
             )}
           </div>
+          <h1 className="sr-only">{project.projectName || 'Detail project'}</h1>
           <AutoGrowTitle value={project.projectName} onChange={(v) => update('projectName', v)} />
           {shownSystems.keys.length > 0 && (
             <div className="flex flex-col gap-1.5 pt-1">
               <TechFlow modules={flowModules} />
-              {shownSystems.detected && <span className="text-[11px] text-inkmute">terdeteksi otomatis dari nama project, belum disimpan</span>}
+              {shownSystems.detected && <span className="text-xs text-inkmute">terdeteksi otomatis dari nama project, belum disimpan</span>}
             </div>
           )}
         </div>
@@ -566,7 +567,7 @@ export default function ProjectDetailPage() {
           ) : (
             <>
               <span className="text-sm text-inkmute">Belum diatur</span>
-              <button type="button" onClick={() => setActiveTab('jadwal')} className="text-xs font-medium text-blueprint hover:underline self-start">
+              <button type="button" onClick={() => setActiveTab('jadwal')} className="tap text-xs font-medium text-blueprint hover:underline self-start">
                 Atur di tab Jadwal
               </button>
             </>
@@ -672,12 +673,12 @@ export default function ProjectDetailPage() {
             <Panel
               title="Teknologi & sistem terpasang"
               hint="Satu data: alur teknologi di bawah juga menentukan sistem terpasang, dan otomatis dipakai di form Commissioning dan Hand Over."
-              aside={writable && <button type="button" onClick={() => setActiveTab('teknologi')} className="text-sm font-medium text-blueprint hover:underline">Atur teknologi</button>}
+              aside={writable && <button type="button" onClick={() => setActiveTab('teknologi')} className="tap text-sm font-medium text-blueprint hover:underline">Atur teknologi</button>}
             >
               {flowModules.length > 0 ? (
                 <div className="flex flex-col gap-2">
                   <TechFlow modules={flowModules} />
-                  {!techSaved && <p className="text-[11px] text-inkmute">Dibaca dari data lama (sistem terpasang dan spesifikasi). Buka tab Teknologi untuk melengkapinya.</p>}
+                  {!techSaved && <p className="text-xs text-inkmute">Dibaca dari data lama (sistem terpasang dan spesifikasi). Buka tab Teknologi untuk melengkapinya.</p>}
                 </div>
               ) : (
                 <p className="text-sm text-inkmute">Belum ada teknologi yang dicatat. Buka tab Teknologi untuk menyusun alurnya.</p>
@@ -698,7 +699,7 @@ export default function ProjectDetailPage() {
                     type="button"
                     onClick={() => setConfirmDeleteOpen(true)}
                     disabled={saving || deleting}
-                    className="text-sm font-medium text-rust border border-rust/40 hover:bg-rust/10 rounded-md px-3 h-9 disabled:opacity-60 transition-colors whitespace-nowrap"
+                    className="text-sm font-medium text-rust border border-rust/40 hover:bg-rust/10 rounded-md px-3 h-9 max-md:h-10 disabled:opacity-60 transition-colors whitespace-nowrap"
                   >
                     Hapus project...
                   </button>
@@ -715,7 +716,7 @@ export default function ProjectDetailPage() {
               ) : specsError ? (
                 <Panel title="Teknologi">
                   <p className="text-sm text-rust">Gagal memuat data teknologi: {specsError}</p>
-                  <button type="button" onClick={loadSpecs} className="w-fit text-sm font-medium text-blueprint hover:underline">Coba lagi</button>
+                  <button type="button" onClick={loadSpecs} className="tap w-fit text-sm font-medium text-blueprint hover:underline">Coba lagi</button>
                 </Panel>
               ) : (
                 <>
@@ -726,7 +727,7 @@ export default function ProjectDetailPage() {
                     {!techSaved && (
                       <div className="flex flex-wrap items-center justify-between gap-2 bg-blueprint/10 border border-blueprint/25 rounded-md px-3 py-2 text-sm">
                         <span className="text-ink">Terisi dari data lama (sistem terpasang dan spesifikasi). Belum tersimpan sebagai teknologi.</span>
-                        {writable && <button type="button" onClick={() => setTech(techValue)} className="text-sm font-medium text-blueprint hover:underline">Pakai data ini</button>}
+                        {writable && <button type="button" onClick={() => setTech(techValue)} className="tap text-sm font-medium text-blueprint hover:underline">Pakai data ini</button>}
                       </div>
                     )}
                     <TechFlow modules={techValue.map((m) => ({ ...m, label: (TECH_SCHEMA.find((x) => x.key === m.key) || {}).label }))} emptyText="Centang modul di bawah untuk menyusun alurnya." />
@@ -746,7 +747,7 @@ export default function ProjectDetailPage() {
                           >
                             <input type="checkbox" className="w-4 h-4 accent-blueprint" checked={checked} disabled={derived || !writable} onChange={() => toggleSystem(opt.key)} />
                             {opt.key === 'dosing' ? 'Chemical Dosing / CIP terpisah' : opt.label}
-                            {derived && <span className="text-[11px] text-inkmute">otomatis dari pompa dosing</span>}
+                            {derived && <span className="text-xs text-inkmute">otomatis dari pompa dosing</span>}
                           </label>
                         );
                       })}
@@ -925,11 +926,11 @@ export default function ProjectDetailPage() {
                   }}
                 />
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] text-inkmute tnum">{commentDraft.length}/{COMMENT_MAX_LENGTH}</span>
+                  <span className="text-xs text-inkmute tnum">{commentDraft.length}/{COMMENT_MAX_LENGTH}</span>
                   <button
                     onClick={submitComment}
                     disabled={postingComment || !commentDraft.trim()}
-                    className="bg-blueprint hover:bg-blueprintdark text-onaccent rounded-md px-4 h-9 text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    className="bg-blueprint hover:bg-blueprintdark text-onaccent rounded-md px-4 h-9 max-md:h-10 text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                   >
                     {postingComment ? 'Mengirim...' : 'Kirim komentar'}
                   </button>
@@ -953,11 +954,11 @@ export default function ProjectDetailPage() {
                   <div className={`h-full rounded-full ${commPercent >= 100 ? 'bg-teal' : 'bg-blueprint'}`} style={{ width: `${commPercent}%` }} />
                 </div>
                 {readiness.commissioning.missing.length > 0 ? (
-                  <button onClick={() => setActiveTab('ringkasan')} className="text-[11px] text-amberink hover:underline mt-1.5 text-left">
+                  <button onClick={() => setActiveTab('ringkasan')} className="tap text-xs text-amberink hover:underline mt-1.5 text-left">
                     Kurang: {readiness.commissioning.missing.join(', ')}
                   </button>
                 ) : (
-                  <p className="text-[11px] text-teal mt-1.5">Data lengkap, siap di-generate</p>
+                  <p className="text-xs text-teal mt-1.5">Data lengkap, siap di-generate</p>
                 )}
               </div>
               <div>
@@ -968,7 +969,7 @@ export default function ProjectDetailPage() {
                 <div className="h-1.5 bg-line/60 rounded-full overflow-hidden">
                   <div className={`h-full rounded-full ${specProgress && specProgress.percent >= 100 ? 'bg-teal' : 'bg-blueprint'}`} style={{ width: `${specProgress && specSections.length > 0 ? specProgress.percent : 0}%` }} />
                 </div>
-                <button onClick={() => setActiveTab(specSections.length > 0 ? 'spesifikasi' : 'ringkasan')} className="text-[11px] text-blueprint hover:underline mt-1.5 text-left">
+                <button onClick={() => setActiveTab(specSections.length > 0 ? 'spesifikasi' : 'ringkasan')} className="tap text-xs text-blueprint hover:underline mt-1.5 text-left">
                   {specSections.length === 0 ? 'Pilih sistem terpasang dulu' : specProgress && specProgress.percent >= 100 ? 'Spesifikasi lengkap' : 'Lengkapi spesifikasi peralatan'}
                 </button>
               </div>
@@ -1002,7 +1003,7 @@ export default function ProjectDetailPage() {
             <section className="bg-panel border border-line rounded-lg p-4 shadow-sm">
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-sm font-semibold text-ink">Status dokumen</h2>
-                <button onClick={() => setActiveTab('checklist')} className="text-xs font-medium text-blueprint hover:underline">Kelola</button>
+                <button onClick={() => setActiveTab('checklist')} className="tap text-xs font-medium text-blueprint hover:underline">Kelola</button>
               </div>
               <ul className="flex flex-col gap-2">
                 {items.map((item) => {
@@ -1013,7 +1014,7 @@ export default function ProjectDetailPage() {
                       <ChecklistStatusIcon status={status} small />
                       <span className={`flex-1 truncate ${status === 'N/A' ? 'text-inkmute' : 'text-ink'}`}>{item}</span>
                       {link ? (
-                        <a href={link} target="_blank" rel="noopener noreferrer" className="text-blueprint hover:underline shrink-0">Buka</a>
+                        <a href={link} target="_blank" rel="noopener noreferrer" className="tap text-blueprint hover:underline shrink-0">Buka</a>
                       ) : (
                         <span className="text-inkmute shrink-0">{status === 'N/A' ? 'N/A' : status === 'Completed' ? 'Selesai' : status === 'Not Started' ? 'Belum' : status === 'Drafting' ? 'Draft' : 'Review'}</span>
                       )}
@@ -1026,30 +1027,32 @@ export default function ProjectDetailPage() {
         </aside>
       </div>
 
-      {/* Bar aksi - selalu terlihat di bawah */}
-      <div className="fixed bottom-0 left-0 md:left-60 right-0 z-20 bg-panel/95 backdrop-blur border-t border-line shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
-        <div className="max-w-6xl mx-auto px-5 md:px-10 py-3 flex items-center gap-3">
-          <button
-            onClick={saveProject}
-            disabled={saving || deleting || !isDirty}
-            className="bg-blueprint hover:bg-blueprintdark text-onaccent rounded-md px-4 h-9 text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-          >
-            {saving ? 'Menyimpan...' : 'Simpan perubahan'}
-          </button>
-          {isDirty && !saving && (
+      {/* Bar simpan: hanya muncul kalau ada perubahan, sedang menyimpan, atau ada galat (tidak memakan layar HP saat tak perlu) */}
+      {(isDirty || saving || error) && (
+        <div className="fixed bottom-0 left-0 md:left-64 right-0 z-20 bg-panel/95 backdrop-blur border-t border-line shadow-[0_-2px_10px_rgba(0,0,0,0.05)] pb-[env(safe-area-inset-bottom)]">
+          <div className="max-w-6xl mx-auto px-5 md:px-10 py-3 flex items-center gap-3">
             <button
-              onClick={discardChanges}
-              className="text-sm font-medium text-inkmute hover:text-ink px-2 h-9"
+              onClick={saveProject}
+              disabled={saving || deleting || !isDirty}
+              className="bg-blueprint hover:bg-blueprintdark text-onaccent rounded-md px-4 h-10 text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
-              Batalkan
+              {saving ? 'Menyimpan...' : 'Simpan perubahan'}
             </button>
-          )}
-          <span className="hidden sm:inline text-xs text-inkmute">
-            {isDirty ? 'Ada perubahan yang belum disimpan · Ctrl+S untuk simpan' : 'Semua perubahan sudah tersimpan'}
-          </span>
-          {error && <span className="text-rust text-sm truncate">{error}</span>}
+            {isDirty && !saving && (
+              <button
+                onClick={discardChanges}
+                className="text-sm font-medium text-inkmute hover:text-ink px-3 h-10"
+              >
+                Batalkan
+              </button>
+            )}
+            {isDirty && (
+              <span className="hidden sm:inline text-xs text-inkmute">Ada perubahan yang belum disimpan · Ctrl+S untuk simpan</span>
+            )}
+            {error && <span role="alert" className="text-rust text-sm min-w-0 line-clamp-2">{error}</span>}
+          </div>
         </div>
-      </div>
+      )}
 
       <ConfirmModal
         open={confirmDeleteOpen}
