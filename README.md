@@ -22,6 +22,7 @@ database terpisah).
 - **Generator Dokumen terintegrasi** (`/documents`): buat Commissioning Report & Handover Report
   langsung dari halaman project -- PO Number/Nama Project/Client terisi otomatis, dan link hasilnya
   otomatis tersimpan ke Checklist (status jadi "Under Review"). Lihat "Generator Dokumen" di bawah.
+- **Arsip project selesai** (`/arsip`): data tab `[ARSIP] FINISHED PROJECT` tampil sebagai alur teknologi (air baku → produk) lengkap dengan kapasitas & detail, bisa dicari/difilter per teknologi, ditambah/diubah dari web atau langsung di spreadsheet. Detail project aktif memakai alur yang sama, dan ada saran project arsip yang mirip.
 - Komentar per project, log aktivitas otomatis untuk tiap perubahan
 - Mode gelap/terang, command palette (`Ctrl+K` / `Cmd+K`), bisa di-"install" sebagai PWA di HP/laptop
 - Token API tersembunyi di server (`/api/gas`) — browser tidak pernah melihatnya

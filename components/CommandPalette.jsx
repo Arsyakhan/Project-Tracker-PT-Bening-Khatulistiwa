@@ -6,6 +6,7 @@ const STATIC_ACTIONS = [
   { label: 'Dashboard', href: '/', keywords: 'dashboard beranda' },
   { label: 'Semua Project', href: '/projects', keywords: 'projects daftar list' },
   { label: 'Engineering Docs', href: '/engineering-docs', keywords: 'dokumen docs checklist' },
+  { label: 'Arsip Project', href: '/arsip', keywords: 'arsip archive selesai teknologi referensi finished' },
   { label: 'Aktivitas', href: '/activity', keywords: 'activity log riwayat' },
   { label: '+ Project Baru', href: '/projects/new', keywords: 'tambah new create' },
 ];

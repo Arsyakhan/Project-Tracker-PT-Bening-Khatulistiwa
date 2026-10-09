@@ -47,7 +47,8 @@ helper dari `Code.gs`:
 
 | File | Isi |
 |---|---|
-| `apps-script/Code.gs` (v2.4) | `doGet`/`doPost`, token, cache 30 dtk, proyek, checklist, komentar, activity log, document log, specs, meetings |
+| `apps-script/Code.gs` (v2.5) | `doGet`/`doPost`, token, cache 30 dtk, proyek, checklist, komentar, activity log, document log, specs, meetings |
+| `apps-script/Archive.gs` | tab `[ARSIP] FINISHED PROJECT` dibaca & ditulis dua arah (`getArchive_`, `saveArchiveProject_`, `deleteArchiveProject_`); header 2 baris, 20 grup modul (Ada/Kapasitas/Satuan/Detail). Konflik edit dideteksi lewat `rev` per baris (sidik jari isi baris), karena sheet tidak punya kolom Version. Baris lama tidak diubah kecuali diedit |
 | `apps-script/Procurement.gs` | tab Procurement (`getProcurement_`, `saveProcurementItem_`, `deleteProcurementItem_`); `doGet`/`doPost` di Code.gs yang memanggilnya |
 | `apps-script/WeeklyDigest.gs` | email ringkasan mingguan, trigger Senin ~07.00 |
 | `apps-script/Backup.gs` | salinan spreadsheet mingguan, trigger Senin ~02.00, simpan 8 terakhir |
@@ -58,10 +59,10 @@ helper dari `Code.gs`:
 
 **Aksi API** (lewat `/api/gas`, allowlist di `pages/api/gas.js`):
 
-- GET: `projects`, `dashboard`, `meta`, `activityLog`, `comments`, `documents`, `specs`, `meetings`, `procurement`
+- GET: `projects`, `dashboard`, `meta`, `activityLog`, `comments`, `documents`, `specs`, `meetings`, `procurement`, `archive`
 - POST: `addProject`, `updateProject`, `updateChecklist`, `deleteProject`, `addComment`, `logDocument`,
-  `saveSpecs`, `saveMeeting`, `deleteMeeting`, `setMeetingDoc`, `saveProcurementItem`, `deleteProcurementItem`
-- `deleteProject` hanya boleh admin; `deleteMeeting` dan `deleteProcurementItem` boleh editor (dicek di `/api/gas`).
+  `saveSpecs`, `saveMeeting`, `deleteMeeting`, `setMeetingDoc`, `saveProcurementItem`, `deleteProcurementItem`, `saveArchiveProject`, `deleteArchiveProject`
+- `deleteProject` dan `deleteArchiveProject` hanya boleh admin; `deleteMeeting` dan `deleteProcurementItem` boleh editor (dicek di `/api/gas`).
 - Penyimpanan data berversi (`Version` + `baseVersion`) untuk Specs, Meetings, Procurement agar edit
   bersamaan tidak saling menimpa. Respons selalu `{ ok, data }` atau `{ ok:false, error }`.
 
@@ -96,6 +97,7 @@ Cara kerja: `makeCopy` template, lalu `replaceText` untuk `{{PLACEHOLDER}}`. Blo
 | Status rapat/agenda/kehadiran | `MEETING_STATUSES`, `ITEM_STATUSES`, `ATTENDANCE_STATUSES` | `lib/meetings.js` |
 | Field dokumen (`data.xxx`) | `docgen/*.gs` | `lib/docgen/schema.js` + `pages/documents/*/new.js` |
 | Placeholder `{{...}}` | template Google Docs | `docgen/*.gs` |
+| Kunci modul arsip & urutan alur teknologi | `ARCHIVE_MODULE_KEYS` di `Archive.gs` | `lib/techflow.js` (`FLOW_PHASES`, `FLOW_STEPS`) |
 | Allowlist aksi | `doGet`/`doPost` | `pages/api/gas.js` (`GET_ACTIONS`, `POST_ACTIONS`) |
 
 Status terakhir diperiksa (9 Okt 2026): `STAGE_WEIGHTS` dan `SYSTEM_KEYS` cocok; nama field HO
@@ -117,7 +119,7 @@ server (API route), bukan di browser.
 akses sama seperti PM (lihat, tambah, ubah, buat dokumen, komentar, notulensi, pengadaan) **kecuali
 menghapus project**. Jadi email PM masuk `ADMIN_EMAILS`; email engineer cukup di `ALLOWED_EMAILS`.
 Hapus **rapat** dan **barang pengadaan** boleh untuk editor (sudah dikonfirmasi pemilik); hanya
-**hapus project** (`deleteProject`) yang khusus admin. Allowlist-nya `DELETE_ACTIONS` di `pages/api/gas.js`.
+**hapus project** (`deleteProject`) dan **hapus data arsip** (`deleteArchiveProject`) yang khusus admin. Allowlist-nya `DELETE_ACTIONS` di `pages/api/gas.js`.
 
 > Status 9 Okt 2026: `ADMIN_EMAILS` dan `VIEWER_EMAILS` **belum diisi** di Vercel, artinya saat ini
 > semua pengguna yang boleh login adalah admin (engineer pun bisa menghapus). Variabel baru berlaku
@@ -134,7 +136,10 @@ mencetaknya di log/PR.
 
 - Halaman: `/` dashboard, `/board` kanban, `/projects` (+ `/new`, `/[id]`), `/engineering-docs`,
   `/procurement`, `/documents` (+ `commissioning/new`, `handover/new`, `meetings` + `new`/`[id]`),
-  `/activity`, `/login`.
+  `/arsip` (+ `/new`, `/[id]`; arsip project selesai, bisa ditambah/diubah dari web dan dari spreadsheet), `/activity`, `/login`.
+- Alur teknologi: `lib/techflow.js` + `components/TechFlow.jsx` dipakai bersama oleh arsip dan detail project
+  (modul urut dari air baku sampai produk; project aktif dipetakan dari sistem terpasang + spesifikasi).
+  `SimilarArchive` menyarankan project arsip yang mirip di tab Spesifikasi.
 - API: `pages/api/gas.js` (proxy utama), `docgen.js` (Commissioning/Hand Over + catat ke Document Log
   + update checklist), `meeting-doc.js` (Notulensi), `auth/[...nextauth].js`.
 - Pustaka: `lib/` (`api.js`, `useProjects.js`, `useCachedResource.js`, `persistedCache.js`, `stages.js`,
