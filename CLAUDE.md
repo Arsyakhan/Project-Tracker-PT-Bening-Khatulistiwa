@@ -99,6 +99,7 @@ Cara kerja: `makeCopy` template, lalu `replaceText` untuk `{{PLACEHOLDER}}`. Blo
 | Placeholder `{{...}}` | template Google Docs | `docgen/*.gs` |
 | Kunci modul arsip & urutan alur teknologi | `ARCHIVE_MODULE_KEYS` di `Archive.gs` | `lib/techflow.js` (`FLOW_PHASES`, `FLOW_STEPS`) |
 | Allowlist aksi | `doGet`/`doPost` | `pages/api/gas.js` (`GET_ACTIONS`, `POST_ACTIONS`) |
+| Normalisasi nomor PO (PO kembar) | `normalizePO_` di `Code.gs` | `normalizePo` di `lib/projectHelpers.js` (hanya untuk peringatan di form Project Baru; yang menolak tetap backend) |
 
 Status terakhir diperiksa (9 Okt 2026): `STAGE_WEIGHTS` dan `SYSTEM_KEYS` cocok; nama field HO
 cocok 100% dengan `schema.js`; Commissioning cocok (`checklist_items` dibuat di sisi halaman).
