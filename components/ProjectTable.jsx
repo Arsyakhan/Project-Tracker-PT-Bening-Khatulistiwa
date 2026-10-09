@@ -2,15 +2,19 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { StageBadge, PriorityBadge, DeliveryHint, Pill } from './Badges';
-import { fmtDate, initialOf, hasDocGap } from '../lib/projectHelpers';
+import NextActionLine from './NextActionLine';
+import { fmtDate, initialOf, hasDocGap, todayISO } from '../lib/projectHelpers';
+import { nextActionInfo, nextActionSortKey } from '../lib/nextAction';
 
 const PRIORITY_RANK = { High: 3, Medium: 2, Low: 1 };
 
+// Kolom "PO Number" dilipat ke dalam sel Project (baris kecil di atas nama) supaya ada tempat untuk
+// kolom "Langkah berikutnya". Kolom itu tersembunyi selama backend belum v2.6 (lihat showNext).
 const COLUMNS = [
-  { key: 'po', label: 'PO Number', sort: (p) => p.poNumber },
   { key: 'name', label: 'Project', sort: (p) => p.projectName },
   { key: 'pic', label: 'PIC', sort: (p) => p.pic },
   { key: 'stage', label: 'Stage & progress', sort: (p) => p.stageProgress },
+  { key: 'next', label: 'Langkah berikutnya', sort: (p, today) => nextActionSortKey(p, today) },
   { key: 'doc', label: 'Dokumen', sort: (p) => p.engineeringDocProgress },
   { key: 'priority', label: 'Priority', sort: (p) => PRIORITY_RANK[p.priority] || 0 },
   { key: 'delivery', label: 'Delivery', sort: (p) => p.deliveryDate || null, align: 'right' },
@@ -78,14 +82,17 @@ export default function ProjectTable({ projects }) {
   const router = useRouter();
   const [sortKey, setSortKey] = useState(null);
   const [sortDir, setSortDir] = useState('asc');
+  const today = todayISO();
+  const showNext = !!projects && projects.some((p) => p.nextAction !== undefined);
+  const columns = showNext ? COLUMNS : COLUMNS.filter((c) => c.key !== 'next');
 
   const rows = useMemo(() => {
     if (!projects) return [];
     const col = COLUMNS.find((c) => c.key === sortKey);
     if (!col) return projects;
     return [...projects].sort((a, b) => {
-      const av = col.sort(a);
-      const bv = col.sort(b);
+      const av = col.sort(a, today);
+      const bv = col.sort(b, today);
       if (av == null && bv == null) return 0;
       if (av == null) return 1; // kosong selalu di bawah
       if (bv == null) return -1;
@@ -94,7 +101,7 @@ export default function ProjectTable({ projects }) {
         : String(av).localeCompare(String(bv), 'id', { numeric: true });
       return sortDir === 'asc' ? c : -c;
     });
-  }, [projects, sortKey, sortDir]);
+  }, [projects, sortKey, sortDir, today]);
 
   function toggleSort(key) {
     if (sortKey === key) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
@@ -112,12 +119,12 @@ export default function ProjectTable({ projects }) {
         <table className="w-full text-sm text-left">
           <thead className="bg-canvas/70 border-b border-line">
             <tr>
-              {COLUMNS.map((col) => (
+              {columns.map((col) => (
                 <th
                   key={col.key}
                   scope="col"
                   aria-sort={sortKey === col.key ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
-                  className={`px-4 py-3 text-xs font-semibold text-inkmute whitespace-nowrap ${col.align === 'right' ? 'text-right' : ''}`}
+                  className={`px-2.5 py-3 text-xs font-semibold text-inkmute whitespace-nowrap ${col.align === 'right' ? 'text-right' : ''}`}
                 >
                   <button
                     type="button"
@@ -139,13 +146,12 @@ export default function ProjectTable({ projects }) {
                 onClick={() => router.push(hrefOf(p))}
                 className="hover:bg-blueprint/[0.04] transition-colors cursor-pointer group align-middle"
               >
-                <td className="px-4 py-3.5 text-[11px] font-data text-inkmute whitespace-nowrap">{p.poNumber}</td>
-
-                <td className="px-4 py-3.5 min-w-[240px] max-w-[320px]">
+                <td className="px-2.5 py-3.5 min-w-[220px] max-w-[300px]">
+                  <span className="block text-[11px] font-data text-inkmute truncate">{p.poNumber}</span>
                   <Link
                     href={hrefOf(p)}
                     onClick={(e) => e.stopPropagation()}
-                    className="font-medium text-ink group-hover:text-blueprint transition-colors line-clamp-2 leading-snug"
+                    className="font-medium text-ink group-hover:text-blueprint transition-colors line-clamp-2 leading-snug mt-0.5"
                   >
                     {p.projectName}
                   </Link>
@@ -155,9 +161,9 @@ export default function ProjectTable({ projects }) {
                   </div>
                 </td>
 
-                <td className="px-4 py-3.5 text-sm text-ink whitespace-nowrap">{p.pic || '-'}</td>
+                <td className="px-2.5 py-3.5 text-sm text-ink whitespace-nowrap">{p.pic || '-'}</td>
 
-                <td className="px-4 py-3.5 min-w-[190px]">
+                <td className="px-2.5 py-3.5 min-w-[180px]">
                   <div className="flex items-center gap-2 flex-wrap">
                     <StageBadge stage={p.currentStage} />
                     {(p.status === 'On Hold' || p.status === 'Not Started') && (
@@ -171,11 +177,17 @@ export default function ProjectTable({ projects }) {
                   </div>
                 </td>
 
-                <td className="px-4 py-3.5"><DocCell p={p} /></td>
+                {showNext && (
+                  <td className="px-2.5 py-3.5 min-w-[200px] max-w-[260px] align-top">
+                    <NextActionLine info={nextActionInfo(p, today)} showEmpty />
+                  </td>
+                )}
 
-                <td className="px-4 py-3.5"><PriorityBadge priority={p.priority} /></td>
+                <td className="px-2.5 py-3.5"><DocCell p={p} /></td>
 
-                <td className="px-4 py-3.5 whitespace-nowrap"><DeliveryCell p={p} /></td>
+                <td className="px-2.5 py-3.5"><PriorityBadge priority={p.priority} /></td>
+
+                <td className="px-2.5 py-3.5 whitespace-nowrap"><DeliveryCell p={p} /></td>
               </tr>
             ))}
           </tbody>
@@ -208,6 +220,8 @@ export default function ProjectTable({ projects }) {
               <ProgressBar value={p.stageProgress} className="flex-1" />
               <span className="text-xs font-data tnum font-semibold text-ink">{p.stageProgress}%</span>
             </div>
+
+            <NextActionLine info={nextActionInfo(p, today)} className="pt-2 border-t border-line/60" />
 
             <div className="flex items-center justify-between text-xs text-inkmute pt-2 border-t border-line/60">
               <span className="truncate">{p.client || '-'} · {p.pic || '-'}</span>
