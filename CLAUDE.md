@@ -139,7 +139,15 @@ mencetaknya di log/PR.
   `/arsip` (+ `/new`, `/[id]`; arsip project selesai, bisa ditambah/diubah dari web dan dari spreadsheet), `/activity`, `/login`.
 - Alur teknologi: `lib/techflow.js` + `components/TechFlow.jsx` dipakai bersama oleh arsip dan detail project
   (modul urut dari air baku sampai produk; project aktif dipetakan dari sistem terpasang + spesifikasi).
-  `SimilarArchive` menyarankan project arsip yang mirip di tab Spesifikasi.
+  `SimilarArchive` menyarankan project arsip yang mirip di tab Teknologi.
+- **Teknologi project aktif = model yang sama dengan arsip** (tab "Teknologi" di detail project, komponen
+  `ModulePicker` dipakai bersama form arsip). Disimpan di tab `Project Specs` sebagai kunci datar
+  `tech_v` dan `tech_<modul>_on|cap|unit|detail` (daftar id di `TECH_SPEC_IDS`, `lib/techflow.js`; ikut
+  `SPEC_FIELD_IDS`), jadi tanpa perubahan backend. **Sistem terpasang diturunkan dari modul** lewat
+  `deriveSystemKeys` (opsi tambahan: dosing/CIP terpisah, intermediate tank, panel, ro_large, recycle).
+  Saat disimpan, kolom kapasitas Spesifikasi (form Hand Over) yang masih kosong diisi dari teknologi
+  (`fillSpecCaps`, tidak pernah menimpa). Project yang belum punya teknologi tersimpan dibaca dari data
+  lama (`prefillTech`). "Arsipkan teknologi" memakai teknologi tersimpan apa adanya (lossless).
 - API: `pages/api/gas.js` (proxy utama), `docgen.js` (Commissioning/Hand Over + catat ke Document Log
   + update checklist), `meeting-doc.js` (Notulensi), `auth/[...nextauth].js`.
 - Pustaka: `lib/` (`api.js`, `useProjects.js`, `useCachedResource.js`, `persistedCache.js`, `stages.js`,
