@@ -25,7 +25,7 @@ function DeadlineBadge({ p }) {
       ? 'bg-amber/10 text-amberink border border-amber/20'
       : 'bg-canvas text-inkmute border border-line';
   return (
-    <span className={`text-[10px] font-semibold rounded px-1.5 py-0.5 whitespace-nowrap ${cls}`}>
+    <span className={`text-xs font-semibold rounded px-1.5 py-0.5 whitespace-nowrap ${cls}`}>
       {d < 0 ? `Terlewat ${Math.abs(d)} hari` : d === 0 ? 'Hari ini' : `${d} hari lagi`}
     </span>
   );
@@ -59,7 +59,7 @@ function Card({ p, busy, dragging, onDragStart, onDragEnd, onMove }) {
           <Link
             href={`/projects/${encodeURIComponent(p.id)}`}
             draggable={false}
-            className="text-sm font-semibold text-ink hover:text-blueprint leading-snug line-clamp-2"
+            className="text-sm font-semibold text-ink hover:text-blueprint leading-snug line-clamp-2 max-md:line-clamp-none max-md:py-1.5"
           >
             {p.projectName}
           </Link>
@@ -71,7 +71,7 @@ function Card({ p, busy, dragging, onDragStart, onDragEnd, onMove }) {
       </div>
 
       <div className="flex flex-col gap-1">
-        <div className="flex items-center justify-between text-[10px] text-inkmute">
+        <div className="flex items-center justify-between text-xs text-inkmute">
           <span>Dok Engineering</span>
           <span className="font-semibold text-ink">{doc}%</span>
         </div>
@@ -87,7 +87,7 @@ function Card({ p, busy, dragging, onDragStart, onDragEnd, onMove }) {
           value={p.currentStage || ''}
           disabled={busy}
           onChange={(e) => onMove(p, e.target.value)}
-          className="ml-auto max-w-[9rem] border border-line rounded bg-canvas text-[11px] text-inkmute px-1.5 py-1 outline-none focus:border-blueprint"
+          className="ml-auto max-w-[9rem] border border-line rounded bg-canvas text-xs text-inkmute px-1.5 py-1 outline-none focus:border-blueprint max-md:max-w-none max-md:flex-1 max-md:min-h-[40px] max-md:text-base"
         >
           {!knownStage && <option value={p.currentStage || ''}>{p.currentStage || '(tanpa stage)'}</option>}
           {STAGES.map((s) => (

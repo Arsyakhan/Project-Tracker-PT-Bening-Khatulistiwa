@@ -75,7 +75,8 @@ function DocumentHistory() {
           <input
             type="search"
             placeholder="Cari project, PO, atau nama file..."
-            className="border border-line rounded-md px-3 py-2 text-sm bg-panel outline-none focus:border-blueprint w-full sm:w-72"
+            aria-label="Cari riwayat dokumen"
+            className="border border-line rounded-md px-3 py-2 text-sm max-md:text-base bg-panel outline-none focus:border-blueprint w-full sm:w-72"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
@@ -112,7 +113,7 @@ function DocumentHistory() {
                   <li key={`${d.timestamp}-${i}`} className="flex items-center justify-between gap-4 px-4 py-3">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className={`text-[10px] font-semibold rounded px-2 py-0.5 ${t.cls}`}>{t.text}</span>
+                        <span className={`text-xs font-semibold rounded px-2 py-0.5 ${t.cls}`}>{t.text}</span>
                         <p className="text-sm font-medium text-ink truncate">
                           {d.projectName || d.fileName || 'Tanpa nama project'}
                         </p>
@@ -125,7 +126,7 @@ function DocumentHistory() {
                       href={d.documentUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex-shrink-0 text-sm font-medium text-blueprint hover:underline"
+                      className="tap flex-shrink-0 text-sm font-medium text-blueprint hover:underline"
                     >
                       Buka
                     </a>
@@ -140,7 +141,7 @@ function DocumentHistory() {
       {docs && !query && filtered.length > HISTORY_PREVIEW && (
         <button
           onClick={() => setShowAll((v) => !v)}
-          className="text-xs font-medium text-blueprint hover:underline self-start"
+          className="tap text-xs font-medium text-blueprint hover:underline self-start"
         >
           {showAll ? 'Tampilkan lebih sedikit' : `Tampilkan semua (${filtered.length})`}
         </button>

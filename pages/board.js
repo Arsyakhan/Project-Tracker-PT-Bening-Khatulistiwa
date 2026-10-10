@@ -87,7 +87,8 @@ export default function BoardPage() {
           <input
             type="search"
             placeholder="Cari PO, project, client, PIC..."
-            className="border border-line rounded-md pl-9 pr-4 py-2 text-sm bg-panel outline-none focus:border-blueprint w-full"
+            aria-label="Cari project di papan"
+            className="border border-line rounded-md pl-9 pr-4 py-2 text-sm max-md:text-base bg-panel outline-none focus:border-blueprint w-full"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />

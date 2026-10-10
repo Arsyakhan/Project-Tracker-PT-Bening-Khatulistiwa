@@ -104,7 +104,8 @@ export default function CommandPalette({ open, onClose }) {
               setActiveIndex(0);
             }}
             placeholder="Cari project, atau ketik untuk pindah halaman..."
-            className="flex-1 bg-transparent outline-none text-sm text-ink placeholder:text-inkmute"
+            aria-label="Cari project atau halaman"
+            className="flex-1 bg-transparent outline-none text-sm max-md:text-base text-ink placeholder:text-inkmute"
           />
           <kbd className="text-[10px] text-inkmute border border-line rounded px-1.5 py-0.5">ESC</kbd>
         </div>

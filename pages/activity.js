@@ -84,7 +84,8 @@ export default function ActivityLogPage() {
           <input
             type="search"
             placeholder="Cari PO, project, atau detail..."
-            className="border border-line rounded-md pl-9 pr-4 py-2 text-sm bg-panel outline-none focus:border-blueprint w-full"
+            aria-label="Cari aktivitas"
+            className="border border-line rounded-md pl-9 pr-4 py-2 text-sm max-md:text-base bg-panel outline-none focus:border-blueprint w-full"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -93,7 +94,8 @@ export default function ActivityLogPage() {
 
       <div className="flex flex-wrap items-center gap-3">
         <select
-          className="border border-line rounded-md px-3 py-2 text-sm bg-panel outline-none focus:border-blueprint text-ink"
+          aria-label="Filter user"
+          className="border border-line rounded-md px-3 py-2 text-sm max-md:text-base bg-panel outline-none focus:border-blueprint text-ink"
           value={userFilter}
           onChange={(e) => setUserFilter(e.target.value)}
         >
@@ -102,7 +104,8 @@ export default function ActivityLogPage() {
         </select>
 
         <select
-          className="border border-line rounded-md px-3 py-2 text-sm bg-panel outline-none focus:border-blueprint text-ink"
+          aria-label="Filter aksi"
+          className="border border-line rounded-md px-3 py-2 text-sm max-md:text-base bg-panel outline-none focus:border-blueprint text-ink"
           value={actionFilter}
           onChange={(e) => setActionFilter(e.target.value)}
         >
@@ -111,7 +114,7 @@ export default function ActivityLogPage() {
         </select>
 
         {hasActiveFilter && (
-          <button onClick={resetFilters} className="text-xs text-inkmute hover:text-rust font-medium px-2 py-1">
+          <button onClick={resetFilters} className="text-xs text-inkmute hover:text-rust font-medium px-2 py-1 max-md:py-2.5 max-md:text-sm">
             Reset filter
           </button>
         )}
@@ -123,7 +126,7 @@ export default function ActivityLogPage() {
 
       <div className="hidden md:block overflow-x-auto bg-panel rounded-xl border border-line shadow-sm">
         <table className="w-full text-sm text-left">
-          <thead className="text-[11px] text-inkmute uppercase bg-canvas/80 border-b border-line tracking-wider">
+          <thead className="text-xs text-inkmute uppercase bg-canvas/80 border-b border-line tracking-wider">
             <tr>
               <th className="px-5 py-3 font-semibold whitespace-nowrap">Waktu</th>
               <th className="px-5 py-3 font-semibold">User</th>
@@ -138,7 +141,7 @@ export default function ActivityLogPage() {
                 <td className="px-5 py-3 text-xs text-inkmute whitespace-nowrap">{formatTimestamp(l.timestamp)}</td>
                 <td className="px-5 py-3 text-sm text-ink whitespace-nowrap">{l.user || '-'}</td>
                 <td className="px-5 py-3">
-                  <span className={`px-2 py-0.5 rounded-md text-[11px] font-semibold border whitespace-nowrap ${ACTION_BADGE[l.action] || 'bg-canvas text-inkmute border-line'}`}>
+                  <span className={`px-2 py-0.5 rounded-md text-xs font-semibold border whitespace-nowrap ${ACTION_BADGE[l.action] || 'bg-canvas text-inkmute border-line'}`}>
                     {l.action}
                   </span>
                 </td>
@@ -163,20 +166,20 @@ export default function ActivityLogPage() {
         {filtered.map((l, idx) => (
           <div key={idx} className="bg-panel rounded-xl border border-line shadow-sm p-4 flex flex-col gap-2">
             <div className="flex items-center justify-between">
-              <span className={`px-2 py-0.5 rounded-md text-[10px] font-semibold border ${ACTION_BADGE[l.action] || 'bg-canvas text-inkmute border-line'}`}>
+              <span className={`px-2 py-0.5 rounded-md text-xs font-semibold border ${ACTION_BADGE[l.action] || 'bg-canvas text-inkmute border-line'}`}>
                 {l.action}
               </span>
-              <span className="text-[10px] text-inkmute">{formatTimestamp(l.timestamp)}</span>
+              <span className="text-xs text-inkmute">{formatTimestamp(l.timestamp)}</span>
             </div>
             {l.projectId ? (
-              <Link href={`/projects/${encodeURIComponent(l.projectId)}`} className="text-blueprint font-medium text-sm hover:underline">
+              <Link href={`/projects/${encodeURIComponent(l.projectId)}`} className="tap text-blueprint font-medium text-sm hover:underline">
                 {l.projectName || l.poNumber}
               </Link>
             ) : (
               <span className="text-inkmute text-sm">{l.projectName || l.poNumber || '-'}</span>
             )}
             <p className="text-xs text-inkmute break-words">{l.detail || '-'}</p>
-            <p className="text-[11px] text-inkmute border-t border-line/60 pt-2">oleh {l.user || 'Tidak diketahui'}</p>
+            <p className="text-xs text-inkmute border-t border-line/60 pt-2">oleh {l.user || 'Tidak diketahui'}</p>
           </div>
         ))}
       </div>

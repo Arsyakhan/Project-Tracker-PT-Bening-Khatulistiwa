@@ -99,7 +99,7 @@ export default function ProjectsPage() {
             onClick={handleExport}
             disabled={filtered.length === 0}
             title="Unduh daftar yang sedang tampil (sesuai pencarian & filter) sebagai file CSV untuk Excel"
-            className="inline-flex items-center gap-1.5 h-9 border border-line rounded-md px-3 text-sm font-medium text-ink bg-panel hover:border-blueprint hover:text-blueprint disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="inline-flex items-center gap-1.5 h-9 max-md:h-10 border border-line rounded-md px-3 text-sm font-medium text-ink bg-panel hover:border-blueprint hover:text-blueprint disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
@@ -118,6 +118,7 @@ export default function ProjectsPage() {
           <input
             type="search"
             placeholder="Cari PO, project, client, PIC, atau catatan..."
+            aria-label="Cari project"
             className="input !pl-9"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -150,7 +151,7 @@ export default function ProjectsPage() {
           </svg>
           <p className="text-ink font-medium">Tidak ada project yang cocok</p>
           <p className="text-inkmute text-sm">Longgarkan pencarian atau kurangi filter yang aktif.</p>
-          <button onClick={resetAll} className="mt-1 text-blueprint text-sm font-medium hover:underline">
+          <button onClick={resetAll} className="tap mt-1 text-blueprint text-sm font-medium hover:underline">
             Reset pencarian & filter
           </button>
         </div>

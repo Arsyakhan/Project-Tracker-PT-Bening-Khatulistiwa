@@ -79,10 +79,31 @@ h1, h2, h3, .font-display {
   border-color: rgb(var(--color-blueprint));
   box-shadow: 0 0 0 3px rgb(var(--color-blueprint) / 0.15);
 }
+/* iOS Safari memperbesar halaman sendiri saat kolom ber-font < 16px difokus; di HP pakai 16px. */
+@media (max-width: 767px) {
+  .input { font-size: 16px; }
+}
 
 /* Angka & kode teknis: lebar digit seragam supaya kolom rapi */
 .tnum {
   font-variant-numeric: tabular-nums;
+}
+
+/* Tautan/tombol teks kecil: area sentuh dilebarkan sampai 44px di HP dan layar sentuh tanpa
+   mengubah tata letak. Jangan dipakai pada elemen overflow:hidden (mis. line-clamp). */
+.tap {
+  position: relative;
+}
+@media (pointer: coarse), (max-width: 767px) {
+  .tap::after {
+    content: '';
+    position: absolute;
+    left: -4px;
+    right: -4px;
+    top: 50%;
+    height: max(100%, 44px);
+    transform: translateY(-50%);
+  }
 }
 
 /* Kertas milimeter halus, dipakai sebagai latar kepala halaman detail project */

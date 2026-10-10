@@ -65,7 +65,7 @@ export default function StatusPie({ dashboard }) {
             {hovered ? (
               <>
                 <span className="text-3xl font-display font-bold tnum" style={{ color: hovered.color }}>{hovered.count}</span>
-                <span className="text-[11px] text-inkmute mt-0.5 text-center leading-tight">
+                <span className="text-xs text-inkmute mt-0.5 text-center leading-tight">
                   {hovered.label}
                   <br />
                   {Math.round(hovered.pct)}%
@@ -74,7 +74,7 @@ export default function StatusPie({ dashboard }) {
             ) : (
               <>
                 <span className="text-3xl font-display font-bold text-ink tnum">{total}</span>
-                <span className="text-[11px] text-inkmute mt-0.5">Total project</span>
+                <span className="text-xs text-inkmute mt-0.5">Total project</span>
               </>
             )}
           </div>

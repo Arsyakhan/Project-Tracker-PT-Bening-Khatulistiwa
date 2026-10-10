@@ -58,16 +58,17 @@ export default function EngineeringDocs() {
       <PageHead title="Engineering Documents" />
 
       {/* Header & Filter Area */}
-      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-end gap-5 bg-panel p-5 rounded-xl border border-line shadow-sm">
+      <div className="flex flex-col 2xl:flex-row justify-between items-start 2xl:items-end gap-5 bg-panel p-5 rounded-xl border border-line shadow-sm">
         <div>
           <h1 className="font-display text-2xl font-bold text-ink">Engineering Documents</h1>
           <p className="text-inkmute text-sm mt-1">Lacak status dan tautan dokumen teknis (P&ID, BOM, EWD, dll).</p>
         </div>
         
         {/* Area 3 Buah Dropdown Filter */}
-        <div className="flex flex-col sm:flex-row gap-3 w-full xl:w-auto">
+        <div className="flex flex-col sm:flex-row gap-3 w-full 2xl:w-auto">
           <select
-            className="border border-line rounded-lg px-4 py-2 text-sm bg-canvas outline-none focus:border-blueprint focus:ring-1 focus:ring-blueprint flex-1 transition-all"
+            aria-label="Filter project"
+            className="border border-line rounded-lg px-4 py-2 text-sm max-md:text-base bg-canvas outline-none focus:border-blueprint focus:ring-1 focus:ring-blueprint flex-1 min-w-0 transition-all"
             value={filterProject}
             onChange={e => setFilterProject(e.target.value)}
           >
@@ -76,7 +77,8 @@ export default function EngineeringDocs() {
           </select>
 
           <select
-            className="border border-line rounded-lg px-4 py-2 text-sm bg-canvas outline-none focus:border-blueprint focus:ring-1 focus:ring-blueprint flex-1 transition-all"
+            aria-label="Filter dokumen"
+            className="border border-line rounded-lg px-4 py-2 text-sm max-md:text-base bg-canvas outline-none focus:border-blueprint focus:ring-1 focus:ring-blueprint flex-1 min-w-0 transition-all"
             value={filterDoc}
             onChange={e => setFilterDoc(e.target.value)}
           >
@@ -85,7 +87,8 @@ export default function EngineeringDocs() {
           </select>
 
           <select
-            className="border border-line rounded-lg px-4 py-2 text-sm bg-canvas outline-none focus:border-blueprint focus:ring-1 focus:ring-blueprint flex-1 transition-all"
+            aria-label="Filter status"
+            className="border border-line rounded-lg px-4 py-2 text-sm max-md:text-base bg-canvas outline-none focus:border-blueprint focus:ring-1 focus:ring-blueprint flex-1 min-w-0 transition-all"
             value={filterStatus}
             onChange={e => setFilterStatus(e.target.value)}
           >
@@ -102,7 +105,7 @@ export default function EngineeringDocs() {
       {/* Tabel Utama */}
       <div className="bg-panel border border-line rounded-xl overflow-hidden shadow-sm overflow-x-auto">
         <table className="w-full text-sm text-left whitespace-nowrap">
-          <thead className="text-[11px] text-inkmute uppercase bg-canvas/80 border-b border-line tracking-wider">
+          <thead className="text-xs text-inkmute uppercase bg-canvas/80 border-b border-line tracking-wider">
             <tr>
               <th className="px-5 py-4 font-semibold">PO Number</th>
               <th className="px-5 py-4 font-semibold">Project Name</th>
@@ -122,7 +125,7 @@ export default function EngineeringDocs() {
                 
                 {/* Project Name */}
                 <td className="px-5 py-4 font-medium min-w-[250px]">
-                  <Link href={`/projects/${encodeURIComponent(doc.id)}`} className="text-blueprint group-hover:text-blueprintdark group-hover:underline transition-colors line-clamp-1">
+                  <Link href={`/projects/${encodeURIComponent(doc.id)}`} className="text-blueprint group-hover:text-blueprintdark group-hover:underline transition-colors line-clamp-1 max-md:py-2 max-md:-my-2">
                     {doc.projectName}
                   </Link>
                 </td>
@@ -139,7 +142,7 @@ export default function EngineeringDocs() {
                 
                 {/* Status Badges Premium */}
                 <td className="px-5 py-4">
-                  <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold tracking-wide uppercase border ${
+                  <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold tracking-wide uppercase border ${
                     doc.status === 'Completed' ? 'bg-teal/10 text-teal border-teal/20' :
                     doc.status === 'Under Review' ? 'bg-amber/10 text-amberink border-amber/20' :
                     doc.status === 'Drafting' ? 'bg-blueprint/10 text-blueprint border-blueprint/20' :
@@ -157,7 +160,7 @@ export default function EngineeringDocs() {
                       href={doc.link} 
                       target="_blank" 
                       rel="noreferrer" 
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-canvas hover:bg-blueprint border border-line hover:border-blueprint text-ink hover:text-onaccent transition-all shadow-sm group/btn"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 max-md:py-2.5 rounded-md text-xs font-semibold bg-canvas hover:bg-blueprint border border-line hover:border-blueprint text-ink hover:text-onaccent transition-all shadow-sm group/btn"
                     >
                       Buka
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3 h-3 group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5 transition-transform">
@@ -167,7 +170,7 @@ export default function EngineeringDocs() {
                   ) : DOC_GENERATOR_ROUTE[doc.docName] ? (
                     <Link
                       href={`/documents/${DOC_GENERATOR_ROUTE[doc.docName]}/new?projectId=${encodeURIComponent(doc.id)}`}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-blueprint/10 hover:bg-blueprint border border-blueprint/30 hover:border-blueprint text-blueprint hover:text-onaccent transition-all"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 max-md:py-2.5 rounded-md text-xs font-semibold bg-blueprint/10 hover:bg-blueprint border border-blueprint/30 hover:border-blueprint text-blueprint hover:text-onaccent transition-all"
                     >
                       + Buat Dokumen
                     </Link>

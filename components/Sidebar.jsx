@@ -84,7 +84,7 @@ export default function Sidebar({ pathname, session, recentProjects, isDark, onN
           />
         </Link>
         {onClose && (
-          <button type="button" onClick={onClose} aria-label="Tutup menu" className="md:hidden p-2 -mr-2 rounded-md text-inkmute hover:bg-canvas hover:text-ink">
+          <button type="button" onClick={onClose} aria-label="Tutup menu" autoFocus className="md:hidden p-2.5 -mr-2.5 rounded-md text-inkmute hover:bg-canvas hover:text-ink">
             <Icon d={ICONS.close} className="w-5 h-5" />
           </button>
         )}
@@ -114,7 +114,7 @@ export default function Sidebar({ pathname, session, recentProjects, isDark, onN
       <nav aria-label="Menu utama" className="flex-1 overflow-y-auto px-3 pt-4 pb-2 flex flex-col gap-4">
         {NAV_GROUPS.map((group) => (
           <div key={group.label}>
-            <span className="px-3 pb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-inkmute">{group.label}</span>
+            <span className="px-3 pb-1.5 block text-xs font-semibold uppercase tracking-wider text-inkmute">{group.label}</span>
             <ul className="flex flex-col gap-0.5">
               {group.items.map((item) => {
                 const active = isCurrent(pathname, item.href);
@@ -141,7 +141,7 @@ export default function Sidebar({ pathname, session, recentProjects, isDark, onN
 
         {recentProjects.length > 0 && (
           <div>
-            <span className="px-3 pb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-inkmute">Terakhir dibuka</span>
+            <span className="px-3 pb-1.5 block text-xs font-semibold uppercase tracking-wider text-inkmute">Terakhir dibuka</span>
             <ul className="flex flex-col gap-0.5">
               {recentProjects.map((p) => {
                 const href = `/projects/${encodeURIComponent(p.id)}`;
@@ -151,7 +151,7 @@ export default function Sidebar({ pathname, session, recentProjects, isDark, onN
                       href={href}
                       onClick={onNavigate}
                       title={p.projectName}
-                      className="flex items-center gap-2.5 px-3 h-8 rounded-md text-xs text-inkmute hover:bg-canvas hover:text-ink transition-colors"
+                      className="flex items-center gap-2.5 px-3 h-8 max-md:h-10 rounded-md text-xs max-md:text-sm text-inkmute hover:bg-canvas hover:text-ink transition-colors"
                     >
                       <span className="w-1.5 h-1.5 rounded-full bg-blueprint/60 flex-shrink-0" aria-hidden="true" />
                       <span className="truncate">{p.projectName || p.poNumber}</span>
@@ -177,7 +177,7 @@ export default function Sidebar({ pathname, session, recentProjects, isDark, onN
             <div className="min-w-0">
               <span className="block text-xs text-ink font-medium truncate" title={user.email}>{user.email}</span>
               {user.role && (
-                <span className={`inline-block mt-0.5 text-[10px] leading-4 px-1.5 rounded ${viewer ? 'bg-amber/15 text-amberink font-semibold' : 'bg-blueprint/10 text-blueprint font-medium'}`}>
+                <span className={`inline-block mt-0.5 text-xs leading-4 px-1.5 rounded ${viewer ? 'bg-amber/15 text-amberink font-semibold' : 'bg-blueprint/10 text-blueprint font-medium'}`}>
                   {roleLabel(user.role)}
                 </span>
               )}
@@ -190,7 +190,7 @@ export default function Sidebar({ pathname, session, recentProjects, isDark, onN
             type="button"
             onClick={onToggleTheme}
             aria-pressed={isDark}
-            className="flex items-center justify-center gap-2 h-9 rounded-lg border border-line text-inkmute hover:bg-canvas hover:text-ink text-xs font-medium transition-colors"
+            className="flex items-center justify-center gap-2 h-9 max-md:h-10 rounded-lg border border-line text-inkmute hover:bg-canvas hover:text-ink text-xs font-medium transition-colors"
           >
             <Icon d={isDark ? ICONS.today : ICONS.moon} className="w-4 h-4" />
             {isDark ? 'Terang' : 'Gelap'}
@@ -198,7 +198,7 @@ export default function Sidebar({ pathname, session, recentProjects, isDark, onN
           <button
             type="button"
             onClick={onLogout}
-            className="flex items-center justify-center gap-2 h-9 rounded-lg border border-line text-rust hover:bg-rust/10 hover:border-rust/30 text-xs font-medium transition-colors"
+            className="flex items-center justify-center gap-2 h-9 max-md:h-10 rounded-lg border border-line text-rust hover:bg-rust/10 hover:border-rust/30 text-xs font-medium transition-colors"
           >
             <Icon d={ICONS.logout} className="w-4 h-4" />
             Keluar

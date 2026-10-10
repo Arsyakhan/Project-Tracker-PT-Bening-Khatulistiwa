@@ -175,6 +175,11 @@ mencetaknya di log/PR.
 - Tombol: `.btn` + `.btn-primary|secondary|ghost|danger`. Font: Inter (teks), Space Grotesk (judul),
   IBM Plex Mono (data), dimuat lewat `<link>` di `pages/_document.js`.
 - Target kontras minimal 4,5:1 di kedua tema; hormati `prefers-reduced-motion`.
+- Di HP (lebar < 768px): teks informasi minimal 12px (`text-xs`; jangan `text-[10px]`/`text-[11px]`, kecuali
+  glyph dekoratif, petunjuk `kbd`, dan lencana angka), tombol minimal 40px (`h-9 max-md:h-10`), kolom isian
+  16px (`.input` sudah otomatis, supaya iOS tidak memperbesar halaman). Tautan/tombol teks kecil diberi
+  kelas `.tap` agar area sentuhnya 44px tanpa mengubah tata letak (jangan dipakai pada elemen
+  `overflow:hidden`/`line-clamp`). Kolom pencarian dan filter wajib punya `aria-label`.
 - Design system di Claude (artifact "Bening Hub") berisi token & 21 komponen; token-nya masih versi
   lama sebelum PR #1 (kontras) dan perlu disinkronkan ulang.
 

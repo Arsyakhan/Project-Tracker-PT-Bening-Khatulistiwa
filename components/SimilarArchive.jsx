@@ -14,7 +14,7 @@ export default function SimilarArchive({ modules }) {
     <section className="bg-panel border border-line rounded-lg p-4 sm:p-5 shadow-sm" aria-labelledby="mirip-arsip-title">
       <div className="flex items-baseline justify-between gap-2 mb-3">
         <h2 id="mirip-arsip-title" className="font-display font-semibold text-ink">Pernah dikerjakan: project arsip yang mirip</h2>
-        <Link href="/arsip" className="text-xs text-blueprint hover:underline whitespace-nowrap">Semua arsip</Link>
+        <Link href="/arsip" className="tap text-xs text-blueprint hover:underline whitespace-nowrap">Semua arsip</Link>
       </div>
       <ul className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {similar.map(({ project: p, score }) => (
@@ -22,7 +22,7 @@ export default function SimilarArchive({ modules }) {
             <Link href={`/arsip/${encodeURIComponent(p.id)}`} className="block h-full border border-line rounded-md p-3 hover:border-blueprint transition-colors">
               <span className="block text-sm font-medium text-ink leading-snug">{p.name}</span>
               <span className="block text-xs text-blueprint mt-1">{chainText(p.modules, 4)}</span>
-              <span className="block text-[11px] text-inkmute mt-1">{p.year} · mirip {Math.round(score * 100)}%</span>
+              <span className="block text-xs text-inkmute mt-1">{p.year} · mirip {Math.round(score * 100)}%</span>
             </Link>
           </li>
         ))}

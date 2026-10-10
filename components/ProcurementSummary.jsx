@@ -36,7 +36,7 @@ export default function ProcurementSummary() {
         <div className="flex items-center gap-2">
           {late > 0 && <Pill tone="rust" dot>{late} terlambat</Pill>}
           {soon > 0 && <Pill tone="amber">{soon} tiba ≤ 7 hari</Pill>}
-          <Link href="/procurement" className="text-sm font-medium text-blueprint hover:underline whitespace-nowrap">Buka pengadaan</Link>
+          <Link href="/procurement" className="tap text-sm font-medium text-blueprint hover:underline whitespace-nowrap">Buka pengadaan</Link>
         </div>
       </div>
 
