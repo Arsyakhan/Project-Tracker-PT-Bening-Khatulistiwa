@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import useProjects from '../lib/useProjects';
+import useActionItems from '../lib/useActionItems';
 import StatCard from '../components/StatCard';
 import StatusPie from '../components/StatusPie';
 import ProgressChart from '../components/ProgressChart';
@@ -7,14 +7,12 @@ import Timeline from '../components/Timeline';
 import ProjectTable from '../components/ProjectTable';
 import { SkeletonStatCards, SkeletonPanel, SkeletonTable } from '../components/Skeleton';
 import PageHead from '../components/PageHead';
-import AttentionPanel from '../components/AttentionPanel';
 import RefreshStatus from '../components/RefreshStatus';
-import MeetingSummary from '../components/MeetingSummary';
-import ProcurementSummary from '../components/ProcurementSummary';
+import TodayBanner from '../components/TodayBanner';
 
 export default function Dashboard() {
   // Data terakhir langsung tampil (kalau ada), lalu disegarkan di belakang layar.
-  const { projects, error, staleError, refreshing } = useProjects();
+  const { projects, items, settled, missing, error, staleError, refreshing } = useActionItems();
   const [activeTab, setActiveTab] = useState('preDelivery');
   const listRef = useRef(null);
 
@@ -75,6 +73,8 @@ export default function Dashboard() {
         <RefreshStatus refreshing={refreshing} staleError={staleError} />
       </div>
 
+      <TodayBanner items={items} settled={settled} missing={missing} />
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard
           label="Total Project"
@@ -108,12 +108,6 @@ export default function Dashboard() {
           hint={activeTab === 'completed' ? 'Sedang ditampilkan' : 'Lihat daftar ↓'}
         />
       </div>
-
-      <MeetingSummary />
-
-      <ProcurementSummary />
-
-      <AttentionPanel projects={projects} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <div className="col-span-1">

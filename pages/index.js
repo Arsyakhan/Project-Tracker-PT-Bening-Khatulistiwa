@@ -1,16 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
-import { api } from '../lib/api';
-import useCachedResource from '../lib/useCachedResource';
-import useProjects from '../lib/useProjects';
+import useActionItems from '../lib/useActionItems';
 import PageHead from '../components/PageHead';
 import RefreshStatus from '../components/RefreshStatus';
 import { Pill } from '../components/Badges';
 import { SkeletonPanel } from '../components/Skeleton';
-import { computeOpenItems, fmtLong, fmtTimeRange, relativeDay, todayIso } from '../lib/meetings';
+import { fmtLong, fmtTimeRange, relativeDay, todayIso } from '../lib/meetings';
 import {
-  DIVISIONS, buildActionItems, countsByDivision, filterByDivision, groupBySeverity, summaryText, workloadByDivision,
+  DIVISIONS, countsByDivision, filterByDivision, groupBySeverity, severityCounts, summaryText, workloadByDivision,
 } from '../lib/today';
 
 const DIVISION_KEY = 'ptbk_today_division';
@@ -78,8 +76,8 @@ function FeedGroup({ group }) {
               </span>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-semibold uppercase tracking-wide text-inkmute">{KIND_LABEL[it.kind]}</span>
-                  {it.priority === 'High' && it.kind === 'project' && <span className="text-[10px] font-semibold uppercase tracking-wide text-rust">Prioritas tinggi</span>}
+                  <span className="text-xs font-semibold uppercase tracking-wide text-inkmute">{KIND_LABEL[it.kind]}</span>
+                  {it.priority === 'High' && it.kind === 'project' && <span className="text-xs font-semibold uppercase tracking-wide text-rust">Prioritas tinggi</span>}
                 </div>
                 <p className="text-sm font-medium text-ink truncate group-hover:text-blueprint">{it.title}</p>
                 <p className="text-xs text-inkmute mt-0.5 truncate">{it.detail}</p>
@@ -100,11 +98,11 @@ function FeedGroup({ group }) {
 
 // Empat angka kunci di atas halaman, menurut filter divisi yang sedang aktif.
 function Kpis({ items, running }) {
-  const count = (sev) => items.filter((i) => i.sev === sev).length;
+  const n = severityCounts(items);
   const tiles = [
-    { label: 'Terlambat', value: count(0), text: 'text-rust', bar: 'bg-rust' },
-    { label: 'Segera jatuh tempo', value: count(1), text: 'text-amberink', bar: 'bg-amber' },
-    { label: 'Perlu dilengkapi', value: count(2), text: 'text-ink', bar: 'bg-inkmute' },
+    { label: 'Terlambat', value: n.late, text: 'text-rust', bar: 'bg-rust' },
+    { label: 'Segera jatuh tempo', value: n.soon, text: 'text-amberink', bar: 'bg-amber' },
+    { label: 'Perlu dilengkapi', value: n.todo, text: 'text-ink', bar: 'bg-inkmute' },
     { label: 'Project berjalan', value: running, text: 'text-blueprint', bar: 'bg-blueprint' },
   ];
   return (
@@ -139,7 +137,7 @@ function DivisionTabs({ value, onChange, counts }) {
           >
             {t.label}
             {c.late > 0 && (
-              <span className={`font-data tnum text-[11px] rounded-full px-1.5 leading-5 ${active ? 'bg-onaccent/20 text-onaccent' : 'bg-rust/10 text-rust'}`} title={`${c.late} terlambat`}>
+              <span className={`font-data tnum text-xs rounded-full px-1.5 leading-5 ${active ? 'bg-onaccent/20 text-onaccent' : 'bg-rust/10 text-rust'}`} title={`${c.late} terlambat`}>
                 {c.late}
               </span>
             )}
@@ -219,9 +217,8 @@ function NextMeeting({ meetings, error }) {
 }
 
 export default function TodayPage() {
-  const { projects, error, staleError, refreshing } = useProjects();
-  const { data: procurement, error: procError } = useCachedResource('procurement', () => api.getProcurement());
-  const { data: meetings, error: meetingError } = useCachedResource('meetings', () => api.getMeetings());
+  // Sumber data dan hitungan yang sama dengan banner di Dashboard (lib/useActionItems.js).
+  const { projects, meetings, items: all, missing, error, staleError, refreshing, meetingError } = useActionItems();
   const { data: session } = useSession();
   const [division, setDivisionState] = useState('');
   const [hello, setHello] = useState('Halo'); // sapaan menurut jam diisi di browser supaya tidak beda dengan hasil server
@@ -233,11 +230,6 @@ export default function TodayPage() {
   }
 
   const today = todayIso();
-  const openMeetingItems = useMemo(() => computeOpenItems(meetings || []), [meetings]);
-  const all = useMemo(
-    () => (projects ? buildActionItems({ projects, procurement: procurement || [], openMeetingItems, today }) : []),
-    [projects, procurement, openMeetingItems, today]
-  );
   const counts = useMemo(() => countsByDivision(all), [all]);
   // Project berjalan: semua, atau hanya yang stage-nya dipegang divisi terpilih (sama dengan "Bola ada di siapa").
   const running = useMemo(() => {
@@ -252,8 +244,6 @@ export default function TodayPage() {
   if (error && !projects) {
     return <div className="bg-panel border border-line rounded-lg p-6 text-rust" role="alert">Gagal memuat data: {error}.</div>;
   }
-
-  const missing = [procError && !procurement && 'pengadaan', meetingError && !meetings && 'rapat'].filter(Boolean);
 
   return (
     <div className="flex flex-col gap-6">
