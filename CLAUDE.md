@@ -168,8 +168,11 @@ mencetaknya di log/PR.
   ≤7 hari untuk langkah berikutnya, pengadaan, dan rapat). Halaman Hari Ini dan banner `TodayBanner` di
   Dashboard memakai hook yang sama (`lib/useActionItems.js`), jadi angkanya selalu sama. Jangan menghitung ulang
   terlambat/segera di halaman lain. Dashboard sengaja hanya berisi analitik (kartu, grafik, tabel); daftar yang
-  perlu ditindak ada di Hari Ini. `AttentionPanel`, `MeetingSummary`, dan `ProcurementSummary` tidak dipakai
-  lagi (filenya belum dihapus).
+  perlu ditindak ada di Hari Ini. (Panel lama `AttentionPanel`, `MeetingSummary`, dan `ProcurementSummary`
+  sudah dihapus; kalau perlu, ada di riwayat git.)
+- **Istilah UI**: teks yang tampil ke pengguna berbahasa Indonesia (Tanggal kirim, Tenggat, Prioritas, Pengguna).
+  Nilai yang tersimpan di Sheet tetap apa adanya (status `In Progress`/`Completed`, prioritas `High`/`Medium`/`Low`,
+  nama 12 stage, kolom `Delivery Date`), dan nama fase Dashboard (Pre-Delivery/Delivered/Completed) belum diganti.
 - API: `pages/api/gas.js` (proxy utama), `docgen.js` (Commissioning/Hand Over + catat ke Document Log
   + update checklist), `meeting-doc.js` (Notulensi), `auth/[...nextauth].js`.
 - Pustaka: `lib/` (`api.js`, `useProjects.js`, `useCachedResource.js`, `persistedCache.js`, `stages.js`,

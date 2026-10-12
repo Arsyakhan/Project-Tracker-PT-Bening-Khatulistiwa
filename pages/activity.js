@@ -45,7 +45,7 @@ export default function ActivityLogPage() {
   if (!log) {
     return (
       <div className="flex flex-col gap-6">
-        <h1 className="font-display text-2xl font-semibold text-ink">Activity Log</h1>
+        <h1 className="font-display text-2xl font-semibold text-ink">Aktivitas</h1>
         <SkeletonTable rows={8} />
       </div>
     );
@@ -71,10 +71,10 @@ export default function ActivityLogPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHead title="Activity Log" />
+      <PageHead title="Aktivitas" />
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
         <div>
-          <h1 className="font-display text-2xl font-semibold text-ink">Activity Log</h1>
+          <h1 className="font-display text-2xl font-semibold text-ink">Aktivitas</h1>
           <p className="text-inkmute text-sm mt-1">Riwayat siapa mengubah apa. Menampilkan 300 aktivitas terakhir.</p>
         </div>
         <div className="relative w-full sm:w-72">
@@ -94,12 +94,12 @@ export default function ActivityLogPage() {
 
       <div className="flex flex-wrap items-center gap-3">
         <select
-          aria-label="Filter user"
+          aria-label="Filter pengguna"
           className="border border-line rounded-md px-3 py-2 text-sm max-md:text-base bg-panel outline-none focus:border-blueprint text-ink"
           value={userFilter}
           onChange={(e) => setUserFilter(e.target.value)}
         >
-          <option value="">Semua User</option>
+          <option value="">Semua Pengguna</option>
           {userOptions.map((u) => <option key={u} value={u}>{u}</option>)}
         </select>
 
@@ -129,7 +129,7 @@ export default function ActivityLogPage() {
           <thead className="text-xs text-inkmute uppercase bg-canvas/80 border-b border-line tracking-wider">
             <tr>
               <th className="px-5 py-3 font-semibold whitespace-nowrap">Waktu</th>
-              <th className="px-5 py-3 font-semibold">User</th>
+              <th className="px-5 py-3 font-semibold">Pengguna</th>
               <th className="px-5 py-3 font-semibold">Aksi</th>
               <th className="px-5 py-3 font-semibold">Project</th>
               <th className="px-5 py-3 font-semibold">Detail</th>

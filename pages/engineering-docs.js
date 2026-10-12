@@ -108,7 +108,7 @@ export default function EngineeringDocs() {
           <thead className="text-xs text-inkmute uppercase bg-canvas/80 border-b border-line tracking-wider">
             <tr>
               <th className="px-5 py-4 font-semibold">PO Number</th>
-              <th className="px-5 py-4 font-semibold">Project Name</th>
+              <th className="px-5 py-4 font-semibold">Nama Project</th>
               <th className="px-5 py-4 font-semibold">Dokumen</th>
               <th className="px-5 py-4 font-semibold">Status</th>
               <th className="px-5 py-4 font-semibold">Tautan</th>
