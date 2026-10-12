@@ -57,6 +57,11 @@ helper dari `Code.gs`:
 **Script Properties** (Project Settings): `API_TOKEN` (dibuat `setup()`, = `GAS_API_TOKEN` di Vercel),
 `ADMIN_NOTIFICATION_EMAILS`, `DIGEST_EMAILS`, `APP_URL`, `BACKUP_FOLDER_ID` (otomatis), `LAST_BACKUP_AT` (otomatis).
 
+**Nama file di editor.** Antarmuka bahasa Indonesia menamai `Code.gs` menjadi `Kode.gs`, dan di editor pemilik
+`Archive.gs` bernama `Archive.gs.gs` (editor otomatis menambah `.gs`). Itu tidak berpengaruh: semua file berbagi satu
+lingkup global, dan urutan file juga tidak berpengaruh (diuji 12 Okt 2026: keenam file dimuat dengan tiga urutan
+berbeda dan semuanya lolos; tidak ada kode tingkat-atas yang saling merujuk antarfile).
+
 **Aksi API** (lewat `/api/gas`, allowlist di `pages/api/gas.js`):
 
 - GET: `projects`, `dashboard`, `meta`, `activityLog`, `comments`, `documents`, `specs`, `meetings`, `procurement`, `archive`
@@ -76,23 +81,25 @@ helper dari `Code.gs`:
 > Uji tiruan Apps Script dijalankan ulang terhadap ekspor sheet asli sesudah penukaran: v2.7 lolos, dan kode v2.6
 > yang masih live juga tetap jalan di struktur baru.
 >
-> **Masih tersisa (belum dilakukan):**
+> **Sudah selesai sesudahnya (dicek 12 Okt 2026):** pemilik menghapus tab `Project Tracker (lama)` dan `Dashboard`
+> (sheet kini 11 tab, tanpa sel error di Project Tracker, Checklist, Arsip, dan Reference), lalu menempel dan
+> men-deploy `Code.gs` v2.7 dan `Archive.gs`. Claude tidak bisa melihat editor Apps Script, jadi bukti deploy-nya tidak
+> langsung: sesudah itu, edit stage lewat web tidak lagi menimpa rumus `Stage Progress` (v2.6 menimpanya), semua rumus
+> tracker dan Checklist masih utuh, dan log Vercel tanpa error. Yang belum teruji di sheet asli: tambah project baru
+> lewat web (kolom `Tahun` terisi) dan tambah arsip baru (nomor terbesar + 1); lihat TL-0018.
 >
-> 1. Tab `Project Tracker (lama)` dan `Dashboard` masih ada di ujung deretan tab. Penghapusannya ditolak pemeriksa
->    izin otomatis, jadi dibiarkan; hapus lewat klik kanan > Hapus, atau minta Claude setelah pemilik memberi izin
->    eksplisit. Rumus `Dashboard` menunjuk ke `Project Tracker (lama)`: hapus keduanya bersamaan.
-> 2. Pemilik harus menempel `Code.gs` v2.7 dan `Archive.gs` ke editor Apps Script lalu Deploy > Manage deployments >
->    pensil > Version: New version > Deploy. Selama belum, v2.6 melayani struktur baru dengan dua kekurangan: kolom
->    `Tahun` project baru dari web kosong (web memakai tahun Tanggal PO sebagai cadangan) dan rumus `Stage Progress` /
->    `Engineering Doc Progress` di baris yang diubah lewat web bisa tertimpa nilai biasa.
-> 3. Grid teknologi di tracker belum tersambung ke data teknologi di web (lihat di bawah).
+> **Masih tersisa:**
+>
+> 1. Grid teknologi di tracker belum tersambung ke data teknologi di web (lihat di bawah; TL-0013).
+> 2. Keputusan dan tindakan pemilik (izin berbagi sheet, zona waktu, data janggal, rahasia generator Notulensi) ada di
+>    tab `Tindak Lanjut` di Drive `_Claude`.
 
 Tab yang dipakai API: `Project Tracker`, `Engineering Deliverables Checklist`, `Activity Log`, `Comments`,
 `Document Log`, `Project Specs`, `Meetings`, `Procurement` (tab-tab ini dibuat otomatis) dan
 `[ARSIP] FINISHED PROJECT` (dibaca & ditulis `Archive.gs`). Tab manual pemilik: `Reference` (bobot stage + daftar
 pilihan, dibaca rumus sheet, bukan API) dan `[ARSIP] Data HO and Commisioning- Dokumen Fisik` (catatan manual, tidak
-dibaca web). Tab `Dashboard` lama (ringkasan buatan tangan) kembar dengan halaman Dashboard di web, jadi akan dihapus
-bersama `Project Tracker (lama)` (lihat "Masih tersisa" di atas); keduanya bukan bagian API.
+dibaca web). Tab `Dashboard` lama (ringkasan buatan tangan, kembar dengan halaman Dashboard di web) dan
+`Project Tracker (lama)` sudah dihapus pemilik (12 Okt 2026).
 
 **`Project Tracker` (struktur baru):**
 
@@ -201,9 +208,11 @@ menghapus project**. Jadi email PM masuk `ADMIN_EMAILS`; email engineer cukup di
 Hapus **rapat** dan **barang pengadaan** boleh untuk editor (sudah dikonfirmasi pemilik); hanya
 **hapus project** (`deleteProject`) dan **hapus data arsip** (`deleteArchiveProject`) yang khusus admin. Allowlist-nya `DELETE_ACTIONS` di `pages/api/gas.js`.
 
-> Status 9 Okt 2026: `ADMIN_EMAILS` dan `VIEWER_EMAILS` **belum diisi** di Vercel, artinya saat ini
-> semua pengguna yang boleh login adalah admin (engineer pun bisa menghapus). Variabel baru berlaku
-> setelah redeploy. `DOCGEN_MEETING_SECRET` juga belum ada di Vercel.
+> Status 12 Okt 2026 (dicek lewat Vercel; hanya nama variabel yang terlihat, nilainya disembunyikan): `ADMIN_EMAILS`
+> **sudah ada** di Production, Preview, dan Development (dibuat 9 Okt 2026), jadi pengguna yang tidak terdaftar di
+> dalamnya kini berperan editor (tidak bisa menghapus project). Isinya tidak bisa diperiksa dari sini: pemilik perlu
+> memastikan email PM ada di dalamnya. `VIEWER_EMAILS` belum ada (opsional). `DOCGEN_MEETING_SECRET` belum ada di
+> Vercel. Variabel baru berlaku setelah redeploy.
 
 ## Environment variable (Vercel + `.env.local`)
 
@@ -211,6 +220,11 @@ Hapus **rapat** dan **barang pengadaan** boleh untuk editor (sudah dikonfirmasi 
 `DOCGEN_MEETING_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `ALLOWED_EMAILS`, `ADMIN_EMAILS`,
 `VIEWER_EMAILS`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL`. Jangan pernah menaruh nilai rahasia di repo atau
 mencetaknya di log/PR.
+
+Catatan (dicek 12 Okt 2026): `GAS_API_URL` hanya ada di Production, jadi Preview Deployment tidak bisa membaca data
+Sheet (`/api/gas` membalas "Server belum dikonfigurasi"). Itu aman karena Preview tidak menulis ke data asli, tetapi
+tampilan dengan data hanya bisa diperiksa di produksi, atau lewat salinan sheet uji dengan Apps Script terpisah.
+`NEXT_PUBLIC_API_URL` masih ada di Vercel tetapi tidak dipakai kode mana pun (aman dihapus).
 
 ## Peta frontend
 
@@ -297,8 +311,10 @@ lewat konektor Google Drive dan Google Sheets (bukan lewat API Bening Hub; front
   relevan. Tambah baris lewat append, ubah baris lewat ID-nya, **jangan hapus baris** (ubah kolom Status).
 - Konektor Drive hanya bisa mengubah **nama dan lokasi** file, bukan isi Google Doc atau file teks yang sudah
   ada. Dokumen panjang dibuat sebagai Doc baru di `Dokumen`; yang bisa diubah di tempat hanya Google Sheets.
-- **Jangan menyimpan rahasia** (kata sandi, token, API key, data pribadi): folder induk dibagikan "siapa saja
-  dengan tautan bisa melihat" (status 12 Okt 2026). Jangan mengubah izin berbagi tanpa diminta.
+- **Jangan menyimpan rahasia** (kata sandi, token, API key, data pribadi): folder induk dan `_Claude` dibagikan
+  "siapa saja dengan tautan bisa melihat", dan spreadsheet `Project Tracker_PT Bening Khatulistiwa` bahkan "siapa saja
+  dengan tautan bisa mengedit" (status 12 Okt 2026; TL-0001 di tab Tindak Lanjut, pemilik yang memutuskan). Jangan
+  mengubah izin berbagi tanpa diminta.
 - Sheet `Project Tracker_PT Bening Khatulistiwa` (di folder Project Management) adalah database aplikasi,
   bukan tempat catatan. Jangan mengeditnya lewat konektor kecuali diminta.
 
@@ -307,11 +323,15 @@ lewat konektor Google Drive dan Google Sheets (bukan lewat API Bening Hub; front
 - `docgen/meeting.gs`: versi live belum memeriksa `GENERATOR_SECRET` (hanya disebut di komentar).
   Salinan di repo sudah ditambah pengecekannya; baru berlaku setelah ditempel & di-deploy ulang, dan
   `GENERATOR_SECRET` (Script Properties) harus sama dengan `DOCGEN_MEETING_SECRET` (Vercel).
-- Tampilan aplikasi asli belum bisa diperiksa dari sandbox (butuh login Google + data Sheet live);
-  cek lewat Vercel Preview.
+- Tampilan aplikasi asli belum bisa diperiksa dari sandbox (butuh login Google + data Sheet live); Preview Deployment
+  juga tanpa data (lihat catatan `GAS_API_URL` di bagian Environment variable). Hasil nyata terlihat di produksi
+  dan di tab `Activity Log` (aksi yang dilakukan pemilik lewat web tercatat di sana).
 - Zona waktu: spreadsheet `America/Los_Angeles`, script WIB (disimpulkan dari jam ringkasan mingguan; pemilik belum
   mengonfirmasi). v2.7 sudah tahan terhadap perbedaan ini, tetapi jam di tab Activity Log tampil dalam waktu Los Angeles.
 - Data tanggal lama yang janggal (bukan akibat penataan, hanya terlihat saat dirapikan): project 2015-2018 masih
   `In Progress`; tanggal kirim sebelum tanggal PO pada TKE-ISK; Tanggal DP sebelum Tanggal PO pada TKE MUS, TKE BMM, dan
-  TKE CAP. Perlu dikonfirmasi pemilik sebelum diubah.
+  TKE CAP; No 18 Unilever Skin RO1 & RO2 Auto berada di tahap Hand Over and Finished tetapi Status masih `In Progress`.
+  Perlu dikonfirmasi pemilik sebelum diubah.
+- Kolom Langkah berikutnya (`Next Action*`) dan `Blocker` masih kosong di semua project (dicek 12 Okt 2026), jadi
+  halaman Hari Ini baru berguna penuh setelah pemilik mengisinya (lewat kartu Langkah berikutnya di detail project).
 - Grid teknologi di Project Tracker belum tersambung ke web (lihat "Teknologi project aktif" dan "Tab Google Sheet").
