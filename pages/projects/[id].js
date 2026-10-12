@@ -482,7 +482,7 @@ export default function ProjectDetailPage() {
           <TitleCell label="Lokasi plant" value={project.lokasiPlant} />
           <TitleCell label="PIC" value={project.pic} />
           <TitleCell label="Teknologi / kapasitas" value={project.technology} />
-          <TitleCell className="col-span-2 md:col-span-1" label="Delivery" value={project.deliveryDate ? fmtDate(project.deliveryDate) : ''} extra={<DeliveryHint p={project} />} />
+          <TitleCell className="col-span-2 md:col-span-1" label="Tanggal kirim" value={project.deliveryDate ? fmtDate(project.deliveryDate) : ''} extra={<DeliveryHint p={project} />} />
         </dl>
       </header>
 

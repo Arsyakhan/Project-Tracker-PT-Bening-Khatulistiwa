@@ -13,11 +13,11 @@ const PRIORITY_RANK = { High: 3, Medium: 2, Low: 1 };
 const COLUMNS = [
   { key: 'name', label: 'Project', sort: (p) => p.projectName },
   { key: 'pic', label: 'PIC', sort: (p) => p.pic },
-  { key: 'stage', label: 'Stage & progress', sort: (p) => p.stageProgress },
+  { key: 'stage', label: 'Stage & progres', sort: (p) => p.stageProgress },
   { key: 'next', label: 'Langkah berikutnya', sort: (p, today) => nextActionSortKey(p, today) },
   { key: 'doc', label: 'Dokumen', sort: (p) => p.engineeringDocProgress },
-  { key: 'priority', label: 'Priority', sort: (p) => PRIORITY_RANK[p.priority] || 0 },
-  { key: 'delivery', label: 'Delivery', sort: (p) => p.deliveryDate || null, align: 'right' },
+  { key: 'priority', label: 'Prioritas', sort: (p) => PRIORITY_RANK[p.priority] || 0 },
+  { key: 'delivery', label: 'Tgl kirim', sort: (p) => p.deliveryDate || null, align: 'right' },
 ];
 
 function SortIcon({ active, dir }) {

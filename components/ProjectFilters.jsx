@@ -9,7 +9,7 @@ export const FACETS = [
   { key: 'phase', label: 'Fase', get: (p) => [phaseOf(p)], order: PHASES },
   { key: 'status', label: 'Status', get: (p) => [p.status || 'Tanpa status'], order: ['Not Started', 'In Progress', 'On Hold', 'Completed'] },
   { key: 'stage', label: 'Stage', get: (p) => [p.currentStage || 'Tanpa stage'], order: STAGES },
-  { key: 'priority', label: 'Priority', get: (p) => [p.priority || 'Tanpa priority'], order: ['High', 'Medium', 'Low'] },
+  { key: 'priority', label: 'Prioritas', get: (p) => [p.priority || 'Tanpa prioritas'], order: ['High', 'Medium', 'Low'] },
   { key: 'pic', label: 'PIC', get: (p) => [p.pic || 'Tanpa PIC'] },
   { key: 'client', label: 'Client', get: (p) => [p.client || 'Tanpa client'], searchable: true },
   { key: 'tech', label: 'Teknologi', get: techTypes },
