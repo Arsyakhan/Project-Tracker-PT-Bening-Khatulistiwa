@@ -68,18 +68,31 @@ helper dari `Code.gs`:
 
 ### Tab Google Sheet
 
-> **Status penerapan (12 Okt 2026):** struktur baru di bawah ini sudah dirancang dan diuji penuh di salinan
-> spreadsheet ("UJI COBA"), dan kode v2.7 diuji terhadap struktur lama **maupun** baru. **Belum diterapkan ke sheet
-> asli** (penulisan data ke sheet asli ditolak pemeriksa izin otomatis). Selama belum, sheet asli masih berstruktur
-> lama (1 baris judul; kolom Deskripsi Pesanan, Spesifikasi Teknologi, Days Remaining) dan v2.7 tetap jalan.
-> Perbarui blok ini begitu strukturnya benar-benar diterapkan.
+> **Status penerapan (12 Okt 2026):** struktur baru di bawah ini **sudah diterapkan ke sheet asli** (setelah diuji
+> penuh di salinan "UJI COBA"). Yang berubah di sheet asli: tab `Project Tracker` diganti yang baru (dua baris judul,
+> kolom Tahun, grid teknologi format arsip; tab lamanya diganti nama `Project Tracker (lama)`), Checklist menjadi
+> berumus, tab arsip dan semua tab pendukung diseragamkan formatnya, urutan tab dirapikan. Salinan sebelum perubahan:
+> file Drive "BACKUP 12 Okt 2026 (sebelum dirapikan) - Project Tracker_PT Bening Khatulistiwa" (jangan dihapus).
+> Uji tiruan Apps Script dijalankan ulang terhadap ekspor sheet asli sesudah penukaran: v2.7 lolos, dan kode v2.6
+> yang masih live juga tetap jalan di struktur baru.
+>
+> **Masih tersisa (belum dilakukan):**
+>
+> 1. Tab `Project Tracker (lama)` dan `Dashboard` masih ada di ujung deretan tab. Penghapusannya ditolak pemeriksa
+>    izin otomatis, jadi dibiarkan; hapus lewat klik kanan > Hapus, atau minta Claude setelah pemilik memberi izin
+>    eksplisit. Rumus `Dashboard` menunjuk ke `Project Tracker (lama)`: hapus keduanya bersamaan.
+> 2. Pemilik harus menempel `Code.gs` v2.7 dan `Archive.gs` ke editor Apps Script lalu Deploy > Manage deployments >
+>    pensil > Version: New version > Deploy. Selama belum, v2.6 melayani struktur baru dengan dua kekurangan: kolom
+>    `Tahun` project baru dari web kosong (web memakai tahun Tanggal PO sebagai cadangan) dan rumus `Stage Progress` /
+>    `Engineering Doc Progress` di baris yang diubah lewat web bisa tertimpa nilai biasa.
+> 3. Grid teknologi di tracker belum tersambung ke data teknologi di web (lihat di bawah).
 
 Tab yang dipakai API: `Project Tracker`, `Engineering Deliverables Checklist`, `Activity Log`, `Comments`,
 `Document Log`, `Project Specs`, `Meetings`, `Procurement` (tab-tab ini dibuat otomatis) dan
 `[ARSIP] FINISHED PROJECT` (dibaca & ditulis `Archive.gs`). Tab manual pemilik: `Reference` (bobot stage + daftar
 pilihan, dibaca rumus sheet, bukan API) dan `[ARSIP] Data HO and Commisioning- Dokumen Fisik` (catatan manual, tidak
-dibaca web). Tab `Dashboard` lama (ringkasan buatan tangan) kembar dengan halaman Dashboard di web, jadi direncanakan
-dihapus.
+dibaca web). Tab `Dashboard` lama (ringkasan buatan tangan) kembar dengan halaman Dashboard di web, jadi akan dihapus
+bersama `Project Tracker (lama)` (lihat "Masih tersisa" di atas); keduanya bukan bagian API.
 
 **`Project Tracker` (struktur baru):**
 
@@ -121,6 +134,11 @@ ubah format angka `Meetings!B:D` dan `Procurement!H:J` (disimpan sebagai teks).
   tab: `Project Tracker` dan `Engineering Deliverables Checklist` jangan diganti nama.
 - Validasi kotak centang membuat sel kosong terisi `FALSE`, sehingga `getLastRow()` / `appendRow()` menaruh baris baru
   jauh di bawah. Setelah memasang validasi, kosongkan nilai di baris yang belum terpakai (validasinya tetap ada).
+- Nomor urut kolom A tab arsip kini angka statis (dulu rumus `ROW()-2` sampai baris 70, yang membuat `getLastRow()`
+  keliru). `saveArchiveProject_` menulis nomor terbesar + 1 untuk baris baru. Kapasitas yang dulu tersimpan sebagai
+  tanggal (tampil "3.5") sudah diperbaiki menjadi angka desimal.
+- `batchUpdate` bersifat atomik: satu permintaan tidak valid (mis. menghapus aturan warna dengan indeks yang tidak ada)
+  menggagalkan seluruh paket. Hitung dulu jumlah aturan warna di sheet asli sebelum menghapusnya.
 - Menimpa `userEnteredFormat.textFormat` utuh menghapus hiperlink sel (kolom tautan Checklist, Doc URL Meetings,
   Document URL Document Log). Pakai mask sub-bidang (`textFormat.fontFamily`, `.fontSize`, dst.) agar tautan selamat.
 - Filter dasar tidak boleh memuat sel gabungan: judul modul digabung mendatar di baris 1 saja, baris 2 yang jadi baris filter.
