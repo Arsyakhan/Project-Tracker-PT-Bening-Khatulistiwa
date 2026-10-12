@@ -1,9 +1,28 @@
 /**
- * PT BENING KHATULISTIWA — BENING HUB API  (v2.6)
+ * PT BENING KHATULISTIWA — BENING HUB API  (v2.7)
  * ---------------------------------------------------
  * Backend untuk aplikasi web "Bening Hub". Paste seluruh file ini ke:
  * Extensions > Apps Script (dibuka DARI spreadsheet
  * "Project Tracker_PT Bening Khatulistiwa", jadi otomatis terikat ke sheet-nya).
+ *
+ * YANG BARU DI v2.7 (menyesuaikan struktur baru spreadsheet; tetap jalan di struktur lama):
+ *   - Tab Project Tracker sekarang punya DUA baris judul (baris 1 = nama kolom / judul modul teknologi, baris 2 =
+ *     sub-judul "Ada / Kapasitas / Satuan / Detail Spesifikasi"; data mulai baris 3). Baris 2 otomatis dilewati
+ *     karena tidak punya PO Number, Project Name, maupun Project ID. Header tetap dicari lewat NAMA di baris 1.
+ *   - Kolom baru "Tahun" (tahun PO): diisi saat project ditambah dan ikut berubah kalau Tanggal PO diganti
+ *     (selama isinya masih tahun PO yang lama; isian manual yang berbeda dibiarkan). Dibaca web sebagai `tahun`.
+ *     Kalau kolomnya belum ada di sheet, diabaikan dan web memakai tahun dari Tanggal PO.
+ *   - Kolom "Deskripsi Pesanan", "Spesifikasi Teknologi", dan "Days Remaining" tidak dipakai lagi: kodenya
+ *     dibersihkan (kalau masih ada di sheet, diabaikan; daysRemaining tetap dihitung saat dibaca). Spesifikasi
+ *     teknologi sekarang berupa grid kolom AA-CT di tab Project Tracker, formatnya sama dengan tab
+ *     [ARSIP] FINISHED PROJECT.
+ *   - Sel berisi RUMUS tidak ditimpa lagi: Stage Progress (%) dan Engineering Doc Progress (%) di Project Tracker,
+ *     serta PO Number / Project Name / Client, Progress (%), dan Overall Status di tab Checklist, dihitung
+ *     spreadsheet sendiri dari isi barisnya. Baris yang ditambah lewat web tetap berisi nilai biasa seperti sebelumnya.
+ *   - Tanggal: dulu tanggal yang ditulis web tersimpan menurut zona waktu SCRIPT, padahal sel membacanya menurut zona
+ *     waktu SPREADSHEET. Kalau kedua zona berbeda (mis. sheet Los Angeles, script WIB), sel di sheet tampil mundur satu
+ *     hari dibanding di web (web sendiri tetap benar). Sekarang tanggal ditulis jam 00:00 menurut zona spreadsheet, dan
+ *     nilai lama yang berjam-jam (tulisan web versi lama) tetap terbaca benar. Lihat dayString_().
  *
  * YANG BARU DI v2.6:
  *   - 5 kolom baru di sheet Project Tracker (dibuat OTOMATIS): "Next Action", "Next Action Owner",
@@ -90,6 +109,7 @@ const COL_NEXT_OWNER = 'Next Action Owner';
 const COL_NEXT_DUE = 'Next Action Due';
 const COL_BLOCKER = 'Blocker';              // terisi = project terhambat (isinya = alasan / menunggu apa)
 const COL_BLOCKED_SINCE = 'Blocked Since';  // diisi otomatis saat Blocker terisi, dikosongkan saat Blocker dikosongkan
+const COL_TAHUN = 'Tahun';                  // tahun PO (4 angka): otomatis dari Tanggal PO, boleh diubah manual di sheet
 const NEXT_FIELD_MAX = 200;
 const PROJECT_EXTRA_COLUMNS = [COL_LOKASI, COL_ALAMAT, COL_KONTAK, COL_SISTEM, COL_NEXT, COL_NEXT_OWNER, COL_NEXT_DUE, COL_BLOCKER, COL_BLOCKED_SINCE];
 
@@ -173,8 +193,6 @@ const TEXT_FIELDS = [
   ['technology', 'Technology/Capacity'],
   ['pic', 'PIC'],
   ['remarks', 'Remarks'],
-  ['deskripsiPesanan', 'Deskripsi Pesanan'],
-  ['spesifikasiTeknologi', 'Spesifikasi Teknologi'],
   ['lokasiPlant', COL_LOKASI],
   ['alamat', COL_ALAMAT],
   ['kontakOwner', COL_KONTAK],
@@ -394,6 +412,8 @@ function getSheet_(name) {
 
 
 // Baca seluruh sheet SEKALI: { sheet, headers, rows[] } (rows berisi object per baris + _row)
+// Baris 1 = judul kolom. Baris yang tidak punya PO Number, Project Name, maupun Project ID dilewati; itu juga yang
+// membuat baris sub-judul (baris 2 di tab Project Tracker: Ada / Kapasitas / Satuan / Detail) tidak terbaca sebagai project.
 function readSheet_(sheet) {
   const values = sheet.getDataRange().getValues();
   const headers = (values[0] || []).map(function (h) { return String(h).trim(); });
@@ -446,20 +466,42 @@ function toPercentNumber_(val) {
 }
 
 
+// Zona waktu spreadsheet. Sel tanggal disimpan menurut zona ini, yang bisa berbeda dari zona waktu script
+// (mis. sheet di Los Angeles, script di WIB). Kalau keduanya tercampur, tanggal yang ditulis web tampil mundur
+// satu hari di sheet (di web tetap benar).
+function sheetTimeZone_() {
+  try {
+    return SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone() || Session.getScriptTimeZone();
+  } catch (e) {
+    return Session.getScriptTimeZone();
+  }
+}
+
+
+// Date dari sel -> 'yyyy-MM-dd' (tanggal kalender yang dimaksud pengguna).
+//  - jam 00:00 menurut zona spreadsheet (diketik manual di sheet, atau ditulis web versi baru): baca menurut zona spreadsheet.
+//  - ada jam-nya (mis. 10:00): tulisan web versi lama (00:00 menurut zona script): baca menurut zona script.
+function dayString_(d) {
+  const sheetTz = sheetTimeZone_();
+  const midnight = Utilities.formatDate(d, sheetTz, 'HH:mm:ss') === '00:00:00';
+  return Utilities.formatDate(d, midnight ? sheetTz : Session.getScriptTimeZone(), 'yyyy-MM-dd');
+}
+
+
 function formatDate_(val) {
   if (!val) return '';
-  if (val instanceof Date) return Utilities.formatDate(val, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  if (val instanceof Date) return dayString_(val);
   return String(val);
 }
 
 
-// 'yyyy-MM-dd' -> Date (jam 00:00 zona waktu script). Kosong -> ''.
+// 'yyyy-MM-dd' -> Date jam 00:00 menurut zona spreadsheet, supaya sel menampilkan tanggal yang sama. Kosong -> ''.
 function parseDateInput_(s) {
   if (s === null || s === undefined || s === '') return '';
   if (s instanceof Date) return s;
   const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(s));
   if (!m) return String(s);
-  return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  return Utilities.parseDate(m[1] + '-' + m[2] + '-' + m[3], sheetTimeZone_(), 'yyyy-MM-dd');
 }
 
 
@@ -468,14 +510,35 @@ function todayString_() {
 }
 
 
+// 'yyyy-MM-dd...' -> tahun (angka), atau 0 kalau bukan tanggal. Fungsi MURNI.
+function yearFromDateInput_(s) {
+  const m = /^(\d{4})-\d{2}-\d{2}/.exec(cleanText_(s));
+  return m ? Number(m[1]) : 0;
+}
+
+
+// Tahun project untuk web: isi kolom "Tahun"; kalau kosong/tidak masuk akal, diambil dari Tanggal PO.
+// Kosong ('') kalau keduanya tidak ada. Fungsi MURNI (poDateText = 'yyyy-MM-dd' atau '').
+function projectYear_(tahunVal, poDateText) {
+  const n = Number(cleanText_(tahunVal));
+  if (n >= 2000 && n <= 2100 && Math.floor(n) === n) return n;
+  return yearFromDateInput_(poDateText) || '';
+}
+
+
+// Sel berisi rumus? (dipakai supaya rumus tidak tertimpa nilai biasa saat website menyimpan.)
+function isFormulaCell_(sheet, rowIndex, colIndex0) {
+  return String(sheet.getRange(rowIndex, colIndex0 + 1).getFormula() || '') !== '';
+}
+
+
 function computeDaysRemaining_(deliveryDateVal) {
   if (!deliveryDateVal) return '';
   const deadline = new Date(deliveryDateVal);
   if (isNaN(deadline.getTime())) return '';
-  const tz = Session.getScriptTimeZone();
   // Bandingkan tanggal kalender saja (bukan jam-menit) supaya hasilnya bulat.
-  const deadlineDay = new Date(Utilities.formatDate(deadline, tz, 'yyyy-MM-dd'));
-  const todayDay = new Date(Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd'));
+  const deadlineDay = new Date(dayString_(deadline));
+  const todayDay = new Date(todayString_());
   return Math.round((deadlineDay - todayDay) / (1000 * 60 * 60 * 24));
 }
 
@@ -734,8 +797,7 @@ function getProjects_() {
       // Dihitung ulang tiap kali dibaca supaya selalu akurat terhadap tanggal hari ini.
       daysRemaining: computeDaysRemaining_(p['Delivery Date']),
       remarks: p['Remarks'],
-      deskripsiPesanan: p['Deskripsi Pesanan'] || '',
-      spesifikasiTeknologi: p['Spesifikasi Teknologi'] || '',
+      tahun: projectYear_(p[COL_TAHUN], formatDate_(p['Tanggal PO'])),
       targetFinishDate: formatDate_(p['Target Finish Date']),
       lokasiPlant: cleanText_(p[COL_LOKASI]),
       alamat: cleanText_(p[COL_ALAMAT]),
@@ -823,10 +885,12 @@ function addProject_(payload) {
   });
   const id = generateProjectId_(used);
   const deliveryDate = cleanText_(payload.deliveryDate);
+  const tanggalPO = cleanText_(payload.tanggalPO);
 
 
   const rowObj = {
     'No': maxNo + 1,
+    'Tahun': yearFromDateInput_(tanggalPO) || Number(todayString_().substring(0, 4)),
     'PO Number': poNumber,
     'Project Name': projectName,
     'Client': cleanText_(payload.client),
@@ -837,13 +901,10 @@ function addProject_(payload) {
     'Stage Progress (%)': STAGE_WEIGHTS[stage] / 100,
     'Engineering Doc Progress (%)': 0,
     'Priority': priority,
-    'Tanggal PO': parseDateInput_(cleanText_(payload.tanggalPO)),
+    'Tanggal PO': parseDateInput_(tanggalPO),
     'Tanggal DP': parseDateInput_(cleanText_(payload.tanggalDP)),
     'Delivery Date': parseDateInput_(deliveryDate),
-    'Days Remaining': computeDaysRemaining_(deliveryDate),
     'Remarks': cleanText_(payload.remarks),
-    'Deskripsi Pesanan': cleanText_(payload.deskripsiPesanan),
-    'Spesifikasi Teknologi': cleanText_(payload.spesifikasiTeknologi),
     'Target Finish Date': parseDateInput_(cleanText_(payload.targetFinishDate))
   };
   rowObj[COL_LOKASI] = cleanText_(payload.lokasiPlant);
@@ -960,12 +1021,25 @@ function updateProject_(payload) {
   }
   applyText('Priority', payload.priority, PRIORITIES);
   applyText('Status', payload.status, STATUSES);
+
+  // Tahun mengikuti Tanggal PO selama isinya masih tahun PO yang lama (atau kosong). Isian manual yang berbeda
+  // dari tahun PO dibiarkan. Nilai lama dicatat SEBELUM tanggal diterapkan (applyDate mengubah rowVals).
+  const yearCol = col(COL_TAHUN);
+  const poDateCol = col('Tanggal PO');
+  const oldPoYear = poDateCol > -1 ? yearFromDateInput_(currentText(poDateCol)) : 0;
+  const oldYearText = yearCol > -1 ? currentText(yearCol) : '';
+
   DATE_FIELDS.forEach(function (f) { applyDate(f[1], payload[f[0]]); });
+  applyDate('Delivery Date', payload.deliveryDate);
 
-
-  if (applyDate('Delivery Date', payload.deliveryDate)) {
-    const dc = col('Days Remaining');
-    if (dc > -1) updates[dc] = computeDaysRemaining_(cleanText_(payload.deliveryDate));
+  if (yearCol > -1 && payload.tanggalPO !== undefined) {
+    const newPoYear = yearFromDateInput_(payload.tanggalPO);
+    const follows = !oldYearText || !oldPoYear || oldYearText === String(oldPoYear);
+    if (newPoYear && follows && oldYearText !== String(newPoYear)) {
+      changes.push(COL_TAHUN + ': "' + (oldYearText || '-') + '" -> "' + newPoYear + '"');
+      updates[yearCol] = newPoYear;
+      rowVals[yearCol] = newPoYear;
+    }
   }
 
 
@@ -973,7 +1047,8 @@ function updateProject_(payload) {
     applyText('Current Stage', payload.currentStage, Object.keys(STAGE_WEIGHTS));
     const weight = STAGE_WEIGHTS[cleanText_(payload.currentStage)];
     const sc = col('Stage Progress (%)');
-    if (weight !== undefined && sc > -1 && toPercentNumber_(rowVals[sc]) !== weight) {
+    // Kalau selnya berisi rumus (mengambil bobot dari tab Reference), biarkan spreadsheet yang menghitung.
+    if (weight !== undefined && sc > -1 && toPercentNumber_(rowVals[sc]) !== weight && !isFormulaCell_(sheet, rowIndex, sc)) {
       updates[sc] = weight / 100;
     }
   }
@@ -1000,9 +1075,10 @@ function updateProject_(payload) {
       const cu = {};
       Object.keys(identity).forEach(function (name) {
         const ci = cf.headers.indexOf(name);
-        if (ci > -1) cu[ci] = identity[name];
+        // Di tab Checklist yang baru, PO / Nama / Client berupa rumus yang mengambil dari Project Tracker: jangan ditimpa.
+        if (ci > -1 && !isFormulaCell_(checkSheet, cf.rowIndex, ci)) cu[ci] = identity[name];
       });
-      writeCells_(checkSheet, cf.rowIndex, cu);
+      if (Object.keys(cu).length > 0) writeCells_(checkSheet, cf.rowIndex, cu);
     }
   }
 
@@ -1089,11 +1165,13 @@ function updateChecklist_(payload) {
   const overall = progress >= 100 ? 'Completed' : progress > 0 ? 'In Progress' : 'Not Started';
 
 
+  // Di tab Checklist yang baru, Progress (%) dan Overall Status berupa rumus (dihitung dari 7 status dokumen).
+  // Sel berisi rumus tidak ditimpa; nilai `progress` di atas tetap dikembalikan ke web.
   const pc = headers.indexOf('Progress (%)');
   const oc = headers.indexOf('Overall Status');
   const progressChanged = pc > -1 && toPercentNumber_(rowVals[pc]) !== progress;
-  if (pc > -1 && progressChanged) setCol(pc, progress / 100);
-  if (oc > -1 && cleanText_(rowVals[oc]) !== overall) setCol(oc, overall);
+  if (pc > -1 && progressChanged && !isFormulaCell_(sheet, rowIndex, pc)) setCol(pc, progress / 100);
+  if (oc > -1 && cleanText_(rowVals[oc]) !== overall && !isFormulaCell_(sheet, rowIndex, oc)) setCol(oc, overall);
 
 
   if (Object.keys(updates).length > 0) writeCells_(sheet, rowIndex, updates);
@@ -1106,7 +1184,7 @@ function updateChecklist_(payload) {
   const pf = findRowById_(projSheet, payload.projectId);
   if (pf) {
     const docCol = pf.headers.indexOf('Engineering Doc Progress (%)');
-    if (docCol > -1 && (progressChanged || changes.length > 0)) {
+    if (docCol > -1 && (progressChanged || changes.length > 0) && !isFormulaCell_(projSheet, pf.rowIndex, docCol)) {
       projSheet.getRange(pf.rowIndex, docCol + 1).setValue(progress / 100);
     }
     const nameCol = pf.headers.indexOf('Project Name');

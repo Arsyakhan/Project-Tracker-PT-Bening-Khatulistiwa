@@ -13,7 +13,7 @@ export const FACETS = [
   { key: 'pic', label: 'PIC', get: (p) => [p.pic || 'Tanpa PIC'] },
   { key: 'client', label: 'Client', get: (p) => [p.client || 'Tanpa client'], searchable: true },
   { key: 'tech', label: 'Teknologi', get: techTypes },
-  { key: 'year', label: 'Tahun PO', get: (p) => [yearOf(p)], desc: true },
+  { key: 'year', label: 'Tahun', get: (p) => [yearOf(p)], desc: true },
   { key: 'flag', label: 'Kondisi', get: flagsOf, order: Object.values(FLAG), alwaysShowOrder: true },
 ];
 

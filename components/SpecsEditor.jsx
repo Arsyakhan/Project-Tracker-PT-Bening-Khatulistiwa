@@ -18,8 +18,6 @@ export default function SpecsEditor({
   error,
   onRetry,
   onGoSummary,       // pindah ke tab Ringkasan (untuk memilih sistem terpasang)
-  scopeText,         // "Lingkup pesanan" sebagai contekan (hanya baca)
-  oldSpecText,       // catatan lama dari kolom Spesifikasi Teknologi (hanya baca)
   version,
 }) {
   if (error) {
@@ -52,7 +50,6 @@ export default function SpecsEditor({
   }
 
   const total = overallProgress(sections, values);
-  const hasRef = String(scopeText || '').trim() || String(oldSpecText || '').trim();
 
   return (
     <div className="flex flex-col gap-4">
@@ -74,21 +71,6 @@ export default function SpecsEditor({
         </div>
         {version > 0 && <p className="text-xs text-inkmute">Versi tersimpan: {version}</p>}
       </div>
-
-      {hasRef && (
-        <details className="bg-canvas border border-line rounded-lg group">
-          <summary className="cursor-pointer select-none px-4 py-2.5 text-sm font-medium text-ink flex items-center justify-between">
-            Contekan: lingkup pesanan
-            <span className="text-xs text-inkmute font-normal">hanya baca</span>
-          </summary>
-          <div className="px-4 pb-3 flex flex-col gap-2">
-            {String(scopeText || '').trim() && <p className="text-sm text-ink/90 whitespace-pre-wrap break-words">{scopeText}</p>}
-            {String(oldSpecText || '').trim() && (
-              <p className="text-sm text-inkmute whitespace-pre-wrap break-words border-t border-line pt-2">{oldSpecText}</p>
-            )}
-          </div>
-        </details>
-      )}
 
       {sections.map((section, idx) => {
         const p = sectionProgress(section, values);
