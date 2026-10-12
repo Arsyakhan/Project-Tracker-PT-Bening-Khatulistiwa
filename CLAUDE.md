@@ -199,6 +199,25 @@ mencetaknya di log/PR.
 - Repo ini privat. Deploy otomatis oleh Vercel dari `main`; PR mendapat Preview Deployment.
 - GitHub GraphQL tidak tersedia di sandbox Claude: pakai `gh api` (REST), bukan `gh pr create`.
 
+## Catatan kerja PM di Google Drive (ingatan antar-sesi)
+
+Claude tidak mengingat antar-percakapan. Catatan, keputusan, dan tindak lanjut PM disimpan di Drive,
+lewat konektor Google Drive dan Google Sheets (bukan lewat API Bening Hub; frontend tidak menyentuhnya).
+
+- Folder `_Claude` (ID `1RKhlopBAsrsOVE7M4JG153Gv9MVynEm1`) di dalam folder induk "Project Engineer - PT Bening
+  Khatulistiwa" (ID `1KK8zk3jMyElvd-qYn69Lceza-P-GiLas`). Isinya sheet **Basis Data Catatan**
+  (ID `1E-MlFc-6jSmeBzlV8z9HwLfkr-VtDIICE1J60Nx3FK4`) dan subfolder `Dokumen` (ID `1fW2vAamUiJ_9w8BqLL8lyNN6bpy415kU`).
+- Tab sheet: `Panduan` (aturan), `Catatan` (CAT-), `Keputusan` (KEP-), `Tindak Lanjut` (TL-), `Peta Drive`
+  (daftar folder/berkas penting beserta ID).
+- Kalau tugas menyangkut catatan, keputusan, atau tindak lanjut PM: baca tab `Panduan` dulu, lalu tab yang
+  relevan. Tambah baris lewat append, ubah baris lewat ID-nya, **jangan hapus baris** (ubah kolom Status).
+- Konektor Drive hanya bisa mengubah **nama dan lokasi** file, bukan isi Google Doc atau file teks yang sudah
+  ada. Dokumen panjang dibuat sebagai Doc baru di `Dokumen`; yang bisa diubah di tempat hanya Google Sheets.
+- **Jangan menyimpan rahasia** (kata sandi, token, API key, data pribadi): folder induk dibagikan "siapa saja
+  dengan tautan bisa melihat" (status 12 Okt 2026). Jangan mengubah izin berbagi tanpa diminta.
+- Sheet `Project Tracker_PT Bening Khatulistiwa` (di folder Project Management) adalah database aplikasi,
+  bukan tempat catatan. Jangan mengeditnya lewat konektor kecuali diminta.
+
 ## Hal yang belum diketahui / perlu ditanyakan
 
 - `docgen/meeting.gs`: versi live belum memeriksa `GENERATOR_SECRET` (hanya disebut di komentar).
