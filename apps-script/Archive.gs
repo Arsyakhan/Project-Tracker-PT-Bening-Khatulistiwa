@@ -5,13 +5,15 @@
  * (di editor: klik "+" di samping "Files" > Script > beri nama "Archive").
  *
  * Mengelola tab "[ARSIP] FINISHED PROJECT". Edit di web langsung tertulis ke tab ini, dan edit manual
- * di tab ini langsung terbaca web (tidak ada cache). Struktur tab TIDAK diubah: kolom, urutan modul,
- * dan baris judul tetap seperti buatan Anda.
+ * di tab ini langsung terbaca web (tidak ada cache). Kode ini membaca tab PER POSISI KOLOM, jadi urutan
+ * kolom dan dua baris judul tidak boleh digeser.
  *
- * Format tab: baris 1 = nama modul (sel kosong = lanjutan modul sebelumnya), baris 2 = sub-judul
- * ("Ada", "Kapasitas", "Satuan", "Detail Spesifikasi"), data mulai baris 3. Kolom A-C = No, Tahun,
- * Nama Project. Modul baru: tambah kolomnya di sheet (nama di baris 1, sub-judul di baris 2) lalu
- * muat ulang web; modul yang namanya belum dikenal tetap terbaca dengan kunci otomatis.
+ * Format tab: baris 1 = nama modul (sel judul digabung ke samping; sel lanjutannya kosong), baris 2 =
+ * sub-judul ("Ada", "Kapasitas", "Satuan", "Detail Spesifikasi"; dipakai juga sebagai baris filter),
+ * data mulai baris 3. Kolom A-C = No, Tahun (tahun project selesai), Nama Project. Kolom "Ada" berupa
+ * kotak centang. Format ini SAMA dengan grid "Spesifikasi Teknologi" di tab Project Tracker (kolom AA-CT).
+ * Modul baru: tambah kolomnya di sheet (nama di baris 1, sub-judul di baris 2) lalu muat ulang web;
+ * modul yang namanya belum dikenal tetap terbaca dengan kunci otomatis.
  *
  * Tidak bentrok antar-penyunting: setiap baris punya `rev` (sidik jari isi baris). Simpan dari web
  * ditolak kalau baris itu berubah sejak dimuat (mis. diedit manual di sheet), supaya tidak saling menimpa.
@@ -29,12 +31,15 @@ const ARCHIVE_MAX_MODULES = 40;
 const ARCHIVE_UNITS = ['MPH', 'LPH', 'LITER', 'MPD', 'LPD'];
 
 // Kunci tetap untuk modul yang sudah dikenal (urutan alur pengolahan air ada di sisi web).
+// Harus sama dengan FLOW_STEPS di lib/techflow.js. Keterangan dalam kurung pada judul diabaikan saat mencocokkan
+// (mis. "Dosing Pump Sodium Hypochlorite (NaOH)" dikenali sebagai 'dosing pump sodium hypochlorite').
 const ARCHIVE_MODULE_KEYS = {
   'feed raw water pump': 'feed_pump',
   'raw / intermediate water tank': 'raw_tank',
   'dosing pump sodium hypochlorite': 'dosing_hypo',
   'dosing pump pac': 'dosing_pac',
   'dosing pump soda ash': 'dosing_soda',
+  'dosing pump polimer': 'dosing_polimer',
   'clarifier': 'clarifier',
   'filter pump': 'filter_pump',
   'mmf': 'mmf',
@@ -53,8 +58,10 @@ const ARCHIVE_MODULE_KEYS = {
 };
 
 function archiveModuleKey_(label) {
-  const norm = cleanText_(label).toLowerCase();
+  const norm = cleanText_(label).toLowerCase().replace(/\s+/g, ' ');
   if (ARCHIVE_MODULE_KEYS[norm]) return ARCHIVE_MODULE_KEYS[norm];
+  const bare = norm.replace(/\s*\([^)]*\)\s*/g, ' ').trim();
+  if (bare !== norm && ARCHIVE_MODULE_KEYS[bare]) return ARCHIVE_MODULE_KEYS[bare];
   const slug = norm.replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').substring(0, 40);
   return slug ? 'x_' + slug : '';
 }
@@ -157,6 +164,17 @@ function readArchiveValues_(sh) {
   return { values: sh.getRange(1, 1, lastRow, lastCol).getValues(), lastCol: lastCol };
 }
 
+// Nomor baris (1-based) untuk project baru: tepat di bawah baris terakhir yang punya Nama Project. Sengaja TIDAK
+// memakai getLastRow(): kotak centang "Ada" di baris kosong bisa tertinggal berisi FALSE setelah diklik dua kali,
+// dan itu membuat getLastRow() lebih besar sehingga project baru jatuh jauh di bawah tabel. Fungsi MURNI.
+function archiveNextRow_(values) {
+  let last = 2;
+  for (let r = 2; r < (values || []).length; r++) {
+    if (cleanText_(values[r][2])) last = r + 1;
+  }
+  return last + 1;
+}
+
 // Semua project arsip. Kalau tab belum ada, hasilnya kosong (bukan error).
 function getArchive_() {
   const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_ARCHIVE);
@@ -240,7 +258,7 @@ function saveArchiveProject_(payload) {
     return archiveProjectFromRow_(modulesDef, row, found.row);
   }
 
-  // Baru: nomor = nomor terbesar + 1, ditaruh di baris paling bawah.
+  // Baru: nomor = nomor terbesar + 1, ditaruh tepat di bawah project terakhir.
   let maxNo = 0;
   parsed.projects.forEach(function (p) { const n = Number(p.no); if (n > maxNo) maxNo = n; });
   const row = [];
@@ -250,7 +268,8 @@ function saveArchiveProject_(payload) {
   row[2] = sheetSafe_(clean.name);
   modulesDef.forEach(function (d) { if (d.key) row[d.cols.on] = false; });
   applyArchiveModules_(row, modulesDef, clean.modules);
-  const target = sh.getLastRow() + 1;
+  const target = archiveNextRow_(values);
+  if (target > sh.getMaxRows()) sh.insertRowsAfter(sh.getMaxRows(), target - sh.getMaxRows());
   sh.getRange(target, 1, 1, lastCol).setValues([row]);
   logActivity_(user, 'Tambah Arsip', '', '', clean.name, clean.year + ' | ' + (archiveSummary_(clean.modules) || 'tanpa modul'));
   return archiveProjectFromRow_(modulesDef, row, target);

@@ -13,7 +13,7 @@ const emptyForm = {
   poNumber: '', projectName: '', client: '', technology: '', pic: '',
   currentStage: 'PO', status: 'In Progress', priority: 'Medium',
   tanggalPO: '', tanggalDP: '', deliveryDate: '', targetFinishDate: '',
-  remarks: '', deskripsiPesanan: '',
+  remarks: '',
   nextAction: '', nextActionOwner: '', nextActionDue: '',
 };
 
@@ -172,10 +172,6 @@ export default function NewProjectPage() {
                 <input id={id('tdp')} type="date" className="input" value={form.tanggalDP} onChange={(e) => update('tanggalDP', e.target.value)} />
               </Field>
             </div>
-            <Field id={id('scope')} label="Lingkup pesanan (sesuai PO)">
-              <textarea id={id('scope')} className="input" rows={3} placeholder="ex: Tank NaCl 5000 L, Tank NaCl 300 L (2 unit)"
-                value={form.deskripsiPesanan} onChange={(e) => update('deskripsiPesanan', e.target.value)} />
-            </Field>
             <Field id={id('remarks')} label="Catatan (kendala, menunggu material, dll.)">
               <textarea id={id('remarks')} className="input" rows={3} value={form.remarks} onChange={(e) => update('remarks', e.target.value)} />
             </Field>
