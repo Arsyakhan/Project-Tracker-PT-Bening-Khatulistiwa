@@ -1,12 +1,15 @@
 /**
- * BENING HUB — ARSIP PROJECT SELESAI (baca & tulis, dua arah dengan spreadsheet)
+ * BENING HUB — ARSIP PROJECT SELESAI + TEKNOLOGI PROJECT AKTIF (baca & tulis, dua arah dengan spreadsheet)
  * ---------------------------------------------------
  * FILE TAMBAHAN di project Apps Script Tracker yang SAMA dengan Code.gs
  * (di editor: klik "+" di samping "Files" > Script > beri nama "Archive").
  *
- * Mengelola tab "[ARSIP] FINISHED PROJECT". Edit di web langsung tertulis ke tab ini, dan edit manual
- * di tab ini langsung terbaca web (tidak ada cache). Kode ini membaca tab PER POSISI KOLOM, jadi urutan
- * kolom dan dua baris judul tidak boleh digeser.
+ * Mengelola dua tempat yang berformat sama (grid modul teknologi):
+ *   1. Tab "[ARSIP] FINISHED PROJECT" (project selesai).
+ *   2. Grid kolom AA-CT di tab "Project Tracker" (teknologi project yang sedang berjalan; lihat bagian
+ *      "TEKNOLOGI PROJECT AKTIF" di bawah). Sejak Code.gs v2.8 inilah satu-satunya tempat teknologi project aktif.
+ * Edit di web langsung tertulis ke sheet, dan edit manual di sheet langsung terbaca web (tidak ada cache).
+ * Kode ini membaca grid PER POSISI KOLOM, jadi urutan kolom dan dua baris judul tidak boleh digeser.
  *
  * Format tab: baris 1 = nama modul (sel judul digabung ke samping; sel lanjutannya kosong), baris 2 =
  * sub-judul ("Ada", "Kapasitas", "Satuan", "Detail Spesifikasi"; dipakai juga sebagai baris filter),
@@ -18,12 +21,13 @@
  * Tidak bentrok antar-penyunting: setiap baris punya `rev` (sidik jari isi baris). Simpan dari web
  * ditolak kalau baris itu berubah sejak dimuat (mis. diedit manual di sheet), supaya tidak saling menimpa.
  *
- * AGAR TERPAKAI: doGet/doPost di Code.gs harus mengenali 3 aksi:
+ * AGAR TERPAKAI: doGet/doPost di Code.gs harus mengenali 5 aksi:
  *   GET  archive                 -> getArchive_()
  *   POST saveArchiveProject      -> saveArchiveProject_(payload)
  *   POST deleteArchiveProject    -> deleteArchiveProject_(payload)
- * (sudah ada di Code.gs v2.5). Setelah ditempel: Deploy > Manage deployments > ikon pensil >
- * Version: New version > Deploy.
+ *   GET  tech                    -> getProjectTech_(projectId)      (Code.gs v2.8)
+ *   POST saveProjectTech         -> saveProjectTech_(payload)       (Code.gs v2.8)
+ * Setelah ditempel: Deploy > Manage deployments > ikon pensil > Version: New version > Deploy.
  */
 
 const SHEET_ARCHIVE = '[ARSIP] FINISHED PROJECT';
@@ -90,10 +94,11 @@ function archiveRev_(row) {
   return (h >>> 0).toString(36) + '.' + str.length.toString(36);
 }
 
-// Letak kolom tiap modul dari 2 baris judul. Fungsi MURNI.
-function archiveSchemaFromHeaders_(head, sub) {
+// Letak kolom tiap modul dari 2 baris judul. Fungsi MURNI. Mulai dari kolom `from` (indeks 0; bawaan 3 = kolom D tab
+// arsip) sampai akhir `head`, jadi untuk grid di Project Tracker `head`/`sub` dipotong dulu tepat sebelum kolom Project ID.
+function archiveSchemaFromHeaders_(head, sub, from) {
   const modules = [];
-  for (let c = 3; c < head.length; c++) {
+  for (let c = (from === undefined ? 3 : from); c < head.length; c++) {
     const label = cleanText_(head[c]);
     if (label) modules.push({ label: label, key: archiveModuleKey_(label), start: c, end: head.length });
   }
@@ -111,8 +116,8 @@ function archiveSchemaFromHeaders_(head, sub) {
   return modules;
 }
 
-function archiveProjectFromRow_(modules, row, rowNumber) {
-  const no = cleanText_(row[0]);
+// Modul yang dicentang di satu baris -> [{ key, label, cap, unit, detail }]. Dipakai arsip dan grid Project Tracker.
+function archiveModulesFromRow_(modules, row) {
   const mods = [];
   modules.forEach(function (m) {
     if (!m.key || !archiveIsOn_(row[m.cols.on])) return;
@@ -124,6 +129,18 @@ function archiveProjectFromRow_(modules, row, rowNumber) {
       detail: m.cols.detail > -1 ? clip_(cleanText_(row[m.cols.detail]), 4000) : ''
     });
   });
+  return mods;
+}
+
+// Daftar modul yang dikenal sheet -> bentuk yang dikirim ke web: [{ key, label, hasCap, hasUnit, hasDetail }].
+function archiveSchemaOf_(modules) {
+  return modules.filter(function (m) { return m.key; }).map(function (m) {
+    return { key: m.key, label: m.label, hasCap: m.cols.cap > -1, hasUnit: m.cols.unit > -1, hasDetail: m.cols.detail > -1 };
+  });
+}
+
+function archiveProjectFromRow_(modules, row, rowNumber) {
+  const no = cleanText_(row[0]);
   return {
     id: 'arc_' + (no || String(rowNumber)),
     no: no,
@@ -131,7 +148,7 @@ function archiveProjectFromRow_(modules, row, rowNumber) {
     rev: archiveRev_(row),
     year: cleanText_(row[1]),
     name: cleanText_(row[2]),
-    modules: mods
+    modules: archiveModulesFromRow_(modules, row)
   };
 }
 
@@ -140,9 +157,7 @@ function archiveProjectFromRow_(modules, row, rowNumber) {
 function parseArchiveValues_(values) {
   if (!values || values.length < 2) return { schema: [], projects: [] };
   const modules = archiveSchemaFromHeaders_(values[0], values[1]);
-  const schema = modules.filter(function (m) { return m.key; }).map(function (m) {
-    return { key: m.key, label: m.label, hasCap: m.cols.cap > -1, hasUnit: m.cols.unit > -1, hasDetail: m.cols.detail > -1 };
-  });
+  const schema = archiveSchemaOf_(modules);
   const projects = [];
   for (let r = 2; r < values.length; r++) {
     if (!cleanText_(values[r][2])) continue;
@@ -182,20 +197,16 @@ function getArchive_() {
   return parseArchiveValues_(readArchiveValues_(sh).values);
 }
 
-// Rapikan isian dari web. Hanya modul yang kolomnya ada di sheet yang diterima.
-function sanitizeArchiveProject_(p, schema) {
-  const name = clip_(cleanText_(p.name), 200);
-  if (!name) throw new Error('Nama project wajib diisi.');
-  const year = cleanText_(p.year);
-  if (!/^\d{4}$/.test(year)) throw new Error('Tahun harus 4 angka, mis. 2026.');
-  if (!Array.isArray(p.modules)) throw new Error('Daftar modul tidak valid.');
-  if (p.modules.length > ARCHIVE_MAX_MODULES) throw new Error('Terlalu banyak modul.');
+// Rapikan daftar modul dari web. Hanya modul yang kolomnya ada di sheet (schema) yang diterima.
+function sanitizeArchiveModules_(list, schema) {
+  if (!Array.isArray(list)) throw new Error('Daftar modul tidak valid.');
+  if (list.length > ARCHIVE_MAX_MODULES) throw new Error('Terlalu banyak modul.');
 
   const byKey = {};
   schema.forEach(function (m) { byKey[m.key] = m; });
   const seen = {};
   const modules = [];
-  p.modules.forEach(function (m) {
+  list.forEach(function (m) {
     const key = cleanText_(m && m.key);
     const def = byKey[key];
     if (!def) throw new Error('Modul tidak dikenal: ' + key);
@@ -207,7 +218,23 @@ function sanitizeArchiveProject_(p, schema) {
     if (unit && ARCHIVE_UNITS.indexOf(unit) === -1) throw new Error('Satuan ' + def.label + ' tidak dikenal: ' + unit);
     modules.push({ key: key, cap: cap, unit: unit, detail: def.hasDetail ? clip_(cleanText_(m.detail), 4000) : '' });
   });
-  return { name: name, year: year, modules: modules };
+  return modules;
+}
+
+// Rapikan isian dari web. Hanya modul yang kolomnya ada di sheet yang diterima.
+function sanitizeArchiveProject_(p, schema) {
+  const name = clip_(cleanText_(p.name), 200);
+  if (!name) throw new Error('Nama project wajib diisi.');
+  const year = cleanText_(p.year);
+  if (!/^\d{4}$/.test(year)) throw new Error('Tahun harus 4 angka, mis. 2026.');
+  return { name: name, year: year, modules: sanitizeArchiveModules_(p.modules, schema) };
+}
+
+// Isi kapasitas, satuan, dan detail satu modul di satu baris (m = modul terpilih, atau undefined = dikosongkan).
+function setArchiveModuleCells_(row, d, m) {
+  if (d.cols.cap > -1) row[d.cols.cap] = m && m.cap !== '' ? (/^\d+(\.\d+)?$/.test(m.cap) ? Number(m.cap) : sheetSafe_(m.cap)) : '';
+  if (d.cols.unit > -1) row[d.cols.unit] = m ? sheetSafe_(m.unit) : '';
+  if (d.cols.detail > -1) row[d.cols.detail] = m ? sheetSafe_(m.detail) : '';
 }
 
 // Tulis nilai modul ke satu baris (array sel). Modul yang tidak dipilih dimatikan dan dikosongkan.
@@ -218,9 +245,7 @@ function applyArchiveModules_(row, modulesDef, chosen) {
     if (!d.key) return;
     const m = byKey[d.key];
     row[d.cols.on] = !!m;
-    if (d.cols.cap > -1) row[d.cols.cap] = m && m.cap !== '' ? (/^\d+(\.\d+)?$/.test(m.cap) ? Number(m.cap) : sheetSafe_(m.cap)) : '';
-    if (d.cols.unit > -1) row[d.cols.unit] = m ? sheetSafe_(m.unit) : '';
-    if (d.cols.detail > -1) row[d.cols.detail] = m ? sheetSafe_(m.detail) : '';
+    setArchiveModuleCells_(row, d, m);
   });
 }
 
@@ -288,4 +313,166 @@ function deleteArchiveProject_(payload) {
   logActivity_(payload.user, 'Hapus Arsip', '', '', found.name,
     'Snapshot data sebelum dihapus: ' + clip_(JSON.stringify(found), 45000));
   return { deleted: true, id: id };
+}
+
+
+// ==================================================================
+// TEKNOLOGI PROJECT AKTIF: grid di tab Project Tracker
+// ==================================================================
+// Kolom "Ada / Kapasitas / Satuan / Detail Spesifikasi" per modul (AA-CT) di tab Project Tracker, formatnya sama
+// dengan tab arsip, jadi memakai fungsi yang sama di atas. Bedanya: satu baris = satu project yang dicari lewat kolom
+// Project ID, dan HANYA sel grid yang ditulis. Kolom lain (termasuk yang berumus) dan sel berumus di dalam grid tidak
+// disentuh. Sejak Code.gs v2.8 grid ini satu-satunya tempat teknologi project aktif (dulu tersimpan di tab Project
+// Specs sebagai kunci tech_*). Web membaca/menulis lewat:
+//   GET  tech            -> getProjectTech_(projectId)               -> { projectId, row, rev, modules: [...] }
+//   POST saveProjectTech -> saveProjectTech_({ projectId, modules, baseRev, user })   (hasil sama dengan GET)
+
+// Kunci modul yang dikenal web (nilai ARCHIVE_MODULE_KEYS). Modul dengan kunci otomatis "x_..." (kolom baru di sheet
+// yang belum dikenal web) terbaca tetapi TIDAK PERNAH diubah atau dikosongkan saat web menyimpan.
+function isKnownArchiveKey_(key) {
+  for (const label in ARCHIVE_MODULE_KEYS) {
+    if (ARCHIVE_MODULE_KEYS[label] === key) return true;
+  }
+  return false;
+}
+
+// Nilai sel -> teks pembanding (kosong = ''; kotak centang = TRUE/FALSE), untuk mendeteksi sel yang benar-benar berubah.
+function techCellKey_(v) {
+  if (v === null || v === undefined) return '';
+  if (v === true) return 'TRUE';
+  if (v === false) return 'FALSE';
+  return String(v);
+}
+
+// Letak grid dari 2 baris judul. Grid dimulai di kolom pertama yang sub-judulnya persis "Ada" (dan judul modulnya
+// terisi) dan berakhir tepat sebelum kolom "Project ID". Fungsi MURNI. Hasil null kalau grid tidak ditemukan
+// (mis. tab Project Tracker masih berformat lama tanpa dua baris judul).
+function trackerGridFromHeaders_(head, sub) {
+  let pid = -1;
+  for (let c = 0; c < head.length; c++) {
+    if (cleanText_(head[c]) === ID_HEADER) { pid = c; break; }
+  }
+  if (pid === -1) return null;
+  let start = -1;
+  for (let c = 0; c < pid; c++) {
+    if (cleanText_(sub[c]).toLowerCase() === 'ada' && cleanText_(head[c])) { start = c; break; }
+  }
+  if (start === -1) return null;
+  const modules = archiveSchemaFromHeaders_(head.slice(0, pid), sub.slice(0, pid), start);
+  if (!modules.some(function (m) { return m.key; })) return null;
+  return { start: start, end: pid, pidCol: pid, modules: modules };
+}
+
+// Teknologi satu project dari satu baris. `rev` = sidik jari sel grid saja (perubahan kolom lain tidak dihitung).
+function trackerTechFromRow_(grid, row, rowNumber, id) {
+  return {
+    projectId: id,
+    row: rowNumber,
+    rev: archiveRev_(row.slice(grid.start, grid.end)),
+    modules: archiveModulesFromRow_(grid.modules, row)
+  };
+}
+
+// Baca tab Project Tracker sekali: { sh, values, grid, poCol, nameCol }.
+function readTrackerGrid_() {
+  const sh = getSheet_(SHEET_PROJECTS);
+  const values = sh.getDataRange().getValues();
+  if (values.length < 2) throw new Error('Baris judul tab Project Tracker belum lengkap (baris 1 dan 2).');
+  const grid = trackerGridFromHeaders_(values[0], values[1]);
+  if (!grid) {
+    throw new Error('Grid teknologi tidak ditemukan di tab Project Tracker (kolom "Ada / Kapasitas / Satuan / Detail Spesifikasi" sebelum kolom Project ID).');
+  }
+  const headers = values[0].map(function (h) { return cleanText_(h); });
+  return { sh: sh, values: values, grid: grid, poCol: headers.indexOf('PO Number'), nameCol: headers.indexOf('Project Name') };
+}
+
+// Indeks (0) baris project di `values`. Data mulai baris 3, baris 2 adalah sub-judul.
+function findTrackerRowById_(values, grid, projectId) {
+  const id = cleanText_(projectId);
+  if (!id) throw new Error('ID project wajib diisi.');
+  const hits = [];
+  for (let r = 2; r < values.length; r++) {
+    if (cleanText_(values[r][grid.pidCol]) === id) hits.push(r);
+  }
+  if (hits.length === 0) throw new Error('Project tidak ditemukan. Mungkin sudah dihapus. Muat ulang halaman.');
+  if (hits.length > 1) throw new Error('Project ID dobel di tab Project Tracker. Perbaiki dulu di spreadsheet.');
+  return hits[0];
+}
+
+function getProjectTech_(projectId) {
+  const ctx = readTrackerGrid_();
+  const r = findTrackerRowById_(ctx.values, ctx.grid, projectId);
+  return trackerTechFromRow_(ctx.grid, ctx.values[r], r + 1, cleanText_(projectId));
+}
+
+// Ringkasan teknologi SEMUA project untuk daftar project (GET projects): { [projectId]: [{ key, cap, unit }] }.
+// Tanpa "detail" (teks panjang) supaya daftar tetap ringan; detail lengkap lewat getProjectTech_. Hasil null kalau
+// grid tidak ditemukan (tab masih berformat lama) -> web memakai mode lama. Tidak pernah melempar galat.
+function getTrackerTechIndex_() {
+  try {
+    const ctx = readTrackerGrid_();
+    const index = {};
+    for (let r = 2; r < ctx.values.length; r++) {
+      const id = cleanText_(ctx.values[r][ctx.grid.pidCol]);
+      if (!id || index[id]) continue;
+      index[id] = archiveModulesFromRow_(ctx.grid.modules, ctx.values[r]).map(function (m) {
+        return { key: m.key, cap: m.cap, unit: m.unit };
+      });
+    }
+    return index;
+  } catch (e) {
+    return null;
+  }
+}
+
+// Seperti applyArchiveModules_, tetapi hati-hati terhadap sel yang dipegang pengguna di sheet:
+//  - modul yang belum dikenal web (kunci "x_...") tidak disentuh;
+//  - modul yang tidak dipilih hanya dimatikan dan dikosongkan kalau sebelumnya aktif (sel yang tidak pernah
+//    dicentang dibiarkan apa adanya).
+function applyTechModules_(row, modulesDef, chosen) {
+  const byKey = {};
+  chosen.forEach(function (m) { byKey[m.key] = m; });
+  modulesDef.forEach(function (d) {
+    if (!d.key || !isKnownArchiveKey_(d.key)) return;
+    const m = byKey[d.key];
+    if (!m && !archiveIsOn_(row[d.cols.on])) return;
+    row[d.cols.on] = !!m;
+    setArchiveModuleCells_(row, d, m);
+  });
+}
+
+function saveProjectTech_(payload) {
+  const user = payload.user || 'Tidak diketahui';
+  const id = cleanText_(payload.projectId);
+  const ctx = readTrackerGrid_();
+  const r = findTrackerRowById_(ctx.values, ctx.grid, id);
+  const rowNumber = r + 1;
+  const row = ctx.values[r].slice();
+  const before = trackerTechFromRow_(ctx.grid, row, rowNumber, id);
+  if (cleanText_(payload.baseRev) !== before.rev) {
+    throw new Error('Teknologi project ini sudah diubah (di web atau di spreadsheet) sejak Anda membukanya. Muat ulang halaman, lalu ulangi perubahan Anda.');
+  }
+  const schema = archiveSchemaOf_(ctx.grid.modules).filter(function (m) { return isKnownArchiveKey_(m.key); });
+  const chosen = sanitizeArchiveModules_(payload.modules, schema);
+
+  const next = row.slice();
+  applyTechModules_(next, ctx.grid.modules, chosen);
+
+  // Tulis hanya sel yang berubah; sel berumus di dalam grid dilewati.
+  const formulas = ctx.sh.getRange(rowNumber, ctx.grid.start + 1, 1, ctx.grid.end - ctx.grid.start).getFormulas()[0];
+  const updates = {};
+  for (let c = ctx.grid.start; c < ctx.grid.end; c++) {
+    if (formulas[c - ctx.grid.start]) continue;
+    if (techCellKey_(next[c]) !== techCellKey_(row[c])) updates[c] = next[c];
+  }
+  if (Object.keys(updates).length === 0) return before;
+
+  writeCells_(ctx.sh, rowNumber, updates);
+  // Baca ulang dari sheet: rev dan isi persis seperti yang akan dibaca penyunting berikutnya.
+  const after = getProjectTech_(id);
+  invalidateProjectsCache_(); // daftar project membawa ringkasan teknologi
+  logActivity_(user, 'Update Teknologi', id,
+    ctx.poCol > -1 ? cleanText_(row[ctx.poCol]) : '', ctx.nameCol > -1 ? cleanText_(row[ctx.nameCol]) : '',
+    'Sebelumnya: ' + (archiveSummary_(before.modules) || 'kosong') + ' | Sekarang: ' + (archiveSummary_(after.modules) || 'kosong'));
+  return after;
 }

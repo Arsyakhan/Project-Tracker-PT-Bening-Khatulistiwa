@@ -1,12 +1,15 @@
 import { useMemo } from 'react';
 import { ARCHIVE_UNITS, FLOW_PHASES, stepInfo, moduleLabel } from '../lib/techflow';
+import { specsFromTech, hasSpecFields, detailTemplate, DETAIL_EXAMPLES } from '../lib/specParser';
 
 // Pemilih modul teknologi (per fase alur): centang modul, isi kapasitas, satuan, dan detail.
 // Dipakai bersama oleh form arsip dan tab Teknologi di detail project, supaya datanya identik.
 //   schema   = [{ key, label, hasCap, hasUnit, hasDetail }]
 //   value    = [{ key, cap, unit, detail }]  (modul yang dicentang)
 //   onChange = (array baru, urut sesuai schema) => void
-export default function ModulePicker({ schema, value, onChange, detailMax = 4000, disabled = false }) {
+//   specHelp = true di detail project: kolom Detail dibaca untuk Spesifikasi Peralatan (Hand Over), jadi diberi contoh,
+//              tombol "Isi dari template", dan keterangan berapa kolom yang terbaca.
+export default function ModulePicker({ schema, value, onChange, detailMax = 4000, disabled = false, specHelp = false }) {
   const byKey = useMemo(() => {
     const m = {};
     (value || []).forEach((x) => { m[x.key] = { cap: x.cap || '', unit: x.unit || '', detail: x.detail || '' }; });
@@ -35,6 +38,13 @@ export default function ModulePicker({ schema, value, onChange, detailMax = 4000
     emit(next);
   }
   const setField = (key, field, v) => emit({ ...byKey, [key]: { ...byKey[key], [field]: v } });
+  // Sisipkan kerangka penulisan (label tanpa isi) ke Detail; kalau sudah ada isinya, ditambahkan di bawahnya.
+  function insertTemplate(key) {
+    const t = detailTemplate(key);
+    if (!t) return;
+    const cur = (byKey[key]?.detail || '').trimEnd();
+    setField(key, 'detail', (cur ? `${cur}\n\n${t}` : t).slice(0, detailMax));
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -70,10 +80,22 @@ export default function ModulePicker({ schema, value, onChange, detailMax = 4000
                         </label>
                       )}
                       {s.hasDetail && (
-                        <label className="flex flex-col gap-1 col-span-2 sm:col-span-1">
-                          <span className="text-xs text-inkmute">Detail spesifikasi (opsional)</span>
-                          <textarea className="input font-data text-xs" rows={3} value={m.detail} onChange={(e) => setField(s.key, 'detail', e.target.value)} placeholder="Model, material, qty, dll." maxLength={detailMax} />
-                        </label>
+                        <div className="flex flex-col gap-1 col-span-2 sm:col-span-1">
+                          <label className="flex flex-col gap-1">
+                            <span className="text-xs text-inkmute">{specHelp && hasSpecFields(s.key) ? 'Detail spesifikasi (dibaca untuk Spesifikasi Peralatan)' : 'Detail spesifikasi (opsional)'}</span>
+                            <textarea
+                              className="input font-data text-xs"
+                              rows={specHelp && hasSpecFields(s.key) ? 5 : 3}
+                              value={m.detail}
+                              onChange={(e) => setField(s.key, 'detail', e.target.value)}
+                              placeholder={(specHelp && DETAIL_EXAMPLES[s.key]) || 'Model, material, qty, dll.'}
+                              maxLength={detailMax}
+                            />
+                          </label>
+                          {specHelp && hasSpecFields(s.key) && (
+                            <SpecHint module={{ key: s.key, ...m }} onTemplate={() => insertTemplate(s.key)} disabled={disabled} />
+                          )}
+                        </div>
                       )}
                     </div>
                   )}
@@ -83,6 +105,29 @@ export default function ModulePicker({ schema, value, onChange, detailMax = 4000
           </div>
         </fieldset>
       ))}
+    </div>
+  );
+}
+
+// Keterangan di bawah kolom Detail: berapa kolom Spesifikasi Peralatan yang terbaca dari teks, plus tombol template.
+function SpecHint({ module, onTemplate, disabled }) {
+  const text = String(module.detail || '').trim();
+  // Hanya yang terbaca dari teks (kapasitas dari kolom Kapasitas tidak dihitung).
+  const found = text ? specsFromTech([{ ...module, cap: '', unit: '' }]).found[module.key] || 0 : null;
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+      <span className={`text-xs ${found === 0 ? 'text-amberink' : 'text-inkmute'}`}>
+        {found === null
+          ? 'Tulis "Label : isi" per baris (Model, Capacity, Power, Qty, ...), atau pakai template.'
+          : found > 0
+            ? `Terbaca ${found} kolom untuk Spesifikasi Peralatan.`
+            : 'Belum ada nilai yang terbaca. Isi di belakang titik dua (Label : isi), satu peralatan per judul.'}
+      </span>
+      {!disabled && (
+        <button type="button" onClick={onTemplate} className="tap text-xs font-medium text-blueprint hover:underline">
+          {text ? 'Tambah template' : 'Isi dari template'}
+        </button>
+      )}
     </div>
   );
 }

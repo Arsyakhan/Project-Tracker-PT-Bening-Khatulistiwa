@@ -1,9 +1,19 @@
 /**
- * PT BENING KHATULISTIWA — BENING HUB API  (v2.7)
+ * PT BENING KHATULISTIWA — BENING HUB API  (v2.8)
  * ---------------------------------------------------
  * Backend untuk aplikasi web "Bening Hub". Paste seluruh file ini ke:
  * Extensions > Apps Script (dibuka DARI spreadsheet
  * "Project Tracker_PT Bening Khatulistiwa", jadi otomatis terikat ke sheet-nya).
+ *
+ * YANG BARU DI v2.8 (perlu Archive.gs terbaru juga; keduanya ditempel, lalu deploy versi baru):
+ *   - Teknologi project aktif sekarang dibaca dan ditulis di GRID kolom AA-CT tab Project Tracker (sama dengan yang
+ *     diisi manual di sheet). Dulu web menyimpannya di tab Project Specs (kunci tech_*) sehingga dua tempat berbeda.
+ *     Aksi baru: GET `tech` (projectId) dan POST `saveProjectTech` (projectId, modules, baseRev). Kodenya ada di
+ *     Archive.gs (bagian "TEKNOLOGI PROJECT AKTIF"). Penyimpanan dari web hanya menulis sel grid yang berubah, melewati
+ *     sel berumus, dan ditolak kalau baris itu diubah orang lain sejak dimuat (baseRev). Tidak ada perubahan di
+ *     aksi lain. `projects` kini membawa kolom `tech` per project (ringkas: [{key, cap, unit}], tanpa detail) supaya
+ *     daftar dan halaman dokumen tahu teknologi tiap project tanpa kolom "Sistem Terpasang"; simpan teknologi ikut
+ *     membersihkan cache daftar project.
  *
  * YANG BARU DI v2.7 (menyesuaikan struktur baru spreadsheet; tetap jalan di struktur lama):
  *   - Tab Project Tracker sekarang punya DUA baris judul (baris 1 = nama kolom / judul modul teknologi, baris 2 =
@@ -278,6 +288,7 @@ function doGet(e) {
     else if (action === 'meetings') data = getMeetings_();
     else if (action === 'procurement') data = getProcurement_();
     else if (action === 'archive') data = getArchive_();
+    else if (action === 'tech') data = getProjectTech_(params.projectId);
     else throw new Error('Unknown action: ' + action);
     return jsonOut_({ ok: true, data: data });
   } catch (err) {
@@ -306,6 +317,7 @@ function doPost(e) {
       if (action === 'deleteMeeting') return deleteMeeting_(payload);
       if (action === 'saveArchiveProject') return saveArchiveProject_(payload);
       if (action === 'deleteArchiveProject') return deleteArchiveProject_(payload);
+      if (action === 'saveProjectTech') return saveProjectTech_(payload);
       if (action === 'setMeetingDoc') return setMeetingDoc_(payload);
       throw new Error('Unknown action: ' + action);
     });
@@ -775,9 +787,13 @@ function getProjects_() {
   });
 
 
+  // Teknologi (grid AA-CT) per project; null = grid tidak ada/format lama -> kolom `tech` tidak dikirim.
+  const techIndex = (typeof getTrackerTechIndex_ === 'function') ? getTrackerTechIndex_() : null;
+
   return all.p.rows.map(function (p) {
     const c = checkById[cleanText_(p[ID_HEADER])] || null;
-    return {
+    const techOfProject = techIndex ? (techIndex[cleanText_(p[ID_HEADER])] || []) : undefined;
+    const item = {
       id: cleanText_(p[ID_HEADER]),
       row: p._row,
       no: p['No'],
@@ -816,6 +832,8 @@ function getProjects_() {
         progress: toPercentNumber_(c['Progress (%)'])
       } : null
     };
+    if (techOfProject !== undefined) item.tech = techOfProject; // ringkas: [{key, cap, unit}]
+    return item;
   });
 }
 

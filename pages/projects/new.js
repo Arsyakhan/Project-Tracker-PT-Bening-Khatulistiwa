@@ -165,8 +165,8 @@ export default function NewProjectPage() {
           </summary>
           <div className="flex flex-col gap-4 px-4 sm:px-5 pb-4 sm:pb-5 pt-1 border-t border-line">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3">
-              <Field id={id('tech')} label="Teknologi / kapasitas">
-                <input id={id('tech')} className="input" placeholder="ex: RO 4 MPH" value={form.technology} onChange={(e) => update('technology', e.target.value)} />
+              <Field id={id('tech')} label="Bentuk Project">
+                <input id={id('tech')} className="input" placeholder="ex: Skid, Plant, Retrofit" value={form.technology} onChange={(e) => update('technology', e.target.value)} />
               </Field>
               <Field id={id('tdp')} label="Tanggal DP">
                 <input id={id('tdp')} type="date" className="input" value={form.tanggalDP} onChange={(e) => update('tanggalDP', e.target.value)} />

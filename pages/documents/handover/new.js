@@ -9,8 +9,9 @@ import ProjectPicker from '../../../components/docgen/ProjectPicker';
 import { TextField, ToggleSection } from '../../../components/docgen/DocFormControls';
 import { HANDOVER_SECTIONS, buildHandoverEmpty } from '../../../lib/docgen/schema';
 import { prefillHandover } from '../../../lib/docgen/prefill';
-import { SPEC_FIELD_IDS, packSpecs, unpackSpecs } from '../../../lib/docgen/specs';
-import { docReadiness, effectiveSystems, toHandoverModules } from '../../../lib/systems';
+import { SPEC_FIELD_IDS, packSpecs, unpackSpecs, derivedSpecs, withDerived, autoSpecIds } from '../../../lib/docgen/specs';
+import { docReadiness, projectSystems, toHandoverModules } from '../../../lib/systems';
+import { gridModules } from '../../../lib/techflow';
 
 const REQUIRED = ['project_name', 'system_title', 'buyer_company'];
 
@@ -36,9 +37,11 @@ export default function NewHandoverReport() {
   const [result, setResult] = useState(null);
   const fieldRefs = useRef({});
   // Spesifikasi peralatan yang tersimpan di project (lihat tab "Spesifikasi Peralatan" di detail project)
-  const projectSpecsRef = useRef({});             // spesifikasi terakhir dari server (sudah dibersihkan)
+  const projectSpecsRef = useRef({});             // spesifikasi terakhir (isian tersimpan + nilai otomatis dari Teknologi)
+  const derivedSpecsRef = useRef({});             // bagian yang otomatis dari Teknologi (tidak ikut disimpan ke project)
   const [specsVersion, setSpecsVersion] = useState(0);
   const [specsCount, setSpecsCount] = useState(0);
+  const [specsAuto, setSpecsAuto] = useState(0);        // berapa kolom yang masih nilai otomatis dari Teknologi
   const [specsBusy, setSpecsBusy] = useState(false);
   const [confirmReloadOpen, setConfirmReloadOpen] = useState(false);
   const activeKey = useRef(null); // kunci localStorage untuk draft yang sedang aktif
@@ -49,21 +52,25 @@ export default function NewHandoverReport() {
     api.getProjects().then(setProjects).catch(() => setProjects([]));
   }, []);
 
-  // Ambil spesifikasi tersimpan milik sebuah project. Gagal = lanjut tanpa spesifikasi (form tetap bisa dipakai).
+  // Ambil spesifikasi milik sebuah project: nilai otomatis dari Teknologinya (kapasitas + teks Detail Spesifikasi di grid
+  // tab Project Tracker), lalu isian tersimpan di atasnya (override manual menang). Teknologi tidak terbaca (mis. backend
+  // belum v2.8) = pakai isian tersimpan saja; form tetap bisa dipakai.
   async function fetchProjectSpecs(pid) {
-    try {
-      const res = await api.getSpecs(pid);
-      const specs = unpackSpecs(res.specs);
-      projectSpecsRef.current = specs;
-      setSpecsVersion(res.version || 0);
-      setSpecsCount(Object.keys(packSpecs(specs)).length);
-      return specs;
-    } catch {
-      projectSpecsRef.current = {};
-      setSpecsVersion(0);
-      setSpecsCount(0);
-      return {};
+    const [specsRes, techRes] = await Promise.allSettled([api.getSpecs(pid), api.getTech(pid)]);
+    let saved = {};
+    let version = 0;
+    if (specsRes.status === 'fulfilled') {
+      saved = unpackSpecs(specsRes.value.specs);
+      version = specsRes.value.version || 0;
     }
+    const derived = techRes.status === 'fulfilled' ? derivedSpecs(gridModules(techRes.value.modules)) : {};
+    const specs = withDerived(saved, derived);
+    derivedSpecsRef.current = derived;
+    projectSpecsRef.current = specs;
+    setSpecsVersion(version);
+    setSpecsCount(Object.keys(packSpecs(specs)).length);
+    setSpecsAuto(autoSpecIds(saved, derived).size);
+    return specs;
   }
 
   // Inisialisasi form SEKALI per project: pulihkan draft kalau ada, kalau tidak isi dari data project.
@@ -122,8 +129,10 @@ export default function NewHandoverReport() {
   function unlinkProject() {
     activeKey.current = draftKey(null);
     projectSpecsRef.current = {};
+    derivedSpecsRef.current = {};
     setSpecsVersion(0);
     setSpecsCount(0);
+    setSpecsAuto(0);
     setLinkedProject(null);
     router.replace({ pathname: router.pathname, query: {} }, undefined, { shallow: true });
   }
@@ -131,7 +140,7 @@ export default function NewHandoverReport() {
   const readiness = linkedProject ? docReadiness(linkedProject, 'handover') : null;
   const hoNotes = [];
   if (linkedProject) {
-    const info = toHandoverModules(effectiveSystems(linkedProject).keys);
+    const info = toHandoverModules(projectSystems(linkedProject).keys);
     if (info.overflowFilters.length > 0) hoNotes.push(`Template Hand Over hanya punya 2 slot filter. Tambahkan secara manual di "Item Tambahan": ${info.overflowFilters.join(', ')}.`);
     if (info.notInHandover.length > 0) hoNotes.push(`${info.notInHandover.join(', ')} tidak punya seksi di template Hand Over.`);
   }
@@ -139,18 +148,20 @@ export default function NewHandoverReport() {
   // Simpan isian spesifikasi di form ini ke project, supaya koreksi saat serah terima tidak hilang.
   async function saveSpecsToProject() {
     if (!linkedProject || specsBusy) return;
-    const packed = packSpecs(form);
-    if (Object.keys(packed).length === 0) {
+    // Yang sama dengan nilai otomatis dari Teknologi tidak disimpan (tetap mengikuti Teknologi); hanya koreksi manual.
+    const packed = packSpecs(form, derivedSpecsRef.current);
+    const fullCount = Object.keys(packSpecs(form)).length;
+    if (fullCount === 0) {
       showToast('Belum ada spesifikasi yang diisi untuk disimpan.', 'error');
       return;
     }
     setSpecsBusy(true);
     try {
       const res = await api.saveSpecs({ projectId: linkedProject.id, specs: packed, baseVersion: specsVersion });
-      projectSpecsRef.current = unpackSpecs(packed);
+      projectSpecsRef.current = withDerived(unpackSpecs(packed), derivedSpecsRef.current);
       setSpecsVersion(res.version);
-      setSpecsCount(Object.keys(packed).length);
-      showToast('Spesifikasi tersimpan ke project.', 'success');
+      setSpecsCount(fullCount);
+      showToast(Object.keys(packed).length === 0 ? 'Tidak ada koreksi manual; spesifikasi tetap mengikuti Teknologi project.' : 'Koreksi spesifikasi tersimpan ke project.', 'success');
     } catch (err) {
       showToast(err.message, 'error');
     } finally {
@@ -258,7 +269,7 @@ export default function NewHandoverReport() {
           {linkedProject ? (
             <div className="bg-blueprint/10 border border-blueprint/30 rounded-lg px-4 py-3 flex items-center justify-between gap-3 text-sm">
               <div className="min-w-0">
-                <span>Membuat dokumen untuk: <b className="text-ink">{linkedProject.projectName}</b> -- data project (PO, client, lokasi, sistem terpasang) sudah terisi otomatis. Periksa kembali sebelum generate.</span>
+                <span>Membuat dokumen untuk: <b className="text-ink">{linkedProject.projectName}</b> -- data project (PO, client, lokasi, teknologi) sudah terisi otomatis. Periksa kembali sebelum generate.</span>
                 {!readiness.ready && (
                   <span className="block text-xs text-amberink mt-1">
                     Belum lengkap di project: {readiness.missing.join(', ')}.{' '}
@@ -270,7 +281,7 @@ export default function NewHandoverReport() {
                 <span className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs">
                   <span className="text-inkmute">
                     {specsCount > 0
-                      ? `Spesifikasi peralatan: ${specsCount} kolom terisi dari project.`
+                      ? `Spesifikasi peralatan: ${specsCount} kolom terisi dari project${specsAuto > 0 ? ` (${specsAuto} otomatis dari Teknologi)` : ''}.`
                       : 'Spesifikasi peralatan project belum diisi.'}
                   </span>
                   <button type="button" onClick={saveSpecsToProject} disabled={specsBusy} className="font-medium text-blueprint hover:underline disabled:opacity-50">

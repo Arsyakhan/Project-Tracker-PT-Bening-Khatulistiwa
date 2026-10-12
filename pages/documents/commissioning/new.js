@@ -198,7 +198,7 @@ export default function NewCommissioningReport() {
           {linkedProject ? (
             <div className="bg-blueprint/10 border border-blueprint/30 rounded-lg px-4 py-3 flex items-center justify-between gap-3 text-sm">
               <div className="min-w-0">
-                <span>Membuat dokumen untuk: <b className="text-ink">{linkedProject.projectName}</b> -- data project (PO, client, lokasi, sistem terpasang) sudah terisi otomatis. Periksa kembali sebelum generate.</span>
+                <span>Membuat dokumen untuk: <b className="text-ink">{linkedProject.projectName}</b> -- data project (PO, client, lokasi, teknologi) sudah terisi otomatis. Periksa kembali sebelum generate.</span>
                 {!readiness.ready && (
                   <span className="block text-xs text-amberink mt-1">
                     Belum lengkap di project: {readiness.missing.join(', ')}.{' '}

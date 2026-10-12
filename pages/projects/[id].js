@@ -10,9 +10,9 @@ import StageGauge from '../../components/StageGauge';
 import StagePipeline from '../../components/StagePipeline';
 import { StatusBadge, PriorityBadge, DeliveryHint, Pill } from '../../components/Badges';
 import { fmtDate, todayISO, initialOf, nameFromEmail, timeAgo } from '../../lib/projectHelpers';
-import { SYSTEMS, RO_OPTIONS, normalizeSystems, effectiveSystems, docReadiness } from '../../lib/systems';
+import { SYSTEMS, RO_OPTIONS, normalizeSystems, projectSystems, documentExtras, deriveSystemKeys, docReadiness, systemLabel } from '../../lib/systems';
 import SpecsEditor from '../../components/SpecsEditor';
-import { packSpecs, buildSpecValues, visibleSections, overallProgress } from '../../lib/docgen/specs';
+import { packSpecs, buildSpecValues, visibleSections, overallProgress, derivedSpecs, withDerived, autoSpecIds, MEASURE_UNIT } from '../../lib/docgen/specs';
 import { canDelete, canWrite } from '../../lib/roles';
 import TechFlow from '../../components/TechFlow';
 import SimilarArchive from '../../components/SimilarArchive';
@@ -20,8 +20,9 @@ import NextActionCard from '../../components/NextActionCard';
 import PicInput from '../../components/PicInput';
 import ModulePicker from '../../components/ModulePicker';
 import {
-  TECH_SCHEMA, TECH_DETAIL_MAX, TECH_EXTRA_KEYS, currentTech, writeTech, deriveSystemKeys, hasDosingModule,
-  projectTechModules, fillSpecCaps, readTech,
+  TECH_SCHEMA, TECH_DETAIL_MAX, TECH_EXTRA_KEYS, currentTech, writeTech, hasDosingModule,
+  projectTechModules, readTech,
+  GRID_DETAIL_MAX, gridModules, sameTech, gridTechModules, gridCurrentTech,
 } from '../../lib/techflow';
 import ConfirmModal from '../../components/ConfirmModal';
 import { useToast } from '../../components/Toast';
@@ -86,6 +87,12 @@ export default function ProjectDetailPage() {
   const [specsVersion, setSpecsVersion] = useState(0);
   const [specsLoading, setSpecsLoading] = useState(false);
   const [specsError, setSpecsError] = useState(null);
+  // Teknologi project = grid kolom AA-CT di tab Project Tracker (Code.gs v2.8). null = belum dimuat.
+  //   mode 'grid'  : { mode, saved (modul tersimpan), work (modul yang sedang diedit), edited, rev }
+  //   mode 'legacy': backend belum v2.8, teknologi masih tersimpan di Spesifikasi (kunci tech_*)
+  const [tech, setTechState] = useState(null);
+  const [techLoading, setTechLoading] = useState(false);
+  const [techError, setTechError] = useState(null);
   // Request checklist dijalankan berurutan supaya respons tidak saling menimpa
   const checklistQueueRef = useRef(Promise.resolve());
 
@@ -122,6 +129,8 @@ export default function ProjectDetailPage() {
     setSpecsSaved(null);
     setSpecsVersion(0);
     setSpecsError(null);
+    setTechState(null);
+    setTechError(null);
   }, [id]);
 
   async function loadSpecs() {
@@ -147,6 +156,32 @@ export default function ProjectDetailPage() {
     if (!project?.id || specsValues !== null || specsLoading || specsError) return;
     loadSpecs();
   }, [project?.id, specsValues, specsLoading, specsError]);
+
+  async function loadTech() {
+    const current = projectRef.current;
+    if (!current?.id) return;
+    setTechLoading(true);
+    setTechError(null);
+    try {
+      const res = await api.getTech(current.id);
+      if (projectRef.current?.id !== current.id) return; // sudah pindah ke project lain
+      const modules = gridModules(res.modules);
+      setTechState({ mode: 'grid', saved: modules, work: modules, edited: false, rev: res.rev });
+    } catch (err) {
+      if (projectRef.current?.id !== current.id) return;
+      // Backend belum v2.8 (Code.gs/Archive.gs baru belum ditempel): pakai cara lama supaya tab tetap berfungsi.
+      if (/Unknown action/i.test(err.message)) setTechState({ mode: 'legacy' });
+      else setTechError(err.message);
+    } finally {
+      setTechLoading(false);
+    }
+  }
+
+  // Dimuat begitu project yang dibuka sudah tampil (bukan project sebelumnya yang masih tertinggal saat pindah halaman).
+  useEffect(() => {
+    if (!project?.id || String(project.id) !== String(id) || tech !== null || techLoading || techError) return;
+    loadTech();
+  }, [project?.id, id, tech, techLoading, techError]);
 
   // Ambil komentar begitu tab dibuka (sekali per project, bukan tiap render)
   useEffect(() => {
@@ -188,7 +223,13 @@ export default function ProjectDetailPage() {
     return JSON.stringify(packSpecs(specsValues)) !== JSON.stringify(packSpecs(specsSaved));
   }, [specsValues, specsSaved]);
 
-  const isDirty = projectDirty || specsDirty;
+  // Teknologi (grid) yang diedit tapi belum disimpan.
+  const techDirty = useMemo(
+    () => tech?.mode === 'grid' && tech.edited && !sameTech(tech.work, tech.saved),
+    [tech],
+  );
+
+  const isDirty = projectDirty || specsDirty || techDirty;
 
   useEffect(() => {
     function handleBeforeUnload(e) {
@@ -235,6 +276,7 @@ export default function ProjectDetailPage() {
     if (!initialSnapshot) return;
     setProject((p) => ({ ...p, ...JSON.parse(initialSnapshot) }));
     if (specsSaved) setSpecsValues(specsSaved);
+    setTechState((t) => (t?.mode === 'grid' ? { ...t, work: t.saved, edited: false } : t));
     setError(null);
   }
 
@@ -255,8 +297,21 @@ export default function ProjectDetailPage() {
     setProject((p) => ({ ...p, [field]: value }));
   }
 
+  // Mengubah kolom yang masih nilai otomatis dari Teknologi = koreksi manual. Angka dan satuannya disimpan sepaket,
+  // jadi mengubah salah satunya ikut menetapkan pasangannya (supaya tidak bergeser saat Teknologi berubah).
   function updateSpec(fieldId, value) {
-    setSpecsValues((v) => ({ ...(v || {}), [fieldId]: value }));
+    setSpecsValues((v0) => {
+      const v = v0 || {};
+      const next = { ...v, [fieldId]: value };
+      const empty = (id) => !String(v[id] ?? '').trim();
+      const unitOf = MEASURE_UNIT[fieldId];
+      if (unitOf && specsDerived[fieldId] !== undefined && empty(fieldId) && String(value).trim()) {
+        if (specsDerived[unitOf]) next[unitOf] = specsDerived[unitOf];
+      }
+      const capOf = Object.keys(MEASURE_UNIT).find((k) => MEASURE_UNIT[k] === fieldId);
+      if (capOf && specsDerived[capOf] !== undefined && empty(capOf)) next[capOf] = specsDerived[capOf];
+      return next;
+    });
   }
 
   async function saveProject() {
@@ -264,34 +319,63 @@ export default function ProjectDetailPage() {
     setError(null);
     try {
       // "user" tidak dikirim dari sini: server mengisinya dari sesi login.
+      // Teknologi (grid) disimpan lebih dulu: sistem untuk dokumen diturunkan darinya, jadi kalau teknologi ditolak
+      // (mis. barisnya diubah orang lain di sheet) tidak ada yang tersimpan setengah-setengah.
+      let techSavedNow = null;
+      if (techDirty) {
+        try {
+          const res = await api.saveProjectTech({ projectId: project.id, modules: tech.work, baseRev: tech.rev });
+          techSavedNow = gridModules(res.modules);
+          setTechState({ mode: 'grid', saved: techSavedNow, work: techSavedNow, edited: false, rev: res.rev });
+        } catch (err) {
+          setError(`Teknologi belum tersimpan: ${err.message}`);
+          showToast(`Teknologi gagal disimpan: ${err.message}`, 'error');
+          return;
+        }
+      }
+      // Kolom lama "Sistem Terpasang" sekarang hanya menyimpan opsi dokumen; sisa isi lama dibersihkan begitu teknologi tercatat.
+      const payloadProject = pickEditable(project);
+      let cleanLegacy = false;
+      if (techSavedNow && techSavedNow.length > 0) {
+        const extras = documentExtras(project);
+        if (JSON.stringify(normalizeSystems(project.sistemTerpasang)) !== JSON.stringify(extras)) {
+          payloadProject.sistemTerpasang = extras;
+          cleanLegacy = true;
+        }
+      }
       let projectSaved = false;
-      if (projectDirty) {
-        await api.updateProject({ projectId: project.id, ...pickEditable(project) });
+      if (projectDirty || cleanLegacy) {
+        try {
+          await api.updateProject({ projectId: project.id, ...payloadProject });
+        } catch (err) {
+          if (techSavedNow === null) throw err;
+          setError(`Teknologi sudah tersimpan, tetapi data project belum: ${err.message}`);
+          showToast(`Teknologi tersimpan, data project gagal: ${err.message}`, 'error');
+          return;
+        }
         projectSaved = true;
       }
+      // Spesifikasi: hanya koreksi manual yang disimpan; nilai otomatis dari Teknologi tidak disalin.
       if (specsDirty) {
         try {
-          // Kapasitas di Spesifikasi yang masih kosong diisi dari Teknologi (yang sudah terisi tidak ditimpa).
-          const techNow = readTech(specsValues);
-          const readyValues = techNow ? fillSpecCaps(specsValues, techNow) : specsValues;
           const res = await api.saveSpecs({
             projectId: project.id,
-            specs: packSpecs(readyValues),
+            specs: packSpecs(specsValues),
             baseVersion: specsVersion,
           });
           setSpecsVersion(res.version);
-          setSpecsSaved(readyValues);
-          setSpecsValues(readyValues);
+          setSpecsSaved(specsValues);
         } catch (err) {
           // Data project sudah tersimpan; hanya spesifikasi yang gagal (mis. bentrok versi).
-          if (projectSaved) await load();
+          if (projectSaved || techSavedNow !== null) await load();
           setError(`Spesifikasi belum tersimpan: ${err.message}`);
           showToast(`Spesifikasi gagal disimpan: ${err.message}`, 'error');
           return;
         }
       }
       showToast('Tersimpan ke spreadsheet.', 'success');
-      if (projectSaved) await load();
+      // Daftar project (yang membawa ringkasan teknologi) dimuat ulang supaya kesiapan dokumen ikut diperbarui.
+      if (projectSaved || techSavedNow !== null) await load();
     } catch (err) {
       setError(err.message);
       showToast(`Gagal menyimpan: ${err.message}`, 'error');
@@ -384,32 +468,55 @@ export default function ProjectDetailPage() {
   const targetHint =
     targetDays === null ? '' : targetDays < 0 ? `Terlewat ${Math.abs(targetDays)} hari` : targetDays === 0 ? 'Hari ini' : `${targetDays} hari lagi`;
 
-  const savedSystems = normalizeSystems(project.sistemTerpasang);
-  const shownSystems = effectiveSystems(project);
-  const filterCount = ['birm', 'mmf', 'acf'].filter((k) => savedSystems.includes(k)).length;
+  // Teknologi yang sedang dibuka di halaman (termasuk yang belum disimpan): sumber sistem, seksi spesifikasi, dan nilai otomatis.
+  const gridTech = tech?.mode === 'grid' ? tech : null;
+  const techForSystems = gridTech ? (gridTech.edited ? gridTech.work : gridTech.saved) : (readTech(specsValues || {}) || undefined);
+  const savedSystems = normalizeSystems(project.sistemTerpasang); // isi kolom lama; di sini hanya untuk opsi dokumen
+  const shownSystems = projectSystems(project, techForSystems);
+  const filterCount = ['birm', 'mmf', 'acf'].filter((k) => shownSystems.keys.includes(k)).length;
   const readiness = {
     commissioning: docReadiness(project, 'commissioning'),
     handover: docReadiness(project, 'handover'),
   };
   const allMissing = Array.from(new Set([...readiness.commissioning.missing, ...readiness.handover.missing]));
-  const specSections = visibleSections(project);
-  const flowModules = projectTechModules(project, specsValues || {});
-  const techValue = currentTech(project, specsValues || {});
-  const techSaved = !!readTech(specsValues || {});
-  const specProgress = specsValues ? overallProgress(specSections, specsValues) : null;
+  const specSections = visibleSections(project, techForSystems);
+  // Teknologi: dari grid (backend v2.8) atau, kalau backend belum v2.8, dari kunci tech_* di Spesifikasi.
+  const flowModules = gridTech
+    ? gridTechModules(project, gridTech.edited ? gridTech.work : gridTech.saved, specsValues || {})
+    : projectTechModules(project, specsValues || {});
+  const techValue = gridTech
+    ? (gridTech.edited ? gridTech.work : gridCurrentTech(project, gridTech.saved, specsValues || {}))
+    : currentTech(project, specsValues || {});
+  const techSaved = gridTech ? (gridTech.edited || gridTech.saved.length > 0) : !!readTech(specsValues || {});
+  // Tab Teknologi menunggu teknologi (dan spesifikasi, untuk isi awal dari data lama) selesai dimuat.
+  const techTabLoading = (specsLoading && specsValues === null) || (techLoading && tech === null) || (tech === null && !techError);
+  const techTabError = techError || specsError;
+  // Spesifikasi Peralatan: nilai otomatis dari Teknologi (kapasitas + Detail Spesifikasi) mengisi kolom yang belum dikoreksi manual.
+  const specsDerived = techForSystems && techForSystems.length > 0 ? derivedSpecs(techForSystems) : {};
+  const shownSpecs = specsValues ? withDerived(specsValues, specsDerived) : null;
+  const autoIds = specsValues ? autoSpecIds(specsValues, specsDerived) : new Set();
+  const specProgress = shownSpecs ? overallProgress(specSections, shownSpecs) : null;
   const commPercent = Math.round(((4 - readiness.commissioning.missing.length) / 4) * 100);
 
+  function retryTech() {
+    if (techError) loadTech();
+    if (specsError) loadSpecs();
+  }
+
+  // Opsi dokumen (CIP/dosing terpisah, tangki antara, panel, RO besar, recycle): disimpan di kolom lama "Sistem Terpasang".
   function toggleSystem(key) {
     const cur = savedSystems;
-    let next = cur.includes(key) ? cur.filter((k) => k !== key) : [...cur, key];
-    if (key === 'ro' && !next.includes('ro')) next = next.filter((k) => k !== 'ro_large' && k !== 'recycle');
+    const next = cur.includes(key) ? cur.filter((k) => k !== key) : [...cur, key];
     update('sistemTerpasang', normalizeSystems(next));
   }
 
-  // Ubah teknologi: simpan modulnya di Spesifikasi (tech_*) dan turunkan "sistem terpasang" dari situ.
+  // Ubah teknologi: modulnya ditahan sebagai perubahan yang belum disimpan (grid; di mode lama di Spesifikasi, tech_*).
+  // Sistem untuk dokumen dan nilai Spesifikasi otomatis ikut dihitung dari situ (tidak ada data kedua yang perlu disamakan).
   function setTech(modules) {
+    if (gridTech) { setTechState((t) => ({ ...t, work: modules, edited: true })); return; }
+    // Mode lama (backend belum v2.8, daftar project belum membawa teknologi): dokumen masih membaca kolom
+    // "Sistem Terpasang", jadi diturunkan dan ditulis seperti dulu.
     const prevDosing = hasDosingModule(techValue);
-    // Opsi tambahan yang dipilih manual tetap dipertahankan; "dosing" yang tadinya turunan modul tidak ikut tersisa.
     const extras = savedSystems.filter((k) => TECH_EXTRA_KEYS.includes(k) && !(k === 'dosing' && prevDosing));
     setSpecsValues((v) => ({ ...(v || {}), ...writeTech(modules) }));
     update('sistemTerpasang', normalizeSystems(deriveSystemKeys(modules, extras)));
@@ -471,7 +578,7 @@ export default function ProjectDetailPage() {
           <TitleCell label="Client" value={project.client} />
           <TitleCell label="Lokasi plant" value={project.lokasiPlant} />
           <TitleCell label="PIC" value={project.pic} />
-          <TitleCell label="Teknologi / kapasitas" value={project.technology} />
+          <TitleCell label="Bentuk Project" value={project.technology} />
           <TitleCell className="col-span-2 md:col-span-1" label="Tanggal kirim" value={project.deliveryDate ? fmtDate(project.deliveryDate) : ''} extra={<DeliveryHint p={project} />} />
         </dl>
       </header>
@@ -620,8 +727,8 @@ export default function ProjectDetailPage() {
                 <Row label="Client">
                   <input className="input" value={project.client || ''} onChange={(e) => update('client', e.target.value)} />
                 </Row>
-                <Row label="Teknologi / kapasitas">
-                  <input className="input" value={project.technology || ''} onChange={(e) => update('technology', e.target.value)} />
+                <Row label="Bentuk Project">
+                  <input className="input" placeholder="ex: Skid, Plant, Retrofit" value={project.technology || ''} onChange={(e) => update('technology', e.target.value)} />
                 </Row>
               </div>
             </Panel>
@@ -641,14 +748,14 @@ export default function ProjectDetailPage() {
             </Panel>
 
             <Panel
-              title="Teknologi & sistem terpasang"
-              hint="Satu data: alur teknologi di bawah juga menentukan sistem terpasang, dan otomatis dipakai di form Commissioning dan Hand Over."
+              title="Teknologi"
+              hint="Satu data: alur teknologi ini juga mengisi sistem, kapasitas, dan spesifikasi di form Commissioning dan Hand Over."
               aside={writable && <button type="button" onClick={() => setActiveTab('teknologi')} className="tap text-sm font-medium text-blueprint hover:underline">Atur teknologi</button>}
             >
               {flowModules.length > 0 ? (
                 <div className="flex flex-col gap-2">
                   <TechFlow modules={flowModules} />
-                  {!techSaved && <p className="text-xs text-inkmute">Dibaca dari data lama (sistem terpasang dan spesifikasi). Buka tab Teknologi untuk melengkapinya.</p>}
+                  {!techSaved && <p className="text-xs text-inkmute">Dibaca dari data lama (kolom Sistem Terpasang dan spesifikasi). Buka tab Teknologi untuk melengkapinya.</p>}
                 </div>
               ) : (
                 <p className="text-sm text-inkmute">Belum ada teknologi yang dicatat. Buka tab Teknologi untuk menyusun alurnya.</p>
@@ -681,33 +788,35 @@ export default function ProjectDetailPage() {
 
           {activeTab === 'teknologi' && (
             <div className="flex flex-col gap-4">
-              {specsLoading && specsValues === null ? (
+              {techTabLoading ? (
                 <Panel title="Teknologi"><p className="text-sm text-inkmute">Memuat...</p></Panel>
-              ) : specsError ? (
+              ) : techTabError ? (
                 <Panel title="Teknologi">
-                  <p className="text-sm text-rust">Gagal memuat data teknologi: {specsError}</p>
-                  <button type="button" onClick={loadSpecs} className="tap w-fit text-sm font-medium text-blueprint hover:underline">Coba lagi</button>
+                  <p className="text-sm text-rust">Gagal memuat data teknologi: {techTabError}</p>
+                  <button type="button" onClick={retryTech} className="tap w-fit text-sm font-medium text-blueprint hover:underline">Coba lagi</button>
                 </Panel>
               ) : (
                 <>
                   <Panel
                     title="Alur teknologi"
-                    hint="Urut dari air baku sampai air produk, sama dengan data arsip project selesai. Sistem terpasang ikut berubah otomatis, dan kapasitas di Spesifikasi Peralatan yang masih kosong ikut terisi saat disimpan."
+                    hint={gridTech
+                      ? 'Urut dari air baku sampai air produk, sama dengan data arsip project selesai. Tersimpan di tab Project Tracker (grid kolom Spesifikasi Teknologi), jadi bisa juga diisi dari spreadsheet. Sistem untuk dokumen, kapasitas, dan Spesifikasi Peralatan (Hand Over) diambil dari sini.'
+                      : 'Urut dari air baku sampai air produk, sama dengan data arsip project selesai. Sistem untuk dokumen dan kapasitas di Spesifikasi Peralatan diambil dari sini.'}
                   >
-                    {!techSaved && (
+                    {!techSaved && techValue.length > 0 && (
                       <div className="flex flex-wrap items-center justify-between gap-2 bg-blueprint/10 border border-blueprint/25 rounded-md px-3 py-2 text-sm">
-                        <span className="text-ink">Terisi dari data lama (sistem terpasang dan spesifikasi). Belum tersimpan sebagai teknologi.</span>
+                        <span className="text-ink">Terisi dari data lama (kolom Sistem Terpasang dan spesifikasi). Belum tersimpan sebagai teknologi.</span>
                         {writable && <button type="button" onClick={() => setTech(techValue)} className="tap text-sm font-medium text-blueprint hover:underline">Pakai data ini</button>}
                       </div>
                     )}
                     <TechFlow modules={techValue.map((m) => ({ ...m, label: (TECH_SCHEMA.find((x) => x.key === m.key) || {}).label }))} emptyText="Centang modul di bawah untuk menyusun alurnya." />
                   </Panel>
 
-                  <ModulePicker schema={TECH_SCHEMA} value={techValue} onChange={setTech} detailMax={TECH_DETAIL_MAX} disabled={!writable} />
+                  <ModulePicker schema={TECH_SCHEMA} value={techValue} onChange={setTech} detailMax={gridTech ? GRID_DETAIL_MAX : TECH_DETAIL_MAX} disabled={!writable} specHelp />
 
-                  <Panel title="Opsi tambahan" hint="Hanya untuk dokumen. Tidak masuk alur teknologi.">
+                  <Panel title="Opsi dokumen" hint="Hanya untuk dokumen Commissioning dan Hand Over. Tidak masuk alur teknologi.">
                     <div className="flex flex-wrap gap-2">
-                      {SYSTEMS.filter((x) => TECH_EXTRA_KEYS.includes(x.key)).concat(RO_OPTIONS.filter(() => savedSystems.includes('ro'))).map((opt) => {
+                      {SYSTEMS.filter((x) => TECH_EXTRA_KEYS.includes(x.key)).concat(RO_OPTIONS.filter(() => shownSystems.keys.includes('ro'))).map((opt) => {
                         const derived = opt.key === 'dosing' && hasDosingModule(techValue);
                         const checked = derived || savedSystems.includes(opt.key);
                         return (
@@ -763,12 +872,13 @@ export default function ProjectDetailPage() {
           {activeTab === 'spesifikasi' && (
             <SpecsEditor
               sections={specSections}
-              values={specsValues}
+              values={shownSpecs}
+              autoIds={autoIds}
               onChange={updateSpec}
               loading={specsLoading && specsValues === null}
               error={specsError}
               onRetry={loadSpecs}
-              onGoSummary={() => setActiveTab('ringkasan')}
+              onGoTech={() => setActiveTab('teknologi')}
               version={specsVersion}
             />
           )}
@@ -937,8 +1047,8 @@ export default function ProjectDetailPage() {
                 <div className="h-1.5 bg-line/60 rounded-full overflow-hidden">
                   <div className={`h-full rounded-full ${specProgress && specProgress.percent >= 100 ? 'bg-teal' : 'bg-blueprint'}`} style={{ width: `${specProgress && specSections.length > 0 ? specProgress.percent : 0}%` }} />
                 </div>
-                <button onClick={() => setActiveTab(specSections.length > 0 ? 'spesifikasi' : 'ringkasan')} className="tap text-xs text-blueprint hover:underline mt-1.5 text-left">
-                  {specSections.length === 0 ? 'Pilih sistem terpasang dulu' : specProgress && specProgress.percent >= 100 ? 'Spesifikasi lengkap' : 'Lengkapi spesifikasi peralatan'}
+                <button onClick={() => setActiveTab(specSections.length > 0 ? 'spesifikasi' : 'teknologi')} className="tap text-xs text-blueprint hover:underline mt-1.5 text-left">
+                  {specSections.length === 0 ? 'Isi teknologi dulu' : specProgress && specProgress.percent >= 100 ? 'Spesifikasi lengkap' : 'Lengkapi spesifikasi peralatan'}
                 </button>
               </div>
             </div>
