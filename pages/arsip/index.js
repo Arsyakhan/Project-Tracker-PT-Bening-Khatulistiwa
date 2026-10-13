@@ -8,7 +8,7 @@ import useArchive from '../../lib/useArchive';
 import { FLOW_STEPS, chainText, formatCapacity, moduleLabel, sortModules } from '../../lib/techflow';
 
 // Teknologi yang dijadikan filter (modul inti + beberapa pendukung yang sering dicari).
-const FILTER_KEYS = ['ro', 'uf', 'softener', 'acf', 'mmf', 'birm', 'clarifier', 'mixedbed', 'chlorination'];
+const FILTER_KEYS = ['ro', 'ro2', 'uf', 'softener', 'acf', 'mmf', 'birm', 'greensand', 'clarifier', 'mixedbed', 'ion_exchange', 'edi', 'chlorination', 'uv'];
 
 function Chip({ active, onClick, children, count }) {
   return (
