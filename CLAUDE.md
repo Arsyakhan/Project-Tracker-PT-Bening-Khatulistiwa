@@ -214,7 +214,7 @@ Cara kerja: `makeCopy` template, lalu `replaceText` untuk `{{PLACEHOLDER}}`. Blo
 | Status pengadaan | `PROC_STATUSES` di `Procurement.gs` | `lib/procurement.js` |
 | Status rapat/agenda/kehadiran | `MEETING_STATUSES`, `ITEM_STATUSES`, `ATTENDANCE_STATUSES` | `lib/meetings.js` |
 | Field dokumen (`data.xxx`) | `docgen/*.gs` | `lib/docgen/schema.js` + `pages/documents/*/new.js` |
-| Kolom Spesifikasi Peralatan modul tanpa seksi di template (id `x_*`, pembaca Detail, kerangka, teks Item Tambahan) | `*_additional_items` di `docgen/handover.gs` (tempat baris dicetak) | `lib/docgen/specExtra.js` (`DEFS`, `HOSTS`), `lib/specParser.js` (`readExtra`), `lib/docgen/specs.js`, `pages/documents/handover/new.js` |
+| Kolom Spesifikasi Peralatan modul tanpa seksi di template (id `x_*`, pembaca Detail, kerangka, teks Item Tambahan) | `*_additional_items` di `docgen/handover.gs` (tempat baris dicetak) | `lib/docgen/specExtra.js` (`DEFS`, `HOSTS`), `lib/docgen/specModules.js` (seksi tab Spesifikasi: 1 modul = 1 seksi; `OWN`, `SHARED_NOTES`, `SYSTEM_MODULES`), `lib/specParser.js` (`readExtra`), `lib/docgen/specs.js`, `pages/documents/handover/new.js` |
 | Placeholder `{{...}}` | template Google Docs | `docgen/*.gs` |
 | Kunci modul arsip & urutan alur teknologi (juga urutan grid AA-FI di Project Tracker) | `ARCHIVE_MODULE_KEYS` di `Archive.gs` + judul modul di baris 1 tab arsip/tracker | `lib/techflow.js` (`FLOW_PHASES`, `FLOW_STEPS`, `ADA_ONLY`) |
 | Selisih Spesifikasi vs Teknologi dan tombol "+ Tambah peralatan" | tidak ada (frontend saja) | `specDiffs`, `fieldKey`, `sameValue` di `lib/docgen/specs.js`; `groupSchemaByPhase` di `lib/techflow.js`; `components/AddEquipment.jsx`, `components/SpecsEditor.jsx`; `addTechModule`, `resetSpecDiff` di `pages/projects/[id].js` |
@@ -318,19 +318,33 @@ tampilan dengan data hanya bisa diperiksa di produksi, atau lewat salinan sheet 
   dan template di `specParser.js`, dan jaga id field tetap sama dengan `HANDOVER_SECTIONS`. Template Google Docs tidak
   berubah (placeholder `{{...}}` sama).
   "Arsipkan teknologi" memakai teknologi dari grid apa adanya (lossless).
-- **Spesifikasi Peralatan mengikuti Teknologi, modul per modul** (13 Okt 2026): modul apa pun yang dicentang di
-  Teknologi **muncul di tab Spesifikasi Peralatan**, dengan kolom rinci satu per satu, urut mengikuti alur Teknologi
-  (`visibleSections` di `lib/docgen/specs.js`; konteksnya `specContext`). Dua jenis seksi:
-  1. **Seksi bawaan template Hand Over** (`HANDOVER_SECTIONS`: Raw Water, Clarifier, Filter 1/2, UF, Intermediate Tank,
-     Softener, RO+Anti Scalant+CIP, Chemical Dosing, Control Panel); tampil menurut sistem turunan Teknologi seperti
-     sebelumnya.
-  2. **Seksi tambahan** untuk modul yang tidak punya seksi di template (Strainer, Aerator, Flokulator, Filter Pump,
-     Greensand, Chlorination, Soft Water Tank, ERD, RO Pass 2, Degasifier, Ion Exchange, EDI, Mixed Bed, Remineralisasi,
-     Product Tank, UV, Ozon, Filter 0,2 µm, Pompa Distribusi, filter Carbon ke-3, dan satu kartu "Pompa Dosing per Bahan
-     Kimia"). Definisinya data murni di **`lib/docgen/specExtra.js`** (`DEFS`: kolom `main`, sub-peralatan `subs`,
-     seksi induk dokumen `hosts`); id kolom `x_<modul>_<nama>`. Bagian paket RO/UF yang kolomnya sudah ada di seksi
-     bawaan (Booster, Cartridge, Pompa cleaning/flushing, Tangki cleaning/flushing, Pompa UF) **memakai id yang sama**
-     dengan seksi bawaan dan hanya jadi kartu sendiri kalau seksi bawaannya tidak tampil (`unlessSection`).
+- **Spesifikasi Peralatan: satu modul Teknologi = satu seksi** (13 Okt 2026, KEP-0009; menggantikan susunan yang
+  mengikuti template Hand Over): modul apa pun yang dicentang di Teknologi muncul sebagai **satu seksi** di tab
+  Spesifikasi Peralatan, urut mengikuti alur Teknologi (40 modul dicentang = tepat 40 seksi). Seksi **tidak** mengikuti
+  pengelompokan template dokumen Hand Over: RO hanya berisi RO (unit, pompa feed RO, membran, pressure vessel, flowmeter,
+  conductivity, "Instrumen RO Tambahan"), sedangkan Booster, Cartridge Filter, Dosing Antiscalant, Pompa dan Tangki
+  Cleaning/Flushing, Pompa Feed UF, Pompa Feed Air Baku, dan Tangki Air Baku masing-masing punya seksi sendiri; pompa dosing
+  satu seksi per bahan kimia. Logikanya di **`lib/docgen/specModules.js`** (`moduleSpecContext`, `specSectionsFor`;
+  `visibleSections` di `lib/docgen/specs.js` memanggilnya). **Id kolom tidak berubah** (sama dengan `HANDOVER_SECTIONS` dan
+  `specExtra.js`), jadi data tersimpan, pembaca Detail, dan prefill form Hand Over tetap jalan; file itu hanya mengatur
+  kolom mana tampil di seksi mana (diuji: tiap id kolom Hand Over punya tepat satu seksi, tanpa id ganda). Tiga sumber kolom:
+  1. **Kolom bawaan `HANDOVER_SECTIONS`** yang dipecah per modul (`OWN` di `specModules.js`: Feed Pump dan Raw Tank dari
+     Raw Water, Clarifier, Softener, UF tanpa pompa feed, RO tanpa paketnya; Filter slot 1/2 berjudul modul yang
+     menempati slot). "Item Tambahan" yang di template dipakai bersama (`rw_additional_items`, `as_additional_items`,
+     `ro_cip_additional_items`) dipasang di seksi pertama yang tampil (`SHARED_NOTES`).
+  2. **Seksi tambahan `specExtra.js`** (`DEFS`: kolom `main`, sub-peralatan `subs`, `hosts` untuk dokumen); id
+     `x_<modul>_<nama>`. Booster, Cartridge, pompa/tangki cleaning-flushing, pompa feed UF, dan antiscalant **memakai id
+     seksi bawaan template yang sama** (`ro_bp_*`, `ro_cfh_*`/`ro_cf_*`, `ro_cip_*`, `uf_fwp_*`, `as_*`). Di tab Spesifikasi
+     `unlessSection` **tidak dipakai lagi** (selalu tampil kalau modulnya dicentang); hanya jalur dokumen
+     (`visibleExtras`/`planExtras`) yang masih memakainya supaya baris itu tidak tercetak ganda di Item Tambahan.
+  3. **Opsi dokumen** (tab Teknologi > Opsi dokumen: tangki antara, dosing/CIP terpisah, panel) tetap punya seksi sendiri
+     bertanda "Dari Opsi dokumen" karena bukan modul Teknologi; "Dosing/CIP terpisah" tidak tampil kalau sudah ada pompa
+     dosing (tiap pompa dosing punya seksi sendiri).
+  Project lama yang teknologinya belum dicatat: sistem lama atau hasil deteksi nama dipetakan ke modulnya
+  (`SYSTEM_MODULES`). Data di Detail RO yang memuat blok booster/cartridge/antiscalant/CIP tetap terbaca ke id-nya, tetapi
+  baru tampil setelah modulnya dicentang (mis. lewat "+ Tambah peralatan"). Keterbatasan lama yang tetap: id kolom Filter
+  mengikuti **slot** (Birm → MMF → Carbon, `f1_*`/`f2_*`), jadi menambah filter yang mengubah urutan slot menggeser isian
+  manual ke filter lain (nilai otomatis dari Teknologi tidak terpengaruh).
   Pembaca teks **Detail Spesifikasi** untuk seksi tambahan ada di `readExtra` (`lib/specParser.js`) dan memakai
   definisi yang sama: isi di belakang titik dua (`Label : isi`) dipindah ke kolom yang sesuai; blok ber-judul yang
   cocok dengan sub-peralatan (`match`) mengisi kolom pompa/tangki/membran; satu blok saja = peralatan utama.
