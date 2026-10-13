@@ -5,14 +5,17 @@ import { api } from '../../../lib/api';
 import { useToast } from '../../../components/Toast';
 import PageHead from '../../../components/PageHead';
 import ConfirmModal from '../../../components/ConfirmModal';
+import AddEquipment from '../../../components/AddEquipment';
 import ProjectPicker from '../../../components/docgen/ProjectPicker';
-import { TextField, ToggleSection } from '../../../components/docgen/DocFormControls';
-import { HANDOVER_SECTIONS, buildHandoverEmpty } from '../../../lib/docgen/schema';
+import EquipmentSections from '../../../components/docgen/EquipmentSections';
+import { TextField } from '../../../components/docgen/DocFormControls';
 import { prefillHandover } from '../../../lib/docgen/prefill';
-import { SPEC_FIELD_IDS, packSpecs, unpackSpecs, derivedSpecs, withDerived, autoSpecIds, buildSpecEmpty, specContext } from '../../../lib/docgen/specs';
-import { HOSTS, planExtras, applyExtraPlan } from '../../../lib/docgen/specExtra';
+import { SPEC_FIELD_IDS, packSpecs, unpackSpecs, derivedSpecs, withDerived, autoSpecIds, buildSpecEmpty } from '../../../lib/docgen/specs';
+import { moduleSpecContext } from '../../../lib/docgen/specModules';
+import { DOC_OPTIONS, handoverPlan, buildHandoverPayload } from '../../../lib/docgen/handoverPayload';
+import { buildEquipmentItems } from '../../../lib/docgen/handoverItems';
 import { docReadiness } from '../../../lib/systems';
-import { gridModules, readTech } from '../../../lib/techflow';
+import { gridModules, readTech, TECH_SCHEMA } from '../../../lib/techflow';
 
 const REQUIRED = ['project_name', 'system_title', 'buyer_company'];
 
@@ -25,6 +28,8 @@ function prefillFrom(project, techModules) {
   return prefillHandover(project, techModules && techModules.length > 0 ? techModules : undefined);
 }
 
+const toggleIn = (list, key) => (list.includes(key) ? list.filter((k) => k !== key) : [...list, key]);
+
 export default function NewHandoverReport() {
   const router = useRouter();
   const { projectId } = router.query;
@@ -32,7 +37,7 @@ export default function NewHandoverReport() {
 
   const [projects, setProjects] = useState(null);
   const [linkedProject, setLinkedProject] = useState(null);
-  const [form, setForm] = useState(buildHandoverEmpty);
+  const [form, setForm] = useState(buildSpecEmpty);
   const [initialized, setInitialized] = useState(false);
   const [invalidFields, setInvalidFields] = useState({});
   const [submitting, setSubmitting] = useState(false);
@@ -42,12 +47,18 @@ export default function NewHandoverReport() {
   const projectSpecsRef = useRef({});             // spesifikasi terakhir (isian tersimpan + nilai otomatis dari Teknologi)
   const derivedSpecsRef = useRef({});             // bagian yang otomatis dari Teknologi (tidak ikut disimpan ke project)
   const techRef = useRef([]);                     // teknologi terbaru project (modul yang dicentang)
-  const [techMods, setTechMods] = useState(null); // sama dengan techRef, untuk menghitung Item Tambahan dari seksi tambahan
+  const [techMods, setTechMods] = useState(null); // sama dengan techRef; null = belum dimuat
+  const [autoBase, setAutoBase] = useState(() => new Set()); // id kolom yang berasal dari nilai otomatis Teknologi
   const [specsVersion, setSpecsVersion] = useState(0);
   const [specsCount, setSpecsCount] = useState(0);
   const [specsAuto, setSpecsAuto] = useState(0);        // berapa kolom yang masih nilai otomatis dari Teknologi
   const [specsBusy, setSpecsBusy] = useState(false);
   const [confirmReloadOpen, setConfirmReloadOpen] = useState(false);
+  // Penyesuaian khusus dokumen ini (tidak mengubah Teknologi project): peralatan/opsi tambahan dan butir yang tidak dicetak.
+  const [localMods, setLocalMods] = useState([]);
+  const [localOpts, setLocalOpts] = useState([]);
+  const [excludedKeys, setExcludedKeys] = useState([]);
+  const [lastAdded, setLastAdded] = useState(null);
   const activeKey = useRef(null); // kunci localStorage untuk draft yang sedang aktif
   const dirty = useRef(false); // draft baru disimpan setelah pengguna benar-benar mengedit
 
@@ -75,9 +86,11 @@ export default function NewHandoverReport() {
     const specs = withDerived(saved, derived);
     derivedSpecsRef.current = derived;
     projectSpecsRef.current = specs;
+    const auto = autoSpecIds(saved, derived);
+    setAutoBase(auto);
     setSpecsVersion(version);
     setSpecsCount(Object.keys(packSpecs(specs)).length);
-    setSpecsAuto(autoSpecIds(saved, derived).size);
+    setSpecsAuto(auto.size);
     return specs;
   }
 
@@ -101,9 +114,15 @@ export default function NewHandoverReport() {
     (async () => {
       // Spesifikasi project selalu diambil (untuk nomor versi), tapi hanya dipakai kalau tidak ada draft.
       const specs = p ? await fetchProjectSpecs(p.id) : {};
-      if (saved) setForm({ ...buildHandoverEmpty(), ...saved });
-      else if (p) setForm({ ...buildHandoverEmpty(), ...prefillFrom(p, techRef.current), ...specs });
-      else setForm(buildHandoverEmpty());
+      if (saved) {
+        // Draft versi 2 menyimpan juga penyesuaian peralatan; draft lama hanya isian form.
+        const v2 = saved.__v === 2;
+        setForm({ ...buildSpecEmpty(), ...(v2 ? saved.form : saved) });
+        setLocalMods(v2 && Array.isArray(saved.localMods) ? saved.localMods : []);
+        setLocalOpts(v2 && Array.isArray(saved.localOpts) ? saved.localOpts : []);
+        setExcludedKeys(v2 && Array.isArray(saved.excluded) ? saved.excluded : []);
+      } else if (p) setForm({ ...buildSpecEmpty(), ...prefillFrom(p, techRef.current), ...specs });
+      else setForm(buildSpecEmpty());
       dirty.current = false;
       setInitialized(true);
     })();
@@ -114,9 +133,9 @@ export default function NewHandoverReport() {
   useEffect(() => {
     if (!dirty.current || !activeKey.current) return;
     try {
-      window.localStorage.setItem(activeKey.current, JSON.stringify(form));
+      window.localStorage.setItem(activeKey.current, JSON.stringify({ __v: 2, form, localMods, localOpts, excluded: excludedKeys }));
     } catch {}
-  }, [form]);
+  }, [form, localMods, localOpts, excludedKeys]);
 
   function update(id, value) {
     dirty.current = true;
@@ -124,12 +143,20 @@ export default function NewHandoverReport() {
     setInvalidFields((v) => (v[id] ? { ...v, [id]: false } : v));
   }
 
+  function resetAdjustments() {
+    setLocalMods([]);
+    setLocalOpts([]);
+    setExcludedKeys([]);
+    setLastAdded(null);
+  }
+
   function selectProject(p) {
     activeKey.current = draftKey(p.id); // supaya efek inisialisasi tidak menimpa form yang sedang diisi
+    resetAdjustments();
     setLinkedProject(p);
     setForm((f) => ({ ...f, ...prefillFrom(p) }));
     fetchProjectSpecs(p.id).then((specs) => {
-      // Centang seksi dihitung ulang dari Teknologi terbaru, lalu spesifikasi (koreksi manual) di atasnya.
+      // Daftar peralatan dihitung ulang dari Teknologi terbaru, lalu spesifikasi (koreksi manual) di atasnya.
       setForm((f) => ({ ...f, ...prefillFrom(p, techRef.current), ...specs }));
     });
     router.replace({ pathname: router.pathname, query: { projectId: p.id } }, undefined, { shallow: true });
@@ -141,6 +168,7 @@ export default function NewHandoverReport() {
     derivedSpecsRef.current = {};
     techRef.current = [];
     setTechMods(null);
+    setAutoBase(new Set());
     setSpecsVersion(0);
     setSpecsCount(0);
     setSpecsAuto(0);
@@ -150,14 +178,42 @@ export default function NewHandoverReport() {
 
   const readiness = linkedProject ? docReadiness(linkedProject, 'handover') : null;
 
-  // Peralatan di Teknologi yang tidak punya seksi di template Hand Over (Strainer, Aerator, UV, Mixed Bed, filter ke-3, dst.):
-  // spesifikasinya dicetak sebagai baris di "Item Tambahan" seksi induk. Dihitung dari form saat ini (centang seksi + isian).
-  const extraPlan = useMemo(() => {
-    if (!linkedProject || !techMods || techMods.length === 0) return [];
-    const base = specContext(linkedProject, techMods);
-    const hoKeys = new Set(HANDOVER_SECTIONS.filter((sec) => form[sec.toggleId]).map((sec) => sec.key));
-    return planExtras(form, { ...base, hoKeys }, (h) => !!form[HOSTS[h].toggle]);
-  }, [form, linkedProject, techMods]);
+  // Peralatan di dokumen = modul yang dicentang di Teknologi project (+ tambahan khusus dokumen ini). Satu modul = satu butir.
+  const ctx = useMemo(() => {
+    const base = linkedProject
+      ? moduleSpecContext(linkedProject, techMods && techMods.length > 0 ? techMods : undefined)
+      : { mods: new Set(), docOpts: new Set() };
+    return { mods: new Set([...base.mods, ...localMods]), docOpts: new Set([...base.docOpts, ...localOpts]) };
+  }, [linkedProject, techMods, localMods, localOpts]);
+  const excluded = useMemo(() => new Set(excludedKeys), [excludedKeys]);
+  const plan = useMemo(() => handoverPlan(ctx, excluded), [ctx, excluded]);
+  const items = useMemo(() => buildEquipmentItems(plan.sections, form), [plan, form]);
+
+  // Kolom yang masih berisi nilai otomatis dari Teknologi (belum dikoreksi di form ini).
+  const autoIds = useMemo(() => {
+    const out = new Set();
+    autoBase.forEach((id) => { if (String(form[id] ?? '') === String(derivedSpecsRef.current[id] ?? '')) out.add(id); });
+    return out;
+  }, [autoBase, form]);
+
+  const scrollTo = lastAdded ? plan.all.find((s) => s.modules.includes(lastAdded))?.key : null;
+
+  function addModule(key) {
+    dirty.current = true;
+    setLocalMods((l) => (l.includes(key) ? l : [...l, key]));
+    setExcludedKeys((l) => l.filter((k) => !plan.all.some((s) => s.key === k && s.modules.includes(key))));
+    setLastAdded(key);
+  }
+  function toggleSection(key) {
+    dirty.current = true;
+    setExcludedKeys((l) => toggleIn(l, key));
+  }
+  function toggleOption(opt) {
+    dirty.current = true;
+    if (!ctx.docOpts.has(opt.key)) setLocalOpts((l) => (l.includes(opt.key) ? l : [...l, opt.key]));
+    else if (localOpts.includes(opt.key)) setLocalOpts((l) => l.filter((k) => k !== opt.key));
+    else setExcludedKeys((l) => toggleIn(l, opt.section));
+  }
 
   // Simpan isian spesifikasi di form ini ke project, supaya koreksi saat serah terima tidak hilang.
   async function saveSpecsToProject() {
@@ -214,16 +270,21 @@ export default function NewHandoverReport() {
       showToast('Ada field wajib (*) yang belum diisi.', 'error');
       return;
     }
+    const { payload, equipment } = buildHandoverPayload(form, ctx, excluded);
+    if (equipment.length === 0) {
+      showToast('Belum ada peralatan yang dicetak. Centang modul di Teknologi project, atau tambah peralatan di bawah.', 'error');
+      return;
+    }
 
     setSubmitting(true);
     try {
       const data = await api.generateDocument({
         type: 'handover',
-        payload: applyExtraPlan(form, extraPlan),
+        payload,
         projectId: linkedProject?.id,
         checklistItem: 'Handover Report',
       });
-      setResult(data);
+      setResult({ ...data, itemTotal: equipment.length });
       dirty.current = false;
       try { window.localStorage.removeItem(activeKey.current || draftKey(projectId)); } catch {}
       showToast('Dokumen Hand Over berhasil dibuat.', 'success');
@@ -238,7 +299,8 @@ export default function NewHandoverReport() {
     dirty.current = false;
     setResult(null);
     setInvalidFields({});
-    setForm(linkedProject ? { ...buildHandoverEmpty(), ...prefillFrom(linkedProject, techRef.current), ...projectSpecsRef.current } : buildHandoverEmpty());
+    resetAdjustments();
+    setForm(linkedProject ? { ...buildSpecEmpty(), ...prefillFrom(linkedProject, techRef.current), ...projectSpecsRef.current } : buildSpecEmpty());
   }
 
   return (
@@ -262,6 +324,18 @@ export default function NewHandoverReport() {
           <a href={result.documentUrl} target="_blank" rel="noreferrer" className="inline-flex w-fit items-center gap-2 px-4 py-2.5 rounded-md bg-blueprint hover:bg-blueprintdark text-onaccent text-sm font-medium transition-colors">
             Buka Dokumen
           </a>
+          {result.generator === 'dynamic' ? (
+            <p className="text-sm text-inkmute" data-testid="ho-generator-note">
+              Daftar peralatan disusun dari Teknologi project: <b className="text-ink">{result.itemCount ?? result.itemTotal} butir</b>, urut mengikuti alur pengolahan.
+            </p>
+          ) : (
+            <p className="text-sm text-amberink bg-amber/10 border border-amber/30 rounded-md px-3 py-2" role="status" data-testid="ho-generator-note">
+              {result.generator === 'legacy'
+                ? <>Dokumen dibuat dengan susunan template lama (peralatan digabung per seksi), karena penyusunan daftar peralatan baru gagal di Apps Script{result.fallbackReason ? <> ({result.fallbackReason})</> : null}.</>
+                : <>Dokumen dibuat dengan susunan template lama (peralatan digabung per seksi), karena script Generator Hand Over di Apps Script belum diperbarui.</>}
+              {' '}Minta pemilik menempel <code className="font-data">apps-script/docgen/handover.gs</code> terbaru lalu men-deploy ulang; sesudah itu dokumen berikutnya langsung mengikuti Teknologi.
+            </p>
+          )}
           {linkedProject && (
             <p className="text-sm text-inkmute">
               {result.checklistUpdated
@@ -332,42 +406,88 @@ export default function NewHandoverReport() {
             </div>
           </section>
 
-          <section className="flex flex-col gap-3">
-            <div className="flex items-center justify-between">
-              <h2 className="font-display font-semibold text-ink">Modul Equipment</h2>
-              <span className="text-xs text-inkmute">Centang modul yang ada, isi spesifikasinya.</span>
+          <section className="flex flex-col gap-3" aria-label="Peralatan yang dicetak">
+            <div>
+              <h2 className="font-display font-semibold text-ink">Peralatan yang dicetak</h2>
+              <p className="text-xs text-inkmute mt-1">
+                {linkedProject
+                  ? <>Mengikuti Teknologi project: satu modul yang dicentang = satu butir di dokumen, urut sesuai alur pengolahan. Spesifikasinya diambil dari tab Spesifikasi Peralatan (kolom yang kosong dicetak &quot;.......&quot; supaya bisa dilengkapi di Google Docs). Perubahan di bawah berlaku untuk dokumen ini; klik &quot;Simpan ke project&quot; untuk menyimpan koreksi spesifikasi. Untuk mengubah daftar modul, centang di tab Teknologi <Link href={`/projects/${encodeURIComponent(linkedProject.id)}`} className="text-blueprint hover:underline">di detail project</Link>.</>
+                  : <>Pilih peralatan yang akan dicetak, lalu isi spesifikasinya. Satu peralatan = satu butir di dokumen, urut sesuai alur pengolahan. Kaitkan ke project di atas kalau ingin daftar ini langsung mengikuti Teknologi project.</>}
+              </p>
             </div>
-            {HANDOVER_SECTIONS.map((section) => (
-              <ToggleSection key={section.key} section={section} values={form} onChange={update} />
-            ))}
+
+            <div className="bg-panel border border-line rounded-lg p-4 flex flex-col gap-3">
+              <AddEquipment
+                schema={TECH_SCHEMA}
+                ticked={ctx.mods}
+                onAdd={addModule}
+                defaultOpen={!linkedProject && plan.sections.length === 0}
+                hint="Pilih peralatan yang akan dicetak. Seksinya langsung muncul di bawah; Teknologi project tidak berubah."
+                doneNote="Semua modul sudah ada di daftar."
+              />
+              <fieldset className="flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-line pt-3">
+                <legend className="sr-only">Opsi dokumen</legend>
+                <span className="text-xs font-semibold uppercase tracking-wider text-inkmute">Opsi dokumen</span>
+                {DOC_OPTIONS.map((o) => (
+                  <label key={o.key} className="flex items-center gap-2 text-sm text-ink cursor-pointer tap">
+                    <input
+                      type="checkbox"
+                      className="w-4 h-4 accent-blueprint"
+                      checked={ctx.docOpts.has(o.key) && !excluded.has(o.section)}
+                      onChange={() => toggleOption(o)}
+                    />
+                    {o.label}
+                  </label>
+                ))}
+              </fieldset>
+            </div>
+
+            {plan.all.length === 0 ? (
+              <div className="bg-panel border border-line rounded-lg p-5 text-sm text-inkmute" data-testid="ho-empty">
+                {linkedProject
+                  ? 'Teknologi project ini belum dicentang. Isi di tab Teknologi detail project, atau tambah peralatan di atas.'
+                  : 'Belum ada peralatan. Tambahkan lewat "+ Tambah peralatan" di atas.'}
+              </div>
+            ) : (
+              <EquipmentSections
+                sections={plan.all}
+                values={form}
+                onChange={update}
+                excluded={excluded}
+                onToggle={toggleSection}
+                autoIds={autoIds}
+                scrollTo={scrollTo}
+              />
+            )}
           </section>
 
-          {extraPlan.length > 0 && (
-            <section className="bg-panel border border-line rounded-lg p-5 flex flex-col gap-3" aria-label="Peralatan lain dari Teknologi">
-              <div>
-                <h2 className="font-display font-semibold text-ink">Peralatan lain dari Teknologi</h2>
-                <p className="text-xs text-inkmute mt-1">
-                  Template Hand Over tidak punya seksi sendiri untuk peralatan ini. Spesifikasinya (dari tab Spesifikasi Peralatan project) dicetak sebagai baris di &quot;Item Tambahan&quot; seksi yang tertera.
-                  {linkedProject && (
-                    <> Untuk mengubah isinya, buka tab Spesifikasi Peralatan di <Link href={`/projects/${encodeURIComponent(linkedProject.id)}`} className="text-blueprint hover:underline">detail project</Link>.</>
-                  )}
-                </p>
-              </div>
-              {extraPlan.map((p) => (
-                <div key={p.host} className="flex flex-col gap-1">
-                  <p className="text-sm font-medium text-ink">
-                    {p.title}
-                    {p.enable && <span className="ml-2 text-xs font-normal text-amberink">seksi ini diaktifkan otomatis saat dokumen dibuat</span>}
-                  </p>
-                  <ul className="list-disc pl-5 text-xs text-inkmute flex flex-col gap-0.5">
-                    {p.lines.map((line) => <li key={line}>{line}</li>)}
-                  </ul>
-                </div>
-              ))}
-            </section>
-          )}
+          <section className="bg-panel border border-line rounded-lg p-5 flex flex-col gap-3" aria-label="Pratinjau isi dokumen" data-testid="ho-preview">
+            <div>
+              <h2 className="font-display font-semibold text-ink">Pratinjau isi dokumen</h2>
+              <p className="text-xs text-inkmute mt-1">
+                {items.length > 0
+                  ? <>{items.length} butir di &quot;Items Handed Over&quot;, persis seperti yang akan dicetak (bahasa Inggris, sama dengan template).</>
+                  : 'Belum ada butir. Dokumen tidak bisa dibuat sebelum ada peralatan.'}
+              </p>
+            </div>
+            {items.length > 0 && (
+              <ol className="list-decimal pl-5 flex flex-col gap-2 text-sm text-ink">
+                {items.map((it) => (
+                  <li key={it.key} data-testid="ho-preview-item">
+                    <span>{it.head}</span>
+                    {it.rows.length > 0 && (
+                      <ul className="list-disc pl-5 mt-1 flex flex-col gap-0.5 text-xs text-inkmute">
+                        {it.rows.map((r, i) => <li key={`${it.key}-${i}`}>{r}</li>)}
+                      </ul>
+                    )}
+                  </li>
+                ))}
+              </ol>
+            )}
+          </section>
 
-          <div className="fixed bottom-0 left-0 right-0 md:left-60 bg-panel border-t border-line px-6 py-4 flex justify-end z-20">
+          <div className="fixed bottom-0 left-0 right-0 md:left-60 bg-panel border-t border-line px-6 py-4 flex items-center justify-between gap-3 z-20">
+            <span className="text-xs text-inkmute tnum">{items.length} butir peralatan</span>
             <button
               onClick={handleSubmit}
               disabled={submitting}

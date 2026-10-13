@@ -9,8 +9,13 @@ import { groupSchemaByPhase, moduleLabel } from '../lib/techflow';
 //   pending  = Set kunci modul yang dicentang tetapi belum tersimpan (pesan hanya tampil untuk yang ditambah dari sini)
 //   onAdd    = (key) => void
 //   disabled = tidak boleh mengubah (peran lihat saja)
-export default function AddEquipment({ schema, ticked, pending, onAdd, disabled = false }) {
-  const [open, setOpen] = useState(false);
+//   hint / doneNote = teks pengganti (form Hand Over memakainya: tambahan di sana hanya berlaku untuk satu dokumen)
+export default function AddEquipment({
+  schema, ticked, pending, onAdd, disabled = false, defaultOpen = false,
+  hint = 'Pilih peralatan yang belum dicentang di Teknologi. Seksinya langsung muncul di bawah.',
+  doneNote = 'Semua modul sudah dicentang di Teknologi.',
+}) {
+  const [open, setOpen] = useState(defaultOpen);
   const [added, setAdded] = useState([]); // kunci modul yang ditambah lewat tombol ini
   const groups = groupSchemaByPhase((schema || []).filter((s) => !ticked.has(s.key)));
   const remaining = groups.reduce((n, g) => n + g.items.length, 0);
@@ -35,7 +40,7 @@ export default function AddEquipment({ schema, ticked, pending, onAdd, disabled 
           {open ? 'Tutup daftar' : '+ Tambah peralatan'}
         </button>
         {disabled && <span className="text-xs text-inkmute">Peran Anda hanya bisa melihat.</span>}
-        {!disabled && remaining === 0 && <span className="text-xs text-inkmute">Semua modul sudah dicentang di Teknologi.</span>}
+        {!disabled && remaining === 0 && <span className="text-xs text-inkmute">{doneNote}</span>}
       </div>
 
       {shown.length > 0 && (
@@ -46,7 +51,7 @@ export default function AddEquipment({ schema, ticked, pending, onAdd, disabled 
 
       {open && remaining > 0 && (
         <div id="tambah-peralatan" className="border border-line rounded-md p-3 sm:p-4 bg-canvas/50 flex flex-col gap-3">
-          <p className="text-xs text-inkmute">Pilih peralatan yang belum dicentang di Teknologi. Seksinya langsung muncul di bawah.</p>
+          <p className="text-xs text-inkmute">{hint}</p>
           {groups.map((g) => (
             <div key={g.key} className="flex flex-col gap-1.5">
               <p className="text-xs font-semibold uppercase tracking-wider text-inkmute">{g.label}</p>

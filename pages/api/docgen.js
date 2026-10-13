@@ -4,9 +4,12 @@
 // - URL Apps Script Generator Dokumen HANYA ada di server (env DOCGEN_COMMISSIONING_URL
 //   / DOCGEN_HANDOVER_URL), tidak pernah masuk ke bundle JavaScript browser.
 // - Setiap request wajib punya sesi login NextAuth yang valid.
-// - Kedua script Apps Script Generator Dokumen TIDAK diubah sama sekali -- proxy ini
-//   cuma meneruskan payload yang persis sama seperti yang dulu dikirim langsung dari
-//   browser di tool lama.
+// - Proxy ini meneruskan payload apa adanya ke Apps Script Generator Dokumen; susunan isinya
+//   ditentukan form di browser (lihat lib/docgen/handoverPayload.js untuk Hand Over: bentuk
+//   lama + daftar `equipment`), dan script yang menafsirkannya. Script Hand Over versi baru
+//   menjawab juga `generator` ('dynamic' = daftar peralatan disusun dari `equipment`,
+//   'legacy' = susunan template lama); jawaban itu diteruskan ke browser supaya form bisa
+//   memberi tahu kalau script di Apps Script belum diperbarui.
 //
 // Tambahan dari sekadar proxy: kalau request menyertakan projectId, setelah dokumen
 // berhasil dibuat, route ini otomatis memanggil action "updateChecklist" yang sudah
@@ -163,6 +166,10 @@ export default async function handler(req, res) {
     checklistUpdated: false,
     logged: false,
   };
+  // Hanya script Hand Over versi baru yang mengirim ini; script lama tidak (browser membacanya sebagai "lama").
+  if (typeof docJson.generator === 'string') result.generator = docJson.generator.slice(0, 20);
+  if (Number.isFinite(docJson.itemCount)) result.itemCount = docJson.itemCount;
+  if (typeof docJson.fallbackReason === 'string' && docJson.fallbackReason) result.fallbackReason = docJson.fallbackReason.slice(0, 300);
 
   // 2) Setelah dokumen jadi, dua hal dikerjakan bersamaan lewat backend Project Tracker
   //    (GAS_API_URL / GAS_API_TOKEN). Keduanya "best effort": kalau gagal, dokumennya

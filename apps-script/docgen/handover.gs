@@ -1,9 +1,141 @@
+// ====================================================================================================
+// Generator dokumen Hand Over (Web App terpisah).
+//
+// Dua cara menyusun daftar "Items Handed Over":
+//
+//  1) DINAMIS (payload memuat `equipment`, dikirim form Hand Over terbaru): daftar peralatan dibangun dari kode,
+//     satu butir untuk tiap modul yang dicentang di Teknologi, urut sesuai alur pengolahan. Seluruh blok seksi
+//     template (dari {{BEGIN_SECTION_RAW_WATER}} sampai {{END_SECTION_PANEL}}) diganti butir-butir itu, dengan
+//     gaya nomor dan bullet yang disalin dari baris contoh di template itu sendiri. Teks tiap butir sudah jadi
+//     (disusun di lib/docgen/handoverItems.js), jadi script ini hanya menuliskannya.
+//
+//  2) LAMA (payload tanpa `equipment`, atau cara dinamis gagal): isi seksi template per seksi lewat {{PLACEHOLDER}}
+//     seperti dulu. Kalau cara dinamis gagal di tengah jalan, salinan yang setengah jadi dibuang lalu dokumen
+//     dibuat ulang dengan cara lama; jawabannya memuat `generator: 'legacy'` dan `fallbackReason`.
+//
+// Jawaban sukses: { status, documentUrl, fileName, generator: 'dynamic' | 'legacy', itemCount?, fallbackReason? }.
+// ====================================================================================================
+
+var HO_TEMPLATE_ID = '1EkVlnf3xQZT4vvXc8SF_W9hWz8QXfwWqgYETn4rcwf0';
+var HO_OUTPUT_FOLDER_ID = '1jdQ0D_SJ7FvOLzhUGdNh0U3DzrA1DSrv';
+
+function jsonOut_(obj) {
+  return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
+}
+
 function doPost(e) {
+  var data;
   try {
-    var data = JSON.parse(e.postData.contents);
-    
-    var templateId = '1EkVlnf3xQZT4vvXc8SF_W9hWz8QXfwWqgYETn4rcwf0'; 
-    var outputFolderId = '1jdQ0D_SJ7FvOLzhUGdNh0U3DzrA1DSrv'; 
+    data = JSON.parse(e.postData.contents);
+  } catch (error) {
+    return jsonOut_({ status: 'error', message: error.toString() });
+  }
+
+  var fallbackReason = '';
+  if (Object.prototype.toString.call(data.equipment) === '[object Array]') {
+    try {
+      return jsonOut_(generateDynamic_(data));
+    } catch (error) {
+      fallbackReason = error.toString();
+    }
+  }
+
+  try {
+    var out = generateLegacy_(data);
+    out.generator = 'legacy';
+    if (fallbackReason) out.fallbackReason = fallbackReason;
+    return jsonOut_(out);
+  } catch (error) {
+    return jsonOut_({ status: 'error', message: error.toString() });
+  }
+}
+
+// ---------------------------------------------------------------------------------------------------
+// CARA DINAMIS
+// ---------------------------------------------------------------------------------------------------
+function generateDynamic_(data) {
+  var folder = DriveApp.getFolderById(HO_OUTPUT_FOLDER_ID);
+  var docName = 'HO - ' + (data.project_name || 'Laporan');
+  var newFile = DriveApp.getFileById(HO_TEMPLATE_ID).makeCopy(docName, folder);
+
+  try {
+    var doc = DocumentApp.openById(newFile.getId());
+    var body = doc.getBody();
+
+    // Contoh gaya diambil dari template SEBELUM blok seksinya dibuang: baris judul bernomor dan baris bullet.
+    var headSample = listItemSample_(body, '{{CLARIFIER_CAP}}');
+    var rowSample = listItemSample_(body, '{{RW_TANK_MAT}}');
+
+    var startIndex = childIndexOf_(body, '{{BEGIN_SECTION_RAW_WATER}}');
+    var endIndex = childIndexOf_(body, '{{END_SECTION_PANEL}}');
+    if (startIndex < 0 || endIndex < startIndex) throw new Error('Penanda seksi template tidak ditemukan');
+    for (var i = endIndex; i >= startIndex; i--) body.removeChild(body.getChild(i));
+
+    var items = data.equipment;
+    var at = startIndex;
+    var count = 0;
+    for (var k = 0; k < items.length && k < 200; k++) {
+      var head = lineText_(items[k] && items[k].head);
+      if (!head) continue;
+      body.insertListItem(at++, headSample.copy()).setText(head);
+      var rows = (items[k].rows && items[k].rows.length) ? items[k].rows : [];
+      for (var r = 0; r < rows.length && r < 60; r++) {
+        var row = lineText_(rows[r]);
+        if (row) body.insertListItem(at++, rowSample.copy()).setText(row);
+      }
+      count++;
+    }
+
+    // Data administrasi di luar blok seksi (judul, pembeli, kontraktor, tanda tangan).
+    var admin = [
+      ['{{SYSTEM_TITLE}}', data.system_title], ['{{CONTRACTOR_NAME}}', data.contractor_name],
+      ['{{BUYER_COMPANY}}', data.buyer_company], ['{{PROJECT_NAME}}', data.project_name],
+      ['{{PO_NUMBER}}', data.po_number], ['{{LOCATION}}', data.location]
+    ];
+    for (var a = 0; a < admin.length; a++) {
+      var val = admin[a][1];
+      if (val === undefined || val === null || val === '') val = '.......';
+      body.replaceText(admin[a][0], val);
+    }
+
+    doc.saveAndClose();
+    return { status: 'success', documentUrl: newFile.getUrl(), fileName: newFile.getName(), generator: 'dynamic', itemCount: count };
+  } catch (error) {
+    // Salinan setengah jadi tidak boleh tertinggal di folder output.
+    try { newFile.setTrashed(true); } catch (ignore) {}
+    throw error;
+  }
+}
+
+// Satu baris dokumen: satu baris saja (tanpa pindah baris), dipotong kalau berlebihan.
+function lineText_(value) {
+  if (value === undefined || value === null) return '';
+  return String(value).replace(/[\r\n]+/g, ' ').replace(/^\s+|\s+$/g, '').substring(0, 600);
+}
+
+// Indeks anak Body yang memuat teks `token` (paragraf penanda seksi), -1 kalau tidak ada.
+function childIndexOf_(body, token) {
+  var found = body.findText(token);
+  if (!found) return -1;
+  return body.getChildIndex(found.getElement().getParent());
+}
+
+// Salinan (lepas) dari ListItem yang memuat teks `token`; dipakai sebagai contoh gaya nomor / bullet.
+function listItemSample_(body, token) {
+  var found = body.findText(token);
+  if (!found) throw new Error('Baris contoh tidak ditemukan di template: ' + token);
+  var el = found.getElement();
+  while (el && el.getType() !== DocumentApp.ElementType.LIST_ITEM) el = el.getParent();
+  if (!el) throw new Error('Baris contoh bukan daftar bernomor / bullet: ' + token);
+  return el.asListItem().copy();
+}
+
+// ---------------------------------------------------------------------------------------------------
+// CARA LAMA (isi tidak diubah dari versi sebelumnya; hanya dibungkus fungsi)
+// ---------------------------------------------------------------------------------------------------
+function generateLegacy_(data) {
+    var templateId = HO_TEMPLATE_ID;
+    var outputFolderId = HO_OUTPUT_FOLDER_ID;
     
     var folder = DriveApp.getFolderById(outputFolderId);
     var projectName = data.project_name || 'Laporan';
@@ -111,11 +243,7 @@ function doPost(e) {
     }
     
     doc.saveAndClose();
-    return ContentService.createTextOutput(JSON.stringify({ status: 'success', documentUrl: newFile.getUrl(), fileName: newFile.getName() })).setMimeType(ContentService.MimeType.JSON);
-    
-  } catch (error) {
-    return ContentService.createTextOutput(JSON.stringify({status: 'error', message: error.toString()})).setMimeType(ContentService.MimeType.JSON);
-  }
+    return { status: 'success', documentUrl: newFile.getUrl(), fileName: newFile.getName() };
 }
 
 // Hapus modul besar (section) jika checkbox tidak dicentang
