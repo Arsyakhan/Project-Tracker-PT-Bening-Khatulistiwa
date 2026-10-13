@@ -9,7 +9,7 @@ import { api } from '../../lib/api';
 import { clearCache } from '../../lib/persistedCache';
 import { canWrite } from '../../lib/roles';
 import { unpackSpecs } from '../../lib/docgen/specs';
-import { projectFlowModules, readTech, toArchiveUnit } from '../../lib/techflow';
+import { projectFlowModules, readTech, toArchiveUnit, gridModules } from '../../lib/techflow';
 import useArchive from '../../lib/useArchive';
 import useProjects from '../../lib/useProjects';
 
@@ -36,15 +36,18 @@ export default function ArsipNewPage() {
     if (!p) { setInitial({ name: '', year: String(new Date().getFullYear()), modules: [] }); return; }
     let cancelled = false;
     (async () => {
-      let specs = {};
-      try { specs = (await api.getSpecs(p.id)).specs || {}; } catch (e) { /* tanpa spesifikasi: kapasitas dikosongkan */ }
+      // Teknologi yang dicatat di project: grid tab Project Tracker (backend v2.8). Spesifikasi dibaca juga, sebagai
+      // cadangan kalau grid masih kosong atau backend belum v2.8.
+      const [techRes, specsRes] = await Promise.allSettled([api.getTech(p.id), api.getSpecs(p.id)]);
+      const specs = specsRes.status === 'fulfilled' ? (specsRes.value.specs || {}) : {}; // tanpa spesifikasi: kapasitas dikosongkan
+      const gridList = techRes.status === 'fulfilled' ? gridModules(techRes.value.modules) : [];
       if (cancelled) return;
       const keys = new Set(schema.map((s) => s.key));
       // Tahun selesai: ambil dari nama project (konvensi "..., 2026"), kalau tidak ada pakai tahun berjalan.
       const nameYear = (String(p.projectName || '').match(/\b(20\d{2})\b(?!.*\b20\d{2}\b)/) || [])[1];
       const year = nameYear || String(new Date().getFullYear());
       // Teknologi yang sudah dicatat di project (tab Teknologi) dipakai apa adanya; kalau belum ada, dibaca dari data lama.
-      const saved = readTech(unpackSpecs(specs));
+      const saved = gridList.length > 0 ? gridList : readTech(unpackSpecs(specs));
       const flow = saved || projectFlowModules(p, specs).map((m) => ({ ...m, unit: toArchiveUnit(m.unit) }));
       const skipped = flow.filter((m) => !keys.has(m.key)).map((m) => m.key);
       setInitial({
