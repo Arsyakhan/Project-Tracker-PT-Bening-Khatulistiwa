@@ -217,6 +217,7 @@ Cara kerja: `makeCopy` template, lalu `replaceText` untuk `{{PLACEHOLDER}}`. Blo
 | Kolom Spesifikasi Peralatan modul tanpa seksi di template (id `x_*`, pembaca Detail, kerangka, teks Item Tambahan) | `*_additional_items` di `docgen/handover.gs` (tempat baris dicetak) | `lib/docgen/specExtra.js` (`DEFS`, `HOSTS`), `lib/specParser.js` (`readExtra`), `lib/docgen/specs.js`, `pages/documents/handover/new.js` |
 | Placeholder `{{...}}` | template Google Docs | `docgen/*.gs` |
 | Kunci modul arsip & urutan alur teknologi (juga urutan grid AA-FI di Project Tracker) | `ARCHIVE_MODULE_KEYS` di `Archive.gs` + judul modul di baris 1 tab arsip/tracker | `lib/techflow.js` (`FLOW_PHASES`, `FLOW_STEPS`, `ADA_ONLY`) |
+| Selisih Spesifikasi vs Teknologi dan tombol "+ Tambah peralatan" | tidak ada (frontend saja) | `specDiffs`, `fieldKey`, `sameValue` di `lib/docgen/specs.js`; `groupSchemaByPhase` di `lib/techflow.js`; `components/AddEquipment.jsx`, `components/SpecsEditor.jsx`; `addTechModule`, `resetSpecDiff` di `pages/projects/[id].js` |
 | Teknologi project aktif (grid AA-FI di Project Tracker) | `getProjectTech_`, `saveProjectTech_`, `trackerGridFromHeaders_` di `Archive.gs`; rute `tech` dan `saveProjectTech` di `Code.gs` | `gridModules`, `sameTech`, `gridCurrentTech` di `lib/techflow.js` (GET `tech` membawa `schema` = modul yang ada di sheet, dipakai `pickerSchema` di halaman project); `projectSystems`, `deriveSystemKeys`, `MODULE_TO_SYSTEM` di `lib/systems.js`; `getProjects_` membawa `tech` ringkas per project; `getTech` dan `saveProjectTech` di `lib/api.js`; `pages/projects/[id].js` (tab Teknologi) dan `pages/arsip/new.js` |
 | Nama kolom Project Tracker (header baris 1) | `COL_*`, `TEXT_FIELDS`, `DATE_FIELDS` di `Code.gs` | field hasil `getProjects_`; `EDITABLE_FIELDS` di `pages/projects/[id].js`; `COLUMNS` di `lib/exportCsv.js` |
 | Bobot status dokumen checklist | `CHECKLIST_WEIGHTS` di `Code.gs` | rumus `Progress (%)` di tab Checklist (ada di sheet, bukan di repo) |
@@ -349,6 +350,21 @@ tampilan dengan data hanya bisa diperiksa di produksi, atau lewat salinan sheet 
   `SPECS_MAX_KEYS = 400` kunci per project (hanya koreksi manual yang tersimpan, jadi aman; mode lama menambah
   4 kunci `tech_*` per modul). Soft Water Tank kini seksi sendiri (dulu kapasitasnya salah dipetakan ke Brine Tank
   softener; Brine Tank hanya dibaca dari Detail softener).
+- **Arah data Teknologi ↔ Spesifikasi (13 Okt 2026): satu arah, Teknologi → Spesifikasi.** Isian di Spesifikasi hanya
+  tersimpan sebagai koreksi manual di `Project Specs` dan **tidak** menulis ke Teknologi (keputusan KEP-0008: grid
+  Teknologi hanya punya Ada/Kapasitas/Satuan/Detail, sedangkan Spesifikasi punya ratusan kolom rinci tanpa tempat di grid;
+  menulis balik ke teks Detail bisa menimpa teks bebas tim). Dua tambahan di tab Spesifikasi (frontend saja, tanpa `.gs`):
+  1. **Penanda selisih**: kolom yang dikoreksi dan isinya lain dari nilai otomatis Teknologi diberi keterangan "Beda dari
+     Teknologi: ..." + tombol "Pakai nilai Teknologi" (mengosongkan koreksi, kolom kembali otomatis). Logikanya
+     `specDiffs` + `fieldKey` + `sameValue` di `lib/docgen/specs.js` (fungsi murni; membandingkan isian MANUAL, bukan nilai
+     yang sudah digabung otomatis; angka dibandingkan sebagai angka, teks tanpa beda huruf besar/kecil). Tombol reset
+     hanya untuk peran yang boleh menulis (`canEdit`); penanda tetap tampil untuk viewer.
+  2. **"+ Tambah peralatan"** (`components/AddEquipment.jsx`): daftar modul yang belum dicentang (dikelompokkan per fase
+     lewat `groupSchemaByPhase` di `lib/techflow.js`, juga dipakai `ModulePicker`). Memilih modul memanggil `addTechModule`
+     di `pages/projects/[id].js` = `setTech(...)` yang sama dengan tab Teknologi, jadi ikut "Simpan perubahan" (grid maupun
+     mode lama `tech_*`); yang masuk ke Teknologi hanya **centang modulnya** (kapasitas/Detail tetap kosong). Seksi
+     barunya muncul seketika karena Spesifikasi membaca Teknologi yang belum disimpan, lalu dibuka dan digulir ke layar
+     (`SpecsEditor`, id `spec-sec-<kunci>`). Tombol disembunyikan selama Teknologi belum selesai dimuat.
 - **Langkah berikutnya** (kolom `Next Action*`, `Blocker` dari Code.gs v2.6) tampil di tabel project, kartu
   HP, kartu kanban, dan detail project. `lib/nextAction.js` (fungsi murni: `nextActionInfo`, `dueText`,
   `nextActionSortKey`; ≤7 hari = amber, lewat = rust; `nextAction === undefined` berarti backend belum
