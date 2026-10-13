@@ -12,8 +12,7 @@ import { TextField } from '../../../components/docgen/DocFormControls';
 import { prefillHandover } from '../../../lib/docgen/prefill';
 import { SPEC_FIELD_IDS, packSpecs, unpackSpecs, derivedSpecs, withDerived, autoSpecIds, buildSpecEmpty } from '../../../lib/docgen/specs';
 import { moduleSpecContext } from '../../../lib/docgen/specModules';
-import { DOC_OPTIONS, handoverPlan, buildHandoverPayload } from '../../../lib/docgen/handoverPayload';
-import { buildEquipmentItems } from '../../../lib/docgen/handoverItems';
+import { DOC_OPTIONS, handoverPlan, buildHandoverPayload, buildDocItems } from '../../../lib/docgen/handoverPayload';
 import { docReadiness } from '../../../lib/systems';
 import { gridModules, readTech, TECH_SCHEMA } from '../../../lib/techflow';
 
@@ -187,7 +186,23 @@ export default function NewHandoverReport() {
   }, [linkedProject, techMods, localMods, localOpts]);
   const excluded = useMemo(() => new Set(excludedKeys), [excludedKeys]);
   const plan = useMemo(() => handoverPlan(ctx, excluded), [ctx, excluded]);
-  const items = useMemo(() => buildEquipmentItems(plan.sections, form), [plan, form]);
+  // Butir dokumen = kolom Spesifikasi + isi Detail Teknologi yang tidak punya kolom (lib/docgen/techDetail.js).
+  const items = useMemo(() => buildDocItems(plan, form, techMods), [plan, form, techMods]);
+
+  // Isi Teknologi project per modul (untuk panel "Isi di Teknologi" di tiap seksi) dan ringkasan seberapa lengkap yang tercatat.
+  const techByKey = useMemo(() => {
+    const out = {};
+    (techMods || []).forEach((m) => { if (m && m.key && !out[m.key]) out[m.key] = m; });
+    return out;
+  }, [techMods]);
+  const techStats = useMemo(() => {
+    const list = Object.values(techByKey);
+    return {
+      total: list.length,
+      withCap: list.filter((m) => String(m.cap ?? '').trim()).length,
+      withDetail: list.filter((m) => String(m.detail ?? '').trim()).length,
+    };
+  }, [techByKey]);
 
   // Kolom yang masih berisi nilai otomatis dari Teknologi (belum dikoreksi di form ini).
   const autoIds = useMemo(() => {
@@ -270,7 +285,7 @@ export default function NewHandoverReport() {
       showToast('Ada field wajib (*) yang belum diisi.', 'error');
       return;
     }
-    const { payload, equipment } = buildHandoverPayload(form, ctx, excluded);
+    const { payload, equipment } = buildHandoverPayload(form, ctx, excluded, techMods);
     if (equipment.length === 0) {
       showToast('Belum ada peralatan yang dicetak. Centang modul di Teknologi project, atau tambah peralatan di bawah.', 'error');
       return;
@@ -414,6 +429,13 @@ export default function NewHandoverReport() {
                   ? <>Mengikuti Teknologi project: satu modul yang dicentang = satu butir di dokumen, urut sesuai alur pengolahan. Spesifikasinya diambil dari tab Spesifikasi Peralatan (kolom yang kosong dicetak &quot;.......&quot; supaya bisa dilengkapi di Google Docs). Perubahan di bawah berlaku untuk dokumen ini; klik &quot;Simpan ke project&quot; untuk menyimpan koreksi spesifikasi. Untuk mengubah daftar modul, centang di tab Teknologi <Link href={`/projects/${encodeURIComponent(linkedProject.id)}`} className="text-blueprint hover:underline">di detail project</Link>.</>
                   : <>Pilih peralatan yang akan dicetak, lalu isi spesifikasinya. Satu peralatan = satu butir di dokumen, urut sesuai alur pengolahan. Kaitkan ke project di atas kalau ingin daftar ini langsung mengikuti Teknologi project.</>}
               </p>
+              {linkedProject && techMods && (
+                <p className="text-xs text-ink mt-2" data-testid="ho-tech-stats">
+                  {techStats.total === 0
+                    ? 'Teknologi project ini belum ada yang dicentang.'
+                    : <>Teknologi project mencatat <strong>{techStats.total}</strong> modul: {techStats.withCap} sudah berkapasitas, {techStats.withDetail} punya Detail Spesifikasi. {techStats.withDetail < techStats.total ? 'Yang belum tercatat dicetak ".......", lengkapi di tab Teknologi atau isi di bawah.' : 'Semua modul sudah punya Detail.'}</>}
+                </p>
+              )}
             </div>
 
             <div className="bg-panel border border-line rounded-lg p-4 flex flex-col gap-3">
@@ -457,6 +479,8 @@ export default function NewHandoverReport() {
                 onToggle={toggleSection}
                 autoIds={autoIds}
                 scrollTo={scrollTo}
+                tech={linkedProject && techMods ? techByKey : null}
+                projectHref={linkedProject ? `/projects/${encodeURIComponent(linkedProject.id)}` : null}
               />
             )}
           </section>
@@ -473,10 +497,10 @@ export default function NewHandoverReport() {
             {items.length > 0 && (
               <ol className="list-decimal pl-5 flex flex-col gap-2 text-sm text-ink">
                 {items.map((it) => (
-                  <li key={it.key} data-testid="ho-preview-item">
+                  <li key={it.key} data-testid="ho-preview-item" className="break-words min-w-0">
                     <span>{it.head}</span>
                     {it.rows.length > 0 && (
-                      <ul className="list-disc pl-5 mt-1 flex flex-col gap-0.5 text-xs text-inkmute">
+                      <ul className="list-disc pl-5 mt-1 flex flex-col gap-0.5 text-xs text-inkmute break-words">
                         {it.rows.map((r, i) => <li key={`${it.key}-${i}`}>{r}</li>)}
                       </ul>
                     )}
