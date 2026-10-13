@@ -11,8 +11,8 @@ function Bar({ percent, tone }) {
   );
 }
 
-// Tab "Spesifikasi Peralatan": mengikuti Teknologi project. Modul yang dicentang di Teknologi punya seksi di sini
-// (urut sesuai alur): seksi bawaan template Hand Over, dan seksi tambahan untuk modul yang tidak ada di template.
+// Tab "Spesifikasi Peralatan": mengikuti Teknologi project, SATU modul = SATU seksi (urut sesuai alur). Seksi tidak
+// mengikuti pengelompokan template dokumen Hand Over (lib/docgen/specModules.js).
 // Kolom yang bisa diturunkan dari Teknologi terisi otomatis (ditandai); mengetik di kolom itu menjadi koreksi manual.
 // Koreksi yang berbeda dari Teknologi diberi penanda "Beda dari Teknologi" + tombol untuk kembali ke nilai Teknologi.
 // "+ Tambah peralatan" mencentang modul di Teknologi tanpa pindah tab (seksinya langsung muncul dan digulir ke layar).
@@ -113,7 +113,7 @@ export default function SpecsEditor({
           <div>
             <h2 className="font-display font-semibold text-ink">Spesifikasi peralatan</h2>
             <p className="text-xs text-inkmute mt-1">
-              Setiap modul yang dicentang di tab Teknologi punya seksi di sini. Kapasitas dan teks Detail Spesifikasi ("Label : isi") dibaca ke kolom-kolomnya secara otomatis. Ketik untuk mengoreksi (kolom yang berbeda dari Teknologi diberi tanda); kosongkan kolom untuk kembali otomatis. Form Hand Over memakai data ini.
+              Satu modul di tab Teknologi = satu seksi di sini. Kapasitas dan teks Detail Spesifikasi ("Label : isi") dibaca ke kolom-kolomnya secara otomatis. Ketik untuk mengoreksi (kolom yang berbeda dari Teknologi diberi tanda); kosongkan kolom untuk kembali otomatis. Form Hand Over memakai data ini.
             </p>
           </div>
           <div className="text-right shrink-0">
