@@ -12,7 +12,7 @@ import { StatusBadge, PriorityBadge, DeliveryHint, Pill } from '../../components
 import { fmtDate, todayISO, initialOf, nameFromEmail, timeAgo } from '../../lib/projectHelpers';
 import { SYSTEMS, RO_OPTIONS, normalizeSystems, projectSystems, documentExtras, deriveSystemKeys, docReadiness, systemLabel } from '../../lib/systems';
 import SpecsEditor from '../../components/SpecsEditor';
-import { packSpecs, buildSpecValues, visibleSections, overallProgress, derivedSpecs, withDerived, autoSpecIds, MEASURE_UNIT } from '../../lib/docgen/specs';
+import { packSpecs, buildSpecValues, visibleSections, overallProgress, derivedSpecs, withDerived, autoSpecIds, specDiffs, MEASURE_UNIT } from '../../lib/docgen/specs';
 import { canDelete, canWrite } from '../../lib/roles';
 import TechFlow from '../../components/TechFlow';
 import SimilarArchive from '../../components/SimilarArchive';
@@ -497,6 +497,12 @@ export default function ProjectDetailPage() {
   const specsDerived = techForSystems && techForSystems.length > 0 ? derivedSpecs(techForSystems) : {};
   const shownSpecs = specsValues ? withDerived(specsValues, specsDerived) : null;
   const autoIds = specsValues ? autoSpecIds(specsValues, specsDerived) : new Set();
+  // Koreksi manual yang isinya lain dari Teknologi: ditandai di tab Spesifikasi (specsValues = isian manual saja).
+  const specDiff = specsValues ? specDiffs(specSections, specsValues, specsDerived) : null;
+  // Untuk tombol "+ Tambah peralatan": modul yang sudah dicentang, dan yang dicentang tetapi belum tersimpan.
+  const tickedKeys = new Set((techValue || []).map((m) => m.key));
+  const savedTechKeys = new Set(((gridTech ? gridTech.saved : readTech(specsSaved || {})) || []).map((m) => m.key));
+  const pendingTechKeys = new Set([...tickedKeys].filter((k) => !savedTechKeys.has(k)));
   const specProgress = shownSpecs ? overallProgress(specSections, shownSpecs) : null;
   const commPercent = Math.round(((4 - readiness.commissioning.missing.length) / 4) * 100);
 
@@ -522,6 +528,24 @@ export default function ProjectDetailPage() {
     const extras = savedSystems.filter((k) => TECH_EXTRA_KEYS.includes(k) && !(k === 'dosing' && prevDosing));
     setSpecsValues((v) => ({ ...(v || {}), ...writeTech(modules) }));
     update('sistemTerpasang', normalizeSystems(deriveSystemKeys(modules, extras)));
+  }
+
+  // Tombol "+ Tambah peralatan" di tab Spesifikasi: mencentang satu modul di Teknologi (urutan mengikuti alur, sama seperti
+  // ModulePicker). Ikut "Simpan perubahan"; seksi barunya langsung muncul karena Spesifikasi membaca Teknologi yang belum tersimpan.
+  function addTechModule(key) {
+    if (!writable) return;
+    const cur = techValue || [];
+    if (cur.some((m) => m.key === key)) return;
+    const byKey = Object.fromEntries(cur.map((m) => [m.key, m]));
+    byKey[key] = { key, cap: '', unit: '', detail: '' };
+    const ordered = pickerSchema.filter((s) => byKey[s.key]).map((s) => byKey[s.key]);
+    const rest = cur.filter((m) => !pickerSchema.some((s) => s.key === m.key)); // modul yang tak dikenal tidak dibuang
+    setTech([...ordered, ...rest]);
+  }
+
+  // "Pakai nilai Teknologi": kolom yang dikoreksi dikembalikan ke otomatis (angka dikosongkan, satuan disamakan).
+  function resetSpecDiff(diff) {
+    setSpecsValues((v) => ({ ...(v || {}), ...diff.set }));
   }
 
   const dateWarnings = [];
@@ -882,6 +906,13 @@ export default function ProjectDetailPage() {
               onRetry={loadSpecs}
               onGoTech={() => setActiveTab('teknologi')}
               version={specsVersion}
+              diffs={specDiff}
+              onResetDiff={resetSpecDiff}
+              canEdit={writable}
+              addSchema={pickerSchema}
+              ticked={tickedKeys}
+              pending={pendingTechKeys}
+              onAddModule={tech !== null && !techError ? addTechModule : undefined}
             />
           )}
 

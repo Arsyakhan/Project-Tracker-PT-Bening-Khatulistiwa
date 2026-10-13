@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { ARCHIVE_UNITS, FLOW_PHASES, stepInfo, moduleLabel } from '../lib/techflow';
+import { ARCHIVE_UNITS, groupSchemaByPhase, moduleLabel } from '../lib/techflow';
 import { specsFromTech, hasSpecFields, detailTemplate, DETAIL_EXAMPLES } from '../lib/specParser';
 
 // Pemilih modul teknologi (per fase alur): centang modul, isi kapasitas, satuan, dan detail.
@@ -17,16 +17,7 @@ export default function ModulePicker({ schema, value, onChange, detailMax = 4000
   }, [value]);
 
   // Kelompokkan modul per fase alur; modul yang tidak dikenal masuk "Lainnya".
-  const groups = useMemo(() => {
-    const out = FLOW_PHASES.map((ph) => ({ key: ph.key, label: ph.label, items: [] }));
-    const other = { key: 'lain', label: 'Lainnya', items: [] };
-    schema.forEach((s) => {
-      const info = stepInfo(s.key);
-      const g = info ? out.find((x) => x.key === info.phase) : other;
-      g.items.push(s);
-    });
-    return [...out, other].filter((g) => g.items.length);
-  }, [schema]);
+  const groups = useMemo(() => groupSchemaByPhase(schema), [schema]);
 
   function emit(next) {
     onChange(schema.filter((s) => next[s.key]).map((s) => ({ key: s.key, ...next[s.key] })));
