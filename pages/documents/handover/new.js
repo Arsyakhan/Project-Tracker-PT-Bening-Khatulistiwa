@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { api } from '../../../lib/api';
@@ -9,9 +9,10 @@ import ProjectPicker from '../../../components/docgen/ProjectPicker';
 import { TextField, ToggleSection } from '../../../components/docgen/DocFormControls';
 import { HANDOVER_SECTIONS, buildHandoverEmpty } from '../../../lib/docgen/schema';
 import { prefillHandover } from '../../../lib/docgen/prefill';
-import { SPEC_FIELD_IDS, packSpecs, unpackSpecs, derivedSpecs, withDerived, autoSpecIds } from '../../../lib/docgen/specs';
-import { docReadiness, projectSystems, toHandoverModules } from '../../../lib/systems';
-import { gridModules } from '../../../lib/techflow';
+import { SPEC_FIELD_IDS, packSpecs, unpackSpecs, derivedSpecs, withDerived, autoSpecIds, buildSpecEmpty, specContext } from '../../../lib/docgen/specs';
+import { HOSTS, planExtras, applyExtraPlan } from '../../../lib/docgen/specExtra';
+import { docReadiness } from '../../../lib/systems';
+import { gridModules, readTech } from '../../../lib/techflow';
 
 const REQUIRED = ['project_name', 'system_title', 'buyer_company'];
 
@@ -19,8 +20,9 @@ function draftKey(projectId) {
   return `bk_docgen_ho_draft_${projectId || 'standalone'}`;
 }
 
-function prefillFrom(project) {
-  return prefillHandover(project);
+// techModules = teknologi terbaru project (dari grid / Spesifikasi); kosong -> dipakai teknologi dari daftar project.
+function prefillFrom(project, techModules) {
+  return prefillHandover(project, techModules && techModules.length > 0 ? techModules : undefined);
 }
 
 export default function NewHandoverReport() {
@@ -39,6 +41,8 @@ export default function NewHandoverReport() {
   // Spesifikasi peralatan yang tersimpan di project (lihat tab "Spesifikasi Peralatan" di detail project)
   const projectSpecsRef = useRef({});             // spesifikasi terakhir (isian tersimpan + nilai otomatis dari Teknologi)
   const derivedSpecsRef = useRef({});             // bagian yang otomatis dari Teknologi (tidak ikut disimpan ke project)
+  const techRef = useRef([]);                     // teknologi terbaru project (modul yang dicentang)
+  const [techMods, setTechMods] = useState(null); // sama dengan techRef, untuk menghitung Item Tambahan dari seksi tambahan
   const [specsVersion, setSpecsVersion] = useState(0);
   const [specsCount, setSpecsCount] = useState(0);
   const [specsAuto, setSpecsAuto] = useState(0);        // berapa kolom yang masih nilai otomatis dari Teknologi
@@ -53,8 +57,8 @@ export default function NewHandoverReport() {
   }, []);
 
   // Ambil spesifikasi milik sebuah project: nilai otomatis dari Teknologinya (kapasitas + teks Detail Spesifikasi di grid
-  // tab Project Tracker), lalu isian tersimpan di atasnya (override manual menang). Teknologi tidak terbaca (mis. backend
-  // belum v2.8) = pakai isian tersimpan saja; form tetap bisa dipakai.
+  // tab Project Tracker), lalu isian tersimpan di atasnya (override manual menang). Backend belum v2.8 / grid masih kosong
+  // = Teknologi yang tersimpan di Spesifikasi (kunci tech_*), sama seperti tab Spesifikasi di detail project.
   async function fetchProjectSpecs(pid) {
     const [specsRes, techRes] = await Promise.allSettled([api.getSpecs(pid), api.getTech(pid)]);
     let saved = {};
@@ -63,7 +67,11 @@ export default function NewHandoverReport() {
       saved = unpackSpecs(specsRes.value.specs);
       version = specsRes.value.version || 0;
     }
-    const derived = techRes.status === 'fulfilled' ? derivedSpecs(gridModules(techRes.value.modules)) : {};
+    const gridMods = techRes.status === 'fulfilled' ? gridModules(techRes.value.modules) : [];
+    const mods = gridMods.length > 0 ? gridMods : (readTech(saved) || []);
+    techRef.current = mods;
+    setTechMods(mods);
+    const derived = mods.length > 0 ? derivedSpecs(mods) : {};
     const specs = withDerived(saved, derived);
     derivedSpecsRef.current = derived;
     projectSpecsRef.current = specs;
@@ -94,7 +102,7 @@ export default function NewHandoverReport() {
       // Spesifikasi project selalu diambil (untuk nomor versi), tapi hanya dipakai kalau tidak ada draft.
       const specs = p ? await fetchProjectSpecs(p.id) : {};
       if (saved) setForm({ ...buildHandoverEmpty(), ...saved });
-      else if (p) setForm({ ...buildHandoverEmpty(), ...prefillFrom(p), ...specs });
+      else if (p) setForm({ ...buildHandoverEmpty(), ...prefillFrom(p, techRef.current), ...specs });
       else setForm(buildHandoverEmpty());
       dirty.current = false;
       setInitialized(true);
@@ -121,7 +129,8 @@ export default function NewHandoverReport() {
     setLinkedProject(p);
     setForm((f) => ({ ...f, ...prefillFrom(p) }));
     fetchProjectSpecs(p.id).then((specs) => {
-      if (Object.keys(specs).length > 0) setForm((f) => ({ ...f, ...specs }));
+      // Centang seksi dihitung ulang dari Teknologi terbaru, lalu spesifikasi (koreksi manual) di atasnya.
+      setForm((f) => ({ ...f, ...prefillFrom(p, techRef.current), ...specs }));
     });
     router.replace({ pathname: router.pathname, query: { projectId: p.id } }, undefined, { shallow: true });
   }
@@ -130,6 +139,8 @@ export default function NewHandoverReport() {
     activeKey.current = draftKey(null);
     projectSpecsRef.current = {};
     derivedSpecsRef.current = {};
+    techRef.current = [];
+    setTechMods(null);
     setSpecsVersion(0);
     setSpecsCount(0);
     setSpecsAuto(0);
@@ -138,12 +149,15 @@ export default function NewHandoverReport() {
   }
 
   const readiness = linkedProject ? docReadiness(linkedProject, 'handover') : null;
-  const hoNotes = [];
-  if (linkedProject) {
-    const info = toHandoverModules(projectSystems(linkedProject).keys);
-    if (info.overflowFilters.length > 0) hoNotes.push(`Template Hand Over hanya punya 2 slot filter. Tambahkan secara manual di "Item Tambahan": ${info.overflowFilters.join(', ')}.`);
-    if (info.notInHandover.length > 0) hoNotes.push(`${info.notInHandover.join(', ')} tidak punya seksi di template Hand Over.`);
-  }
+
+  // Peralatan di Teknologi yang tidak punya seksi di template Hand Over (Strainer, Aerator, UV, Mixed Bed, filter ke-3, dst.):
+  // spesifikasinya dicetak sebagai baris di "Item Tambahan" seksi induk. Dihitung dari form saat ini (centang seksi + isian).
+  const extraPlan = useMemo(() => {
+    if (!linkedProject || !techMods || techMods.length === 0) return [];
+    const base = specContext(linkedProject, techMods);
+    const hoKeys = new Set(HANDOVER_SECTIONS.filter((sec) => form[sec.toggleId]).map((sec) => sec.key));
+    return planExtras(form, { ...base, hoKeys }, (h) => !!form[HOSTS[h].toggle]);
+  }, [form, linkedProject, techMods]);
 
   // Simpan isian spesifikasi di form ini ke project, supaya koreksi saat serah terima tidak hilang.
   async function saveSpecsToProject() {
@@ -176,12 +190,12 @@ export default function NewHandoverReport() {
     setSpecsBusy(true);
     try {
       const specs = await fetchProjectSpecs(linkedProject.id);
-      const base = buildHandoverEmpty();
+      const base = buildSpecEmpty();
       dirty.current = true;
       setForm((f) => {
         const next = { ...f };
         SPEC_FIELD_IDS.forEach((id) => { next[id] = base[id]; });
-        return { ...next, ...prefillFrom(linkedProject), ...specs };
+        return { ...next, ...prefillFrom(linkedProject, techRef.current), ...specs };
       });
       showToast('Spesifikasi dimuat ulang dari project.', 'success');
     } finally {
@@ -205,7 +219,7 @@ export default function NewHandoverReport() {
     try {
       const data = await api.generateDocument({
         type: 'handover',
-        payload: form,
+        payload: applyExtraPlan(form, extraPlan),
         projectId: linkedProject?.id,
         checklistItem: 'Handover Report',
       });
@@ -224,7 +238,7 @@ export default function NewHandoverReport() {
     dirty.current = false;
     setResult(null);
     setInvalidFields({});
-    setForm(linkedProject ? { ...buildHandoverEmpty(), ...prefillFrom(linkedProject), ...projectSpecsRef.current } : buildHandoverEmpty());
+    setForm(linkedProject ? { ...buildHandoverEmpty(), ...prefillFrom(linkedProject, techRef.current), ...projectSpecsRef.current } : buildHandoverEmpty());
   }
 
   return (
@@ -277,7 +291,6 @@ export default function NewHandoverReport() {
                   </span>
                 )}
                 {readiness.note && <span className="block text-xs text-inkmute mt-1">{readiness.note}</span>}
-                {hoNotes.map((n) => <span key={n} className="block text-xs text-inkmute mt-1">{n}</span>)}
                 <span className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs">
                   <span className="text-inkmute">
                     {specsCount > 0
@@ -328,6 +341,31 @@ export default function NewHandoverReport() {
               <ToggleSection key={section.key} section={section} values={form} onChange={update} />
             ))}
           </section>
+
+          {extraPlan.length > 0 && (
+            <section className="bg-panel border border-line rounded-lg p-5 flex flex-col gap-3" aria-label="Peralatan lain dari Teknologi">
+              <div>
+                <h2 className="font-display font-semibold text-ink">Peralatan lain dari Teknologi</h2>
+                <p className="text-xs text-inkmute mt-1">
+                  Template Hand Over tidak punya seksi sendiri untuk peralatan ini. Spesifikasinya (dari tab Spesifikasi Peralatan project) dicetak sebagai baris di &quot;Item Tambahan&quot; seksi yang tertera.
+                  {linkedProject && (
+                    <> Untuk mengubah isinya, buka tab Spesifikasi Peralatan di <Link href={`/projects/${encodeURIComponent(linkedProject.id)}`} className="text-blueprint hover:underline">detail project</Link>.</>
+                  )}
+                </p>
+              </div>
+              {extraPlan.map((p) => (
+                <div key={p.host} className="flex flex-col gap-1">
+                  <p className="text-sm font-medium text-ink">
+                    {p.title}
+                    {p.enable && <span className="ml-2 text-xs font-normal text-amberink">seksi ini diaktifkan otomatis saat dokumen dibuat</span>}
+                  </p>
+                  <ul className="list-disc pl-5 text-xs text-inkmute flex flex-col gap-0.5">
+                    {p.lines.map((line) => <li key={line}>{line}</li>)}
+                  </ul>
+                </div>
+              ))}
+            </section>
+          )}
 
           <div className="fixed bottom-0 left-0 right-0 md:left-60 bg-panel border-t border-line px-6 py-4 flex justify-end z-20">
             <button

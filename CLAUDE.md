@@ -214,6 +214,7 @@ Cara kerja: `makeCopy` template, lalu `replaceText` untuk `{{PLACEHOLDER}}`. Blo
 | Status pengadaan | `PROC_STATUSES` di `Procurement.gs` | `lib/procurement.js` |
 | Status rapat/agenda/kehadiran | `MEETING_STATUSES`, `ITEM_STATUSES`, `ATTENDANCE_STATUSES` | `lib/meetings.js` |
 | Field dokumen (`data.xxx`) | `docgen/*.gs` | `lib/docgen/schema.js` + `pages/documents/*/new.js` |
+| Kolom Spesifikasi Peralatan modul tanpa seksi di template (id `x_*`, pembaca Detail, kerangka, teks Item Tambahan) | `*_additional_items` di `docgen/handover.gs` (tempat baris dicetak) | `lib/docgen/specExtra.js` (`DEFS`, `HOSTS`), `lib/specParser.js` (`readExtra`), `lib/docgen/specs.js`, `pages/documents/handover/new.js` |
 | Placeholder `{{...}}` | template Google Docs | `docgen/*.gs` |
 | Kunci modul arsip & urutan alur teknologi (juga urutan grid AA-FI di Project Tracker) | `ARCHIVE_MODULE_KEYS` di `Archive.gs` + judul modul di baris 1 tab arsip/tracker | `lib/techflow.js` (`FLOW_PHASES`, `FLOW_STEPS`, `ADA_ONLY`) |
 | Teknologi project aktif (grid AA-FI di Project Tracker) | `getProjectTech_`, `saveProjectTech_`, `trackerGridFromHeaders_` di `Archive.gs`; rute `tech` dan `saveProjectTech` di `Code.gs` | `gridModules`, `sameTech`, `gridCurrentTech` di `lib/techflow.js` (GET `tech` membawa `schema` = modul yang ada di sheet, dipakai `pickerSchema` di halaman project); `projectSystems`, `deriveSystemKeys`, `MODULE_TO_SYSTEM` di `lib/systems.js`; `getProjects_` membawa `tech` ringkas per project; `getTech` dan `saveProjectTech` di `lib/api.js`; `pages/projects/[id].js` (tab Teknologi) dan `pages/arsip/new.js` |
@@ -316,6 +317,38 @@ tampilan dengan data hanya bisa diperiksa di produksi, atau lewat salinan sheet 
   dan template di `specParser.js`, dan jaga id field tetap sama dengan `HANDOVER_SECTIONS`. Template Google Docs tidak
   berubah (placeholder `{{...}}` sama).
   "Arsipkan teknologi" memakai teknologi dari grid apa adanya (lossless).
+- **Spesifikasi Peralatan mengikuti Teknologi, modul per modul** (13 Okt 2026): modul apa pun yang dicentang di
+  Teknologi **muncul di tab Spesifikasi Peralatan**, dengan kolom rinci satu per satu, urut mengikuti alur Teknologi
+  (`visibleSections` di `lib/docgen/specs.js`; konteksnya `specContext`). Dua jenis seksi:
+  1. **Seksi bawaan template Hand Over** (`HANDOVER_SECTIONS`: Raw Water, Clarifier, Filter 1/2, UF, Intermediate Tank,
+     Softener, RO+Anti Scalant+CIP, Chemical Dosing, Control Panel); tampil menurut sistem turunan Teknologi seperti
+     sebelumnya.
+  2. **Seksi tambahan** untuk modul yang tidak punya seksi di template (Strainer, Aerator, Flokulator, Filter Pump,
+     Greensand, Chlorination, Soft Water Tank, ERD, RO Pass 2, Degasifier, Ion Exchange, EDI, Mixed Bed, Remineralisasi,
+     Product Tank, UV, Ozon, Filter 0,2 µm, Pompa Distribusi, filter Carbon ke-3, dan satu kartu "Pompa Dosing per Bahan
+     Kimia"). Definisinya data murni di **`lib/docgen/specExtra.js`** (`DEFS`: kolom `main`, sub-peralatan `subs`,
+     seksi induk dokumen `hosts`); id kolom `x_<modul>_<nama>`. Bagian paket RO/UF yang kolomnya sudah ada di seksi
+     bawaan (Booster, Cartridge, Pompa cleaning/flushing, Tangki cleaning/flushing, Pompa UF) **memakai id yang sama**
+     dengan seksi bawaan dan hanya jadi kartu sendiri kalau seksi bawaannya tidak tampil (`unlessSection`).
+  Pembaca teks **Detail Spesifikasi** untuk seksi tambahan ada di `readExtra` (`lib/specParser.js`) dan memakai
+  definisi yang sama: isi di belakang titik dua (`Label : isi`) dipindah ke kolom yang sesuai; blok ber-judul yang
+  cocok dengan sub-peralatan (`match`) mengisi kolom pompa/tangki/membran; satu blok saja = peralatan utama.
+  `EXTRA_TEMPLATES`/`EXTRA_EXAMPLES` dibangkitkan dari definisi yang sama, jadi kerangka "Isi dari template" selalu terbaca
+  (diuji round-trip). **Menambah/mengubah kolom seksi tambahan = ubah `DEFS` di `specExtra.js` saja** (template, contoh,
+  pembaca, daftar id simpan `SPEC_FIELD_IDS`, dan teks dokumen ikut). Judul blok utama jangan memuat kata penanda
+  sub-peralatan (mis. "MIXER" di Flokulator, karena sub "Mixer / Agitator" mengenalinya lewat kata itu).
+  **Template Google Docs Hand Over tidak berubah** (isi Google Doc tidak bisa diedit dari sini), jadi di dokumen seksi
+  tambahan dicetak sebagai baris **Item Tambahan** di seksi induk: `planExtras` memilih seksi induk pertama (`hosts`,
+  lalu `HOST_TAIL`) yang aktif di form, atau menyalakannya kalau tak ada yang aktif; `applyExtraPlan` menambahkan baris
+  ("Nama (Type X, Capacity 5 m3/hr, ...)") hanya ke **payload** saat generate (form dan data tersimpan tidak
+  berubah, jadi tidak ada teks yang membeku di Project Specs). Pratinjau baris itu tampil di form Hand Over
+  ("Peralatan lain dari Teknologi"). Kalau suatu saat template Docs diberi seksi baru, pindahkan modul itu dari
+  seksi tambahan ke `HANDOVER_SECTIONS` + `handover.gs` (id kolomnya tinggal disalin).
+  Form Hand Over membaca Teknologi dari grid (GET `tech`); kalau backend belum v2.8 atau grid kosong dipakai Teknologi
+  di Spesifikasi (`readTech`, kunci `tech_*`), sama seperti tab Spesifikasi di detail project. Batas backend: Code.gs
+  `SPECS_MAX_KEYS = 400` kunci per project (hanya koreksi manual yang tersimpan, jadi aman; mode lama menambah
+  4 kunci `tech_*` per modul). Soft Water Tank kini seksi sendiri (dulu kapasitasnya salah dipetakan ke Brine Tank
+  softener; Brine Tank hanya dibaca dari Detail softener).
 - **Langkah berikutnya** (kolom `Next Action*`, `Blocker` dari Code.gs v2.6) tampil di tabel project, kartu
   HP, kartu kanban, dan detail project. `lib/nextAction.js` (fungsi murni: `nextActionInfo`, `dueText`,
   `nextActionSortKey`; ≤7 hari = amber, lewat = rust; `nextAction === undefined` berarti backend belum
