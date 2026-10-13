@@ -9,7 +9,8 @@ function Bar({ percent, tone }) {
   );
 }
 
-// Tab "Spesifikasi Peralatan": satu seksi per sistem di Teknologi project, isinya sama dengan form Hand Over.
+// Tab "Spesifikasi Peralatan": mengikuti Teknologi project. Modul yang dicentang di Teknologi punya seksi di sini
+// (urut sesuai alur): seksi bawaan template Hand Over, dan seksi tambahan untuk modul yang tidak ada di template.
 // Kolom yang bisa diturunkan dari Teknologi terisi otomatis (ditandai); mengetik di kolom itu menjadi koreksi manual.
 export default function SpecsEditor({
   sections,          // seksi yang relevan untuk project ini
@@ -71,7 +72,7 @@ export default function SpecsEditor({
           <div>
             <h2 className="font-display font-semibold text-ink">Spesifikasi peralatan</h2>
             <p className="text-xs text-inkmute mt-1">
-              Kapasitas dan isi Detail Spesifikasi di tab Teknologi mengisi kolom di sini secara otomatis. Ketik untuk mengoreksi; kosongkan kolom untuk kembali otomatis. Form Hand Over memakai data ini.
+              Setiap modul yang dicentang di tab Teknologi punya seksi di sini. Kapasitas dan teks Detail Spesifikasi ("Label : isi") dibaca ke kolom-kolomnya secara otomatis. Ketik untuk mengoreksi; kosongkan kolom untuk kembali otomatis. Form Hand Over memakai data ini.
             </p>
           </div>
           <div className="text-right shrink-0">
@@ -102,6 +103,7 @@ export default function SpecsEditor({
               <Bar percent={percent} tone={percent >= 100 ? 'bg-teal' : 'bg-blueprint'} />
             </summary>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-5">
+              {section.hint && <p className="sm:col-span-2 text-xs text-inkmute -mb-1">{section.hint}</p>}
               {section.fields.map((f, i) => (
                 <div
                   key={f.id || `${f.label}-${i}`}
