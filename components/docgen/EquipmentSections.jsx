@@ -1,15 +1,46 @@
 import { useEffect, useRef } from 'react';
+import Link from 'next/link';
 import { FieldRow } from './DocFormControls';
 import { sectionProgress } from '../../lib/docgen/specs';
 
 // Kolom nama filter tidak ditampilkan: judul butir diambil dari modulnya (Birm / MMF / ACF).
 const HIDDEN_IDS = new Set(['f1_type', 'f2_type']);
 
+// Isi modul itu di Teknologi project apa adanya (kapasitas + teks Detail Spesifikasi), supaya terlihat utuh di form ini.
+// `mod` kosong = peralatan ditambahkan khusus untuk dokumen ini (belum dicentang di Teknologi).
+function TechSource({ mod, projectHref }) {
+  const cap = mod && String(mod.cap ?? '').trim() ? `${String(mod.cap).trim()}${mod.unit ? ` ${mod.unit}` : ''}` : '';
+  const detail = mod ? String(mod.detail ?? '').trim() : '';
+  return (
+    <div className="sm:col-span-2 min-w-0 rounded-md border border-line bg-canvas/60 p-3 text-xs" data-testid="ho-tech">
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <span className="font-semibold uppercase tracking-wider text-inkmute">Isi di Teknologi</span>
+        {cap && <span className="text-ink font-data tnum" data-testid="ho-tech-cap">Kapasitas {cap}</span>}
+        {projectHref && (
+          <Link href={projectHref} className="text-blueprint hover:underline tap ml-auto">Lengkapi di Teknologi</Link>
+        )}
+      </div>
+      {!mod && <p className="mt-1 text-inkmute">Modul ini belum tercatat di Teknologi project (ditambahkan khusus untuk dokumen ini, atau berasal dari data lama).</p>}
+      {mod && detail && (
+        <>
+          <pre className="mt-2 max-w-full whitespace-pre-wrap break-words font-data text-ink max-h-40 overflow-auto" data-testid="ho-tech-detail">{detail}</pre>
+          <p className="mt-2 text-inkmute">Isi Detail yang tidak punya kolom di bawah ikut tercetak sebagai baris tambahan (lihat Pratinjau isi dokumen).</p>
+        </>
+      )}
+      {mod && !detail && (
+        <p className="mt-1 text-inkmute">
+          {cap ? 'Baru kapasitasnya yang tercatat; belum ada Detail Spesifikasi.' : 'Baru dicentang; belum ada kapasitas maupun Detail Spesifikasi.'} Kolom yang kosong dicetak &quot;.......&quot;.
+        </p>
+      )}
+    </div>
+  );
+}
+
 // Daftar peralatan untuk dokumen Hand Over: satu seksi = satu butir di dokumen, urut mengikuti alur Teknologi.
 // Isinya sama dengan tab Spesifikasi Peralatan (kolom yang bisa diturunkan dari Teknologi sudah terisi otomatis).
 // Centang "Cetak" untuk menyertakan butir itu di dokumen; kolom yang dikosongkan dicetak "......." supaya bisa
 // dilengkapi tangan di Google Docs.
-export default function EquipmentSections({ sections, values, onChange, excluded, onToggle, autoIds, scrollTo }) {
+export default function EquipmentSections({ sections, values, onChange, excluded, onToggle, autoIds, scrollTo, tech, projectHref }) {
   const auto = autoIds || new Set();
   const lastScrolled = useRef(null);
 
@@ -61,6 +92,9 @@ export default function EquipmentSections({ sections, values, onChange, excluded
             </summary>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-5">
               {section.hint && <p className="sm:col-span-2 text-xs text-inkmute -mb-1">{section.hint}</p>}
+              {tech && section.modules && section.modules.length > 0 && (
+                <TechSource mod={tech[section.modules[0]] || null} projectHref={projectHref} />
+              )}
               {fields.map((f, i) => (
                 <div
                   key={f.id || `${f.label}-${i}`}

@@ -228,7 +228,7 @@ sungguhan (nomor berlanjut, gaya bullet) tidak bisa diuji dari sandbox; yang ter
 | Status rapat/agenda/kehadiran | `MEETING_STATUSES`, `ITEM_STATUSES`, `ATTENDANCE_STATUSES` | `lib/meetings.js` |
 | Field dokumen (`data.xxx`) | `docgen/*.gs` | `lib/docgen/schema.js` + `pages/documents/*/new.js` |
 | Kolom Spesifikasi Peralatan modul tanpa seksi di template (id `x_*`, pembaca Detail, kerangka, teks Item Tambahan) | `*_additional_items` di `docgen/handover.gs` (hanya cara lama: baris dicetak sebagai Item Tambahan) | `lib/docgen/specExtra.js` (`DEFS`, `HOSTS`), `lib/docgen/specModules.js` (seksi tab Spesifikasi: 1 modul = 1 seksi; `OWN`, `SHARED_NOTES`, `SYSTEM_MODULES`), `lib/specParser.js` (`readExtra`), `lib/docgen/specs.js`, `pages/documents/handover/new.js` |
-| Daftar peralatan dokumen Hand Over (`equipment`: 1 seksi Spesifikasi = 1 butir) | `generateDynamic_` di `docgen/handover.gs` (menuliskan `head` + `rows` apa adanya; baris contoh `{{CLARIFIER_CAP}}` dan `{{RW_TANK_MAT}}` di template) | `lib/docgen/handoverItems.js` (`DOC_TITLE`, `buildEquipmentItem(s)`: aturan teks bahasa Inggris), `lib/docgen/handoverPayload.js` (`buildHandoverPayload`, `DOC_OPTIONS`; juga membangun bentuk lama `has_*` untuk script lama), `components/docgen/EquipmentSections.jsx`, `pages/documents/handover/new.js`; `generator` diteruskan `pages/api/docgen.js` |
+| Daftar peralatan dokumen Hand Over (`equipment`: 1 seksi Spesifikasi = 1 butir) | `generateDynamic_` di `docgen/handover.gs` (menuliskan `head` + `rows` apa adanya; baris contoh `{{CLARIFIER_CAP}}` dan `{{RW_TANK_MAT}}` di template) | `lib/docgen/handoverItems.js` (`DOC_TITLE`, `buildEquipmentItem(s)`: aturan teks bahasa Inggris), `lib/docgen/handoverPayload.js` (`buildHandoverPayload`, `buildDocItems`, `DOC_OPTIONS`; juga membangun bentuk lama `has_*` untuk script lama), `lib/docgen/techDetail.js` (baris Detail Teknologi yang tidak punya kolom), `components/docgen/EquipmentSections.jsx`, `pages/documents/handover/new.js`; `generator` diteruskan `pages/api/docgen.js` |
 | Placeholder `{{...}}` | template Google Docs | `docgen/*.gs` |
 | Kunci modul arsip & urutan alur teknologi (juga urutan grid AA-FI di Project Tracker) | `ARCHIVE_MODULE_KEYS` di `Archive.gs` + judul modul di baris 1 tab arsip/tracker | `lib/techflow.js` (`FLOW_PHASES`, `FLOW_STEPS`, `ADA_ONLY`) |
 | Selisih Spesifikasi vs Teknologi dan tombol "+ Tambah peralatan" | tidak ada (frontend saja) | `specDiffs`, `fieldKey`, `sameValue` di `lib/docgen/specs.js`; `groupSchemaByPhase` di `lib/techflow.js`; `components/AddEquipment.jsx`, `components/SpecsEditor.jsx`; `addTechModule`, `resetSpecDiff` di `pages/projects/[id].js` |
@@ -391,6 +391,20 @@ tampilan dengan data hanya bisa diperiksa di produksi, atau lewat salinan sheet 
     Material ..."), kolom sebaris (pompa, membran, tangki) jadi baris bullet, Item Tambahan satu baris per barisnya; kolom
     kosong dicetak `.......` supaya bisa dilengkapi di Google Docs; blower/mixer pendamping dilewati kalau kosong; satu pompa
     saja jadi satu kalimat. Nama butir ada di `DOC_TITLE` (diuji: ke-40 modul punya nama, tanpa kata Indonesia).
+  - **Isi Teknologi tampil penuh dan ikut tercetak** (13 Okt 2026): data Teknologi project asli umumnya baru mencatat 1-3
+    modul dan jarang punya Detail, dan tulisan bebas di Detail (ukuran, bahan tambahan, tekanan, pompa kedua, catatan)
+    tidak punya kolom Spesifikasi sehingga dulu hilang di dokumen. Sekarang (a) tiap seksi di form memuat panel
+    **"Isi di Teknologi"** (kapasitas + satuan dan teks Detail apa adanya, tautan "Lengkapi di Teknologi"; `TechSource` di
+    `EquipmentSections`), ringkasan "Teknologi project mencatat N modul: M berkapasitas, K punya Detail" di bawah judul
+    bagian peralatan; dan (b) **baris Detail yang belum tercetak ikut jadi baris tambahan di butir modulnya**
+    (`lib/docgen/techDetail.js`, dipanggil `buildDocItems`; pratinjau dan muatan memakai fungsi yang sama). Aturannya dua
+    pemeriksaan: baris yang **dipakai pembaca** (kalau baris itu dibuang, nilai otomatis modul berubah) dilewati, dan
+    baris yang semua kata/angkanya **sudah ada di teks butir** dilewati (dinormalkan: "m3/h" = "m3/hr", "units" = "unit",
+    "3phase" = "3 phase"). Peralatan kedua di satu Detail yang seluruhnya tidak dipakai pembaca (mis. pompa kedua)
+    dicetak utuh dengan judulnya; teks bebas tanpa titik dua dicetak apa adanya. Nilai otomatis dihitung dari Teknologi
+    (bukan dari isian form), jadi koreksi manual di Spesifikasi tidak memunculkan nilai lama sebagai baris tambahan.
+    Butir yang tadinya satu kalimat (satu pompa) jadi "Judul, consist of:" + baris. Tanpa perubahan `.gs` (baris tambahan
+    hanyalah string di `rows`). Diuji dengan 23 Detail arsip asli (21 butir dapat tambahan, ~55 baris, semuanya info baru).
   - **Kompatibilitas urutan deploy**: payload tetap memuat bentuk lama (`has_*` diturunkan dari modul yang dicetak, isian,
     Item Tambahan) di samping `equipment`, jadi script lama yang masih live tetap membuat dokumen susunan lama, dan form
     memberi tahu ("script Generator Hand Over belum diperbarui") karena jawabannya tanpa `generator`. Kalau mengubah
