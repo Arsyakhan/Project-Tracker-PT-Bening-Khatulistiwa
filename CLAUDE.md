@@ -317,7 +317,7 @@ tampilan dengan data hanya bisa diperiksa di produksi, atau lewat salinan sheet 
   dan template di `specParser.js`, dan jaga id field tetap sama dengan `HANDOVER_SECTIONS`. Template Google Docs tidak
   berubah (placeholder `{{...}}` sama).
   "Arsipkan teknologi" memakai teknologi dari grid apa adanya (lossless).
-- **Spesifikasi Peralatan mengikuti Teknologi, modul per modul** (14 Okt 2026): modul apa pun yang dicentang di
+- **Spesifikasi Peralatan mengikuti Teknologi, modul per modul** (13 Okt 2026): modul apa pun yang dicentang di
   Teknologi **muncul di tab Spesifikasi Peralatan**, dengan kolom rinci satu per satu, urut mengikuti alur Teknologi
   (`visibleSections` di `lib/docgen/specs.js`; konteksnya `specContext`). Dua jenis seksi:
   1. **Seksi bawaan template Hand Over** (`HANDOVER_SECTIONS`: Raw Water, Clarifier, Filter 1/2, UF, Intermediate Tank,
