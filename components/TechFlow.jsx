@@ -1,7 +1,7 @@
 import { groupByPhase, moduleLabel, formatCapacity } from '../lib/techflow';
 
 // Modul "inti" (proses pengolahan) tampil lebih tegas daripada pendukung (pompa, tangki, dosing).
-const CORE = new Set(['clarifier', 'mmf', 'birm', 'acf', 'softener', 'uf', 'ro', 'mixedbed', 'chlorination']);
+const CORE = new Set(['clarifier', 'mmf', 'birm', 'greensand', 'acf', 'softener', 'uf', 'ro', 'ro2', 'ion_exchange', 'edi', 'mixedbed', 'chlorination', 'uv']);
 
 function Chevron() {
   return (

@@ -31,38 +31,60 @@
  */
 
 const SHEET_ARCHIVE = '[ARSIP] FINISHED PROJECT';
-const ARCHIVE_MAX_MODULES = 40;
+const ARCHIVE_MAX_MODULES = 60;
 const ARCHIVE_UNITS = ['MPH', 'LPH', 'LITER', 'MPD', 'LPD'];
 
-// Kunci tetap untuk modul yang sudah dikenal (urutan alur pengolahan air ada di sisi web).
-// Harus sama dengan FLOW_STEPS di lib/techflow.js. Keterangan dalam kurung pada judul diabaikan saat mencocokkan
-// (mis. "Dosing Pump Sodium Hypochlorite (NaOH)" dikenali sebagai 'dosing pump sodium hypochlorite').
+// Kunci tetap untuk modul yang sudah dikenal. Kunci harus sama dengan FLOW_STEPS di lib/techflow.js, dan urutan kolom
+// di sheet (tab arsip dan grid Project Tracker) dibuat sama dengan urutan FLOW_STEPS. Keterangan dalam kurung pada
+// judul diabaikan saat mencocokkan (mis. "Dosing Pump Sodium Hypochlorite (NaOH)" dikenali sebagai
+// 'dosing pump sodium hypochlorite'); spasi di sekitar "/" dan huruf besar/kecil juga diabaikan.
 const ARCHIVE_MODULE_KEYS = {
+  'strainer / bar screen / sand trap': 'strainer',
   'feed raw water pump': 'feed_pump',
   'raw / intermediate water tank': 'raw_tank',
+  'aerator / aeration tower': 'aerator',
   'dosing pump sodium hypochlorite': 'dosing_hypo',
   'dosing pump pac': 'dosing_pac',
   'dosing pump soda ash': 'dosing_soda',
   'dosing pump polimer': 'dosing_polimer',
+  'flash mixer / flocculator': 'flocculator',
   'clarifier': 'clarifier',
   'filter pump': 'filter_pump',
   'mmf': 'mmf',
   'birm filter': 'birm',
+  'greensand filter': 'greensand',
   'chlorination': 'chlorination',
   'acf': 'acf',
   'softener': 'softener',
   'soft water tank': 'soft_tank',
   'uf filter feed pump': 'uf_pump',
   'uf': 'uf',
+  'dosing pump smbs': 'dosing_smbs',
+  'dosing pump antiscalant': 'dosing_antiscalant',
+  'dosing pump acid / naoh': 'dosing_ph',
   'cartridge filter': 'cartridge',
   'booster feed pump': 'booster',
+  'cleaning / flushing pump': 'flush_pump',
   'ro': 'ro',
+  'energy recovery device': 'erd',
+  'ro pass 2': 'ro2',
+  't-01 cleaning / flushing tank': 'flush_tank',
+  'cleaning / flushing tank': 'flush_tank',
+  'degasifier / decarbonator': 'degasifier',
+  'cation / anion exchanger': 'ion_exchange',
+  'edi': 'edi',
   'mixed bed': 'mixedbed',
-  'product water tank': 'product_tank'
+  'remineralization': 'remineral',
+  'product water tank': 'product_tank',
+  'uv sterilizer': 'uv',
+  'ozone generator': 'ozone',
+  '0.2 micron filter': 'filter_02',
+  'transfer / distribution pump': 'dist_pump'
 };
 
 function archiveModuleKey_(label) {
-  const norm = cleanText_(label).toLowerCase().replace(/\s+/g, ' ');
+  // Spasi di sekitar "/" diseragamkan ("CLEANING\r\n/FLUSHING PUMP" dan "Cleaning / Flushing Pump" dikenali sama).
+  const norm = cleanText_(label).toLowerCase().replace(/\s+/g, ' ').replace(/\s*\/\s*/g, ' / ');
   if (ARCHIVE_MODULE_KEYS[norm]) return ARCHIVE_MODULE_KEYS[norm];
   const bare = norm.replace(/\s*\([^)]*\)\s*/g, ' ').trim();
   if (bare !== norm && ARCHIVE_MODULE_KEYS[bare]) return ARCHIVE_MODULE_KEYS[bare];
@@ -324,7 +346,7 @@ function deleteArchiveProject_(payload) {
 // Project ID, dan HANYA sel grid yang ditulis. Kolom lain (termasuk yang berumus) dan sel berumus di dalam grid tidak
 // disentuh. Sejak Code.gs v2.8 grid ini satu-satunya tempat teknologi project aktif (dulu tersimpan di tab Project
 // Specs sebagai kunci tech_*). Web membaca/menulis lewat:
-//   GET  tech            -> getProjectTech_(projectId)               -> { projectId, row, rev, modules: [...] }
+//   GET  tech            -> getProjectTech_(projectId)               -> { projectId, row, rev, modules: [...], schema: [kunci modul yang ada di sheet] }
 //   POST saveProjectTech -> saveProjectTech_({ projectId, modules, baseRev, user })   (hasil sama dengan GET)
 
 // Kunci modul yang dikenal web (nilai ARCHIVE_MODULE_KEYS). Modul dengan kunci otomatis "x_..." (kolom baru di sheet
@@ -369,7 +391,10 @@ function trackerTechFromRow_(grid, row, rowNumber, id) {
     projectId: id,
     row: rowNumber,
     rev: archiveRev_(row.slice(grid.start, grid.end)),
-    modules: archiveModulesFromRow_(grid.modules, row)
+    modules: archiveModulesFromRow_(grid.modules, row),
+    // Kunci modul yang kolomnya ada di sheet dan dikenal web: web hanya menampilkan modul ini, supaya modul yang
+    // kolomnya belum ditambahkan di sheet tidak bisa dicentang lalu ditolak saat menyimpan.
+    schema: grid.modules.filter(function (m) { return m.key && isKnownArchiveKey_(m.key); }).map(function (m) { return m.key; })
   };
 }
 

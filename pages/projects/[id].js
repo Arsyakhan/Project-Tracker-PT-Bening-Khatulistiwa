@@ -166,7 +166,7 @@ export default function ProjectDetailPage() {
       const res = await api.getTech(current.id);
       if (projectRef.current?.id !== current.id) return; // sudah pindah ke project lain
       const modules = gridModules(res.modules);
-      setTechState({ mode: 'grid', saved: modules, work: modules, edited: false, rev: res.rev });
+      setTechState({ mode: 'grid', saved: modules, work: modules, edited: false, rev: res.rev, schema: res.schema });
     } catch (err) {
       if (projectRef.current?.id !== current.id) return;
       // Backend belum v2.8 (Code.gs/Archive.gs baru belum ditempel): pakai cara lama supaya tab tetap berfungsi.
@@ -326,7 +326,7 @@ export default function ProjectDetailPage() {
         try {
           const res = await api.saveProjectTech({ projectId: project.id, modules: tech.work, baseRev: tech.rev });
           techSavedNow = gridModules(res.modules);
-          setTechState({ mode: 'grid', saved: techSavedNow, work: techSavedNow, edited: false, rev: res.rev });
+          setTechState({ mode: 'grid', saved: techSavedNow, work: techSavedNow, edited: false, rev: res.rev, schema: res.schema });
         } catch (err) {
           setError(`Teknologi belum tersimpan: ${err.message}`);
           showToast(`Teknologi gagal disimpan: ${err.message}`, 'error');
@@ -487,6 +487,8 @@ export default function ProjectDetailPage() {
   const techValue = gridTech
     ? (gridTech.edited ? gridTech.work : gridCurrentTech(project, gridTech.saved, specsValues || {}))
     : currentTech(project, specsValues || {});
+  // Modul yang bisa dicentang: yang kolomnya ada di sheet (backend v2.8 mengirim `schema`); tanpa itu semua modul web.
+  const pickerSchema = gridTech && Array.isArray(gridTech.schema) ? TECH_SCHEMA.filter((s) => gridTech.schema.includes(s.key)) : TECH_SCHEMA;
   const techSaved = gridTech ? (gridTech.edited || gridTech.saved.length > 0) : !!readTech(specsValues || {});
   // Tab Teknologi menunggu teknologi (dan spesifikasi, untuk isi awal dari data lama) selesai dimuat.
   const techTabLoading = (specsLoading && specsValues === null) || (techLoading && tech === null) || (tech === null && !techError);
@@ -812,7 +814,7 @@ export default function ProjectDetailPage() {
                     <TechFlow modules={techValue.map((m) => ({ ...m, label: (TECH_SCHEMA.find((x) => x.key === m.key) || {}).label }))} emptyText="Centang modul di bawah untuk menyusun alurnya." />
                   </Panel>
 
-                  <ModulePicker schema={TECH_SCHEMA} value={techValue} onChange={setTech} detailMax={gridTech ? GRID_DETAIL_MAX : TECH_DETAIL_MAX} disabled={!writable} specHelp />
+                  <ModulePicker schema={pickerSchema} value={techValue} onChange={setTech} detailMax={gridTech ? GRID_DETAIL_MAX : TECH_DETAIL_MAX} disabled={!writable} specHelp />
 
                   <Panel title="Opsi dokumen" hint="Hanya untuk dokumen Commissioning dan Hand Over. Tidak masuk alur teknologi.">
                     <div className="flex flex-wrap gap-2">

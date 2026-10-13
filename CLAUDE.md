@@ -48,7 +48,7 @@ helper dari `Code.gs`:
 | File | Isi |
 |---|---|
 | `apps-script/Code.gs` (v2.8) | `doGet`/`doPost`, token, cache 30 dtk, proyek (+ kolom `Tahun`), checklist, komentar, activity log, document log, specs, meetings, dan rute teknologi project aktif (`tech`, `saveProjectTech`; isinya di Archive.gs). Tanggal ditulis jam 00:00 menurut zona waktu **spreadsheet** (`sheetTimeZone_`, `dayString_`); sel berisi rumus tidak ditimpa (`isFormulaCell_`) |
-| `apps-script/Archive.gs` | tab `[ARSIP] FINISHED PROJECT` dibaca & ditulis dua arah (`getArchive_`, `saveArchiveProject_`, `deleteArchiveProject_`); dibaca **per posisi kolom**: header 2 baris, kolom A-C = No/Tahun/Nama, lalu 21 grup modul (17 × Ada/Kapasitas/Satuan/Detail + 4 pompa dosing hanya Ada). Konflik edit dideteksi lewat `rev` per baris (sidik jari isi baris), karena sheet tidak punya kolom Version. Baris baru ditaruh tepat di bawah project terakhir (`archiveNextRow_`, bukan `getLastRow()`). Baris lama tidak diubah kecuali diedit. **Sejak v2.8** file ini juga membaca dan menulis **grid teknologi project aktif** di tab `Project Tracker` kolom AA-CT dengan pembaca modul yang sama (`getProjectTech_`, `saveProjectTech_`, `trackerGridFromHeaders_`): lokasi grid dicari lewat judul (dari kolom `Ada` pertama sampai kolom `Project ID`), konflik lewat `rev` baris, hanya sel yang berubah yang ditulis, sel berumus dan modul yang belum dikenal web dibiarkan, dan perubahan dicatat di Activity Log sebagai `Update Teknologi` |
+| `apps-script/Archive.gs` | tab `[ARSIP] FINISHED PROJECT` dibaca & ditulis dua arah (`getArchive_`, `saveArchiveProject_`, `deleteArchiveProject_`); dibaca **per posisi kolom**: header 2 baris, kolom A-C = No/Tahun/Nama, lalu 40 grup modul (33 × Ada/Kapasitas/Satuan/Detail + 7 pompa dosing hanya Ada; 139 kolom, D-EL). Konflik edit dideteksi lewat `rev` per baris (sidik jari isi baris), karena sheet tidak punya kolom Version. Baris baru ditaruh tepat di bawah project terakhir (`archiveNextRow_`, bukan `getLastRow()`). Baris lama tidak diubah kecuali diedit. **Sejak v2.8** file ini juga membaca dan menulis **grid teknologi project aktif** di tab `Project Tracker` kolom AA-FI (sejak 13 Okt 2026; dulu AA-CT) dengan pembaca modul yang sama (`getProjectTech_`, `saveProjectTech_`, `trackerGridFromHeaders_`): lokasi grid dicari lewat judul (dari kolom `Ada` pertama sampai kolom `Project ID`), konflik lewat `rev` baris, hanya sel yang berubah yang ditulis, sel berumus dan modul yang belum dikenal web dibiarkan, dan perubahan dicatat di Activity Log sebagai `Update Teknologi` |
 | `apps-script/Procurement.gs` | tab Procurement (`getProcurement_`, `saveProcurementItem_`, `deleteProcurementItem_`); `doGet`/`doPost` di Code.gs yang memanggilnya |
 | `apps-script/WeeklyDigest.gs` | email ringkasan mingguan, trigger Senin ~07.00 |
 | `apps-script/Backup.gs` | salinan spreadsheet mingguan, trigger Senin ~02.00, simpan 8 terakhir |
@@ -95,6 +95,19 @@ berbeda dan semuanya lolos; tidak ada kode tingkat-atas yang saling merujuk anta
 > `tech_*` di `Project Specs`), jadi urutan deploy Vercel dan Apps Script tidak masalah. Jalur tulis v2.8 baru diuji di
 > tiruan Node (data sheet asli), belum di sheet asli; lihat TL-0013 dan TL-0018.
 >
+> **Modul teknologi dilengkapi, 21 menjadi 40 (13 Okt 2026):** grid teknologi di tab `Project Tracker` dan tab
+> `[ARSIP] FINISHED PROJECT` **sudah diubah di sheet asli** (setelah dilatih dua kali di salinan uji): urutan end-to-end
+> air baku sampai distribusi, 17 modul baru ditambahkan, dan modul pembersihan milik pemilik (`CLEANING/FLUSHING PUMP`,
+> `T-01 CLEANING/FLUSHING TANK`) menjadi modul resmi. Tata letak sekarang: tracker grid **AA-FI** (139 kolom) dan
+> `Project ID` di **FJ**; arsip modul **D-EL**. Di arsip, kolom flushing pump dipindah ke depan RO (sebelum RO) dan
+> kolom flushing tank baru ditambah; semua 63 baris arsip dan seluruh isi tracker bergeser mengikuti judulnya tanpa
+> data hilang (dibandingkan dengan cadangan), rumus Checklist dan `Stage Progress` utuh, aturan warna per modul dipasang
+> ulang (80 aturan per tab). Salinan sebelum perubahan: dua file Drive "BACKUP ... - Project Tracker_PT Bening
+> Khatulistiwa" (jangan dihapus). Kode baru (`Archive.gs` dengan 40 kunci modul) baru berlaku setelah pemilik menempel
+> dan men-deploy ulang; sebelum itu Archive.gs lama masih membaca modul yang dikenalnya lewat judul, dan modul baru
+> terbaca sebagai `x_<slug>` (hanya terbaca, tidak ditulis). Sisi web hanya menampilkan modul yang kolomnya ada di
+> sheet (`schema` dari GET `tech`), jadi urutan deploy tidak berbahaya.
+>
 > **Masih tersisa:**
 >
 > 1. Keputusan dan tindakan pemilik (izin berbagi sheet, zona waktu, data janggal, rahasia generator Notulensi) ada di
@@ -117,14 +130,20 @@ dibaca web). Tab `Dashboard` lama (ringkasan buatan tangan, kembar dengan halama
   Finish Date, Next Action, Next Action Owner, Next Action Due, Blocker, Blocked Since, Remarks, Lokasi Plant,
   Alamat, Kontak Owner, Sistem Terpasang (**tidak lagi diisi dari web**, lihat bagian Teknologi: hanya menyimpan opsi dokumen). `Blocker` terisi = project terhambat; `Blocked Since` diisi/dikosongkan
   otomatis oleh `updateProject_`.
-- **Grid teknologi AA-CT** (72 kolom, 21 modul, urutan air baku → produk, **sama persis dengan tab arsip**): tiap
-  modul punya `Ada` (kotak centang), `Kapasitas`, `Satuan` (MPH/LPH/LITER/MPD/LPD), `Detail Spesifikasi`; empat
-  pompa dosing (NaOCl, PAC, Soda Ash, Polimer) hanya `Ada`. Kolom **CU = `Project ID`** (`prj_xxxx`, jangan diedit
-  manual). **Sejak Code.gs v2.8 grid ini adalah satu-satunya sumber teknologi project aktif**: bisa diisi dari tab
-  Teknologi di web (GET `tech`, POST `saveProjectTech`) maupun langsung di sheet, dan keduanya saling melihat.
-  Lokasi grid dicari lewat judul (dari kolom `Ada` pertama sampai kolom `Project ID`), jadi menambah modul di tengah
-  tidak merusak apa pun asalkan judulnya dikenal (`ARCHIVE_MODULE_KEYS`). Kunci `tech_*` di tab `Project Specs` tidak
-  lagi ditulis; hanya dibaca sebagai cadangan kalau grid project masih kosong atau backend belum v2.8.
+- **Grid teknologi AA-FI** (139 kolom, **40 modul**, urutan end-to-end dari air baku → produk → distribusi, **sama
+  persis dengan tab arsip**): 33 modul punya `Ada` (kotak centang), `Kapasitas`, `Satuan` (MPH/LPH/LITER/MPD/LPD),
+  `Detail Spesifikasi`; tujuh pompa dosing (NaOCl, PAC, Soda Ash, Polimer, SMBS, Antiscalant, Asam/NaOH pH) hanya
+  `Ada`. Kolom **FJ = `Project ID`** (`prj_xxxx`, jangan diedit manual). Urutan modul: Strainer, Feed Pump, Raw Tank,
+  Aerator, dosing NaOCl/PAC/Soda Ash/Polimer, Flokulator, Clarifier, Filter Pump, MMF, Birm, Greensand, Chlorination,
+  ACF, Softener, Soft Water Tank, UF Feed Pump, UF, dosing SMBS/Antiscalant/pH, Cartridge, Booster, Cleaning/Flushing
+  Pump, RO, ERD, RO Pass 2, Cleaning/Flushing Tank, Degasifier, Ion Exchange, EDI, Mixed Bed, Remineralisasi, Product
+  Tank, UV, Ozon, Filter 0,2 µm, Pompa Distribusi (kunci resminya di `ARCHIVE_MODULE_KEYS`). **Sejak Code.gs v2.8 grid
+  ini adalah satu-satunya sumber teknologi project aktif**: bisa diisi dari tab Teknologi di web (GET `tech`, POST
+  `saveProjectTech`) maupun langsung di sheet, dan keduanya saling melihat. Lokasi grid dicari lewat judul (dari kolom
+  `Ada` pertama sampai kolom `Project ID`), jadi menambah modul di tengah tidak merusak apa pun asalkan judulnya dikenal
+  (`ARCHIVE_MODULE_KEYS`); judul yang tidak dikenal terbaca sebagai `x_<slug>` (hanya dibaca, tidak ditulis). Kunci
+  `tech_*` di tab `Project Specs` tidak lagi ditulis; hanya dibaca sebagai cadangan kalau grid project masih kosong
+  atau backend belum v2.8.
 - **Rumus**: `Stage Progress (%)` = VLOOKUP stage ke `Reference`; `Engineering Doc Progress (%)` = `Progress (%)` dari
   tab Checklist lewat Project ID. Code.gs tidak menimpa sel berisi rumus; project yang ditambah lewat web tetap
   berisi nilai biasa.
@@ -162,6 +181,14 @@ ubah format angka `Meetings!B:D` dan `Procurement!H:J` (disimpan sebagai teks).
   mundur sehari di sheet (di web benar). v2.7 menulis tanggal jam 00:00 menurut zona spreadsheet dan tetap membaca
   nilai lama yang berjam-jam dengan benar (`dayString_`). Menyamakan zona spreadsheet ke `Asia/Jakarta` dianjurkan,
   tetapi putusan pemilik (mengubah tampilan jam di tab Activity Log).
+- **Menambah/memindah modul di grid (13 Okt 2026, semuanya pernah jadi masalah nyata saat latihan di salinan):**
+  `copyPaste` dengan `PASTE_FORMAT` ikut menyalin nilai (kosongkan lagi nilainya) dan menggabung aturan warna sumber;
+  `insertDimension` dengan `inheritFromBefore` memperluas aturan warna ke kolom sisipan, jadi setelah struktur jadi
+  **hapus semua aturan warna di zona grid lalu pasang ulang 80 aturan eksplisit** (hijau `=$L3=TRUE` pada kolom `Ada`,
+  abu `=AND($C3<>"";$L3<>TRUE)` pada seluruh blok; baris 3-300 tracker / 3-500 arsip; pemisah `;` karena locale
+  `id_ID`). Menyisip di tepi kanan arsip tidak melebarkan filter dasar: lebarkan manual. Hasil `get_spreadsheet` besar
+  tersimpan otomatis ke berkas; yang sedang-sedang tampil langsung dan menghabiskan konteks, jadi pilih bidang yang
+  jelas besar atau persempit rentangnya. Selalu buat cadangan segar sesaat sebelum mengubah struktur.
 - Ekspor xlsx dari Drive membuang rumus berisi rentang terbuka (`$L$2:$L`): jangan dipakai untuk memeriksa rumus; baca
   lewat Sheets API (`userEnteredValue`).
 
@@ -188,8 +215,8 @@ Cara kerja: `makeCopy` template, lalu `replaceText` untuk `{{PLACEHOLDER}}`. Blo
 | Status rapat/agenda/kehadiran | `MEETING_STATUSES`, `ITEM_STATUSES`, `ATTENDANCE_STATUSES` | `lib/meetings.js` |
 | Field dokumen (`data.xxx`) | `docgen/*.gs` | `lib/docgen/schema.js` + `pages/documents/*/new.js` |
 | Placeholder `{{...}}` | template Google Docs | `docgen/*.gs` |
-| Kunci modul arsip & urutan alur teknologi (juga urutan grid AA-CT di Project Tracker) | `ARCHIVE_MODULE_KEYS` di `Archive.gs` + judul modul di baris 1 tab arsip/tracker | `lib/techflow.js` (`FLOW_PHASES`, `FLOW_STEPS`, `ADA_ONLY`) |
-| Teknologi project aktif (grid AA-CT di Project Tracker) | `getProjectTech_`, `saveProjectTech_`, `trackerGridFromHeaders_` di `Archive.gs`; rute `tech` dan `saveProjectTech` di `Code.gs` | `gridModules`, `sameTech`, `gridCurrentTech` di `lib/techflow.js`; `projectSystems`, `deriveSystemKeys` di `lib/systems.js`; `getProjects_` membawa `tech` ringkas per project; `getTech` dan `saveProjectTech` di `lib/api.js`; `pages/projects/[id].js` (tab Teknologi) dan `pages/arsip/new.js` |
+| Kunci modul arsip & urutan alur teknologi (juga urutan grid AA-FI di Project Tracker) | `ARCHIVE_MODULE_KEYS` di `Archive.gs` + judul modul di baris 1 tab arsip/tracker | `lib/techflow.js` (`FLOW_PHASES`, `FLOW_STEPS`, `ADA_ONLY`) |
+| Teknologi project aktif (grid AA-FI di Project Tracker) | `getProjectTech_`, `saveProjectTech_`, `trackerGridFromHeaders_` di `Archive.gs`; rute `tech` dan `saveProjectTech` di `Code.gs` | `gridModules`, `sameTech`, `gridCurrentTech` di `lib/techflow.js` (GET `tech` membawa `schema` = modul yang ada di sheet, dipakai `pickerSchema` di halaman project); `projectSystems`, `deriveSystemKeys`, `MODULE_TO_SYSTEM` di `lib/systems.js`; `getProjects_` membawa `tech` ringkas per project; `getTech` dan `saveProjectTech` di `lib/api.js`; `pages/projects/[id].js` (tab Teknologi) dan `pages/arsip/new.js` |
 | Nama kolom Project Tracker (header baris 1) | `COL_*`, `TEXT_FIELDS`, `DATE_FIELDS` di `Code.gs` | field hasil `getProjects_`; `EDITABLE_FIELDS` di `pages/projects/[id].js`; `COLUMNS` di `lib/exportCsv.js` |
 | Bobot status dokumen checklist | `CHECKLIST_WEIGHTS` di `Code.gs` | rumus `Progress (%)` di tab Checklist (ada di sheet, bukan di repo) |
 | Allowlist aksi | `doGet`/`doPost` | `pages/api/gas.js` (`GET_ACTIONS`, `POST_ACTIONS`) |
@@ -199,6 +226,12 @@ Status terakhir diperiksa (9 Okt 2026): `STAGE_WEIGHTS` dan `SYSTEM_KEYS` cocok;
 cocok 100% dengan `schema.js`; Commissioning cocok (`checklist_items` dibuat di sisi halaman).
 Diperiksa lagi 12 Okt 2026: 21 modul teknologi cocok antara `Archive.gs`, `lib/techflow.js`, dan tab arsip/tracker
 baru di salinan uji (termasuk `dosing_polimer`; `product_tank` kini punya kapasitas, satuan, dan detail).
+Diperiksa lagi 13 Okt 2026: 40 modul cocok antara `Archive.gs`, `lib/techflow.js` (42 langkah alur termasuk Chemical
+Dosing dan Intermediate Tank yang hanya opsi dokumen), dan judul kolom sheet asli. Modul yang tidak punya seksi di
+template dokumen (strainer, aerator, flokulator, greensand, ERD, degasifier, ion exchange, EDI, remineralisasi, UV,
+ozon, filter 0,2 µm, pompa distribusi, cleaning/flushing pump & tank) **tidak** dipetakan ke kunci sistem dokumen
+(`MODULE_TO_SYSTEM`); datanya tetap tercatat di Teknologi. Pompa dosing SMBS/antiscalant/pH dipetakan ke `dosing`,
+dan RO Pass 2 ke `ro`.
 
 12 stage (urut): PO 5 → SOS 10 → BOM, PID, EWD, GAD 25 → Review & Approval 30 → Procurement of
 Material 45 → Collecting Material / Inspection 55 → Fabrication 70 → Delivery 90 → Installation 95 →
@@ -252,7 +285,7 @@ tampilan dengan data hanya bisa diperiksa di produksi, atau lewat salinan sheet 
   (modul urut dari air baku sampai produk; project aktif dibaca dari grid teknologi, dan kalau grid project kosong
   dipetakan dari data lama: kolom lama Sistem Terpasang + spesifikasi).
   `SimilarArchive` menyarankan project arsip yang mirip di tab Teknologi.
-- **Teknologi project aktif = model yang sama dengan arsip, disimpan di grid AA-CT tab Project Tracker** (tab
+- **Teknologi project aktif = model yang sama dengan arsip, disimpan di grid AA-FI tab Project Tracker** (tab
   "Teknologi" di detail project, komponen `ModulePicker` dipakai bersama form arsip). Halaman memuat lewat
   `api.getTech` dan menyimpan lewat `api.saveProjectTech` bersama tombol "Simpan perubahan" (teknologi disimpan lebih
   dulu; `baseRev` dari pembacaan terakhir mendeteksi baris yang diubah orang lain atau di sheet). Mode lama sebagai
