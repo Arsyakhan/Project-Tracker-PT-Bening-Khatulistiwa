@@ -204,6 +204,19 @@ Cara kerja: `makeCopy` template, lalu `replaceText` untuk `{{PLACEHOLDER}}`. Blo
 `{{BEGIN_SECTION_X}} … {{END_SECTION_X}}` dihapus kalau flag `has_*` salah. Isi kosong jadi `.......`
 (HO) atau `........` (Commissioning). Baris `{{*_ADDITIONAL_ITEMS}}` yang kosong dihapus seluruh barisnya.
 
+**Hand Over punya dua cara menyusun daftar "Items Handed Over" (sejak 13 Okt 2026, KEP-0010).**
+`handover.gs` memeriksa payload: kalau memuat `equipment` (array butir `{ key, title, head, rows }`, dikirim form Hand Over
+terbaru) daftar dibangun **dinamis** (`generateDynamic_`): seluruh blok seksi template (dari `{{BEGIN_SECTION_RAW_WATER}}`
+sampai `{{END_SECTION_PANEL}}`) dibuang dan diganti satu butir bernomor + baris bullet untuk tiap modul yang dicentang di
+Teknologi, gaya nomor/bullet disalin dari baris contoh di template itu sendiri (`{{CLARIFIER_CAP}}` = judul bernomor,
+`{{RW_TANK_MAT}}` = bullet; **jangan menghapus kedua baris itu dari template**). Kalau cara dinamis gagal (contoh tidak
+ketemu, penanda hilang, galat Docs), salinan setengah jadi dibuang (`setTrashed`) dan dokumen dibuat ulang dengan **cara
+lama** (`generateLegacy_`, isi tidak berubah dari versi sebelumnya); jawabannya memuat `generator: 'dynamic' | 'legacy'`
+(+ `itemCount`, `fallbackReason`) yang diteruskan `pages/api/docgen.js` ke form, yang menampilkan peringatan kalau
+bukan `dynamic`. Payload tanpa `equipment` (form lama) tetap lewat cara lama. Teks butir disusun di frontend
+(`lib/docgen/handoverItems.js`), script hanya menuliskannya, jadi aturan teks bisa diuji di Node. Perilaku Google Docs
+sungguhan (nomor berlanjut, gaya bullet) tidak bisa diuji dari sandbox; yang teruji adalah tiruan DocumentApp di Node.
+
 ## Kontrak yang harus sinkron (sumber bug paling umum)
 
 | Hal | Di sisi backend | Di sisi frontend |
@@ -214,7 +227,8 @@ Cara kerja: `makeCopy` template, lalu `replaceText` untuk `{{PLACEHOLDER}}`. Blo
 | Status pengadaan | `PROC_STATUSES` di `Procurement.gs` | `lib/procurement.js` |
 | Status rapat/agenda/kehadiran | `MEETING_STATUSES`, `ITEM_STATUSES`, `ATTENDANCE_STATUSES` | `lib/meetings.js` |
 | Field dokumen (`data.xxx`) | `docgen/*.gs` | `lib/docgen/schema.js` + `pages/documents/*/new.js` |
-| Kolom Spesifikasi Peralatan modul tanpa seksi di template (id `x_*`, pembaca Detail, kerangka, teks Item Tambahan) | `*_additional_items` di `docgen/handover.gs` (tempat baris dicetak) | `lib/docgen/specExtra.js` (`DEFS`, `HOSTS`), `lib/docgen/specModules.js` (seksi tab Spesifikasi: 1 modul = 1 seksi; `OWN`, `SHARED_NOTES`, `SYSTEM_MODULES`), `lib/specParser.js` (`readExtra`), `lib/docgen/specs.js`, `pages/documents/handover/new.js` |
+| Kolom Spesifikasi Peralatan modul tanpa seksi di template (id `x_*`, pembaca Detail, kerangka, teks Item Tambahan) | `*_additional_items` di `docgen/handover.gs` (hanya cara lama: baris dicetak sebagai Item Tambahan) | `lib/docgen/specExtra.js` (`DEFS`, `HOSTS`), `lib/docgen/specModules.js` (seksi tab Spesifikasi: 1 modul = 1 seksi; `OWN`, `SHARED_NOTES`, `SYSTEM_MODULES`), `lib/specParser.js` (`readExtra`), `lib/docgen/specs.js`, `pages/documents/handover/new.js` |
+| Daftar peralatan dokumen Hand Over (`equipment`: 1 seksi Spesifikasi = 1 butir) | `generateDynamic_` di `docgen/handover.gs` (menuliskan `head` + `rows` apa adanya; baris contoh `{{CLARIFIER_CAP}}` dan `{{RW_TANK_MAT}}` di template) | `lib/docgen/handoverItems.js` (`DOC_TITLE`, `buildEquipmentItem(s)`: aturan teks bahasa Inggris), `lib/docgen/handoverPayload.js` (`buildHandoverPayload`, `DOC_OPTIONS`; juga membangun bentuk lama `has_*` untuk script lama), `components/docgen/EquipmentSections.jsx`, `pages/documents/handover/new.js`; `generator` diteruskan `pages/api/docgen.js` |
 | Placeholder `{{...}}` | template Google Docs | `docgen/*.gs` |
 | Kunci modul arsip & urutan alur teknologi (juga urutan grid AA-FI di Project Tracker) | `ARCHIVE_MODULE_KEYS` di `Archive.gs` + judul modul di baris 1 tab arsip/tracker | `lib/techflow.js` (`FLOW_PHASES`, `FLOW_STEPS`, `ADA_ONLY`) |
 | Selisih Spesifikasi vs Teknologi dan tombol "+ Tambah peralatan" | tidak ada (frontend saja) | `specDiffs`, `fieldKey`, `sameValue` di `lib/docgen/specs.js`; `groupSchemaByPhase` di `lib/techflow.js`; `components/AddEquipment.jsx`, `components/SpecsEditor.jsx`; `addTechModule`, `resetSpecDiff` di `pages/projects/[id].js` |
@@ -352,18 +366,36 @@ tampilan dengan data hanya bisa diperiksa di produksi, atau lewat salinan sheet 
   (diuji round-trip). **Menambah/mengubah kolom seksi tambahan = ubah `DEFS` di `specExtra.js` saja** (template, contoh,
   pembaca, daftar id simpan `SPEC_FIELD_IDS`, dan teks dokumen ikut). Judul blok utama jangan memuat kata penanda
   sub-peralatan (mis. "MIXER" di Flokulator, karena sub "Mixer / Agitator" mengenalinya lewat kata itu).
-  **Template Google Docs Hand Over tidak berubah** (isi Google Doc tidak bisa diedit dari sini), jadi di dokumen seksi
-  tambahan dicetak sebagai baris **Item Tambahan** di seksi induk: `planExtras` memilih seksi induk pertama (`hosts`,
-  lalu `HOST_TAIL`) yang aktif di form, atau menyalakannya kalau tak ada yang aktif; `applyExtraPlan` menambahkan baris
-  ("Nama (Type X, Capacity 5 m3/hr, ...)") hanya ke **payload** saat generate (form dan data tersimpan tidak
-  berubah, jadi tidak ada teks yang membeku di Project Specs). Pratinjau baris itu tampil di form Hand Over
-  ("Peralatan lain dari Teknologi"). Kalau suatu saat template Docs diberi seksi baru, pindahkan modul itu dari
-  seksi tambahan ke `HANDOVER_SECTIONS` + `handover.gs` (id kolomnya tinggal disalin).
+  **Template Google Docs Hand Over tidak diubah isinya** (isi Google Doc tidak bisa diedit dari sini: konektor Drive hanya
+  mengubah nama dan lokasi). Karena itu daftar peralatan di dokumen tidak lagi diisi lewat `{{PLACEHOLDER}}` per seksi,
+  tetapi dibangun `handover.gs` dari kode (lihat "Dokumen Hand Over mengikuti Teknologi" di bawah). Jalur lama
+  (`planExtras`/`applyExtraPlan` di `specExtra.js`: seksi tambahan dicetak sebagai baris **Item Tambahan** di seksi induk)
+  tetap dikirim di payload untuk script lama yang belum diperbarui, tetapi tidak lagi tampil di form.
   Form Hand Over membaca Teknologi dari grid (GET `tech`); kalau backend belum v2.8 atau grid kosong dipakai Teknologi
   di Spesifikasi (`readTech`, kunci `tech_*`), sama seperti tab Spesifikasi di detail project. Batas backend: Code.gs
   `SPECS_MAX_KEYS = 400` kunci per project (hanya koreksi manual yang tersimpan, jadi aman; mode lama menambah
   4 kunci `tech_*` per modul). Soft Water Tank kini seksi sendiri (dulu kapasitasnya salah dipetakan ke Brine Tank
   softener; Brine Tank hanya dibaca dari Detail softener).
+- **Dokumen Hand Over mengikuti Teknologi (13 Okt 2026, KEP-0010): Teknologi (centang) → Spesifikasi (isi) → Dokumen.**
+  Daftar "Items Handed Over" di dokumen sama persis dengan modul yang dicentang di Teknologi, satu modul = satu butir,
+  urut alur pengolahan (40 modul dicentang = 40 butir), dengan spesifikasi dari tab Spesifikasi Peralatan. Bagian
+  "Modul Equipment" (centang seksi template) di form `/documents/handover/new` diganti:
+  - **Project terkait**: seksi = `moduleSpecContext` + `specSectionsFor` (sama dengan tab Spesifikasi), diedit di
+    `EquipmentSections` (kotak "Cetak" per seksi untuk tidak mencetak satu butir; kolom `f1_type`/`f2_type` disembunyikan,
+    nama filter diambil dari modulnya). "+ Tambah peralatan" dan "Opsi dokumen" (tangki antara, dosing/CIP terpisah, panel)
+    hanya berlaku untuk dokumen itu; **Teknologi project tidak berubah**. Penyesuaian ini ikut draft localStorage
+    (`{ __v: 2, form, localMods, localOpts, excluded }`; draft lama berupa isian form saja tetap terbaca).
+  - **Tanpa project**: daftar kosong, daftar pilihan peralatan terbuka sendiri.
+  - **Pratinjau isi dokumen** (`ho-preview`) menampilkan butir persis seperti yang dikirim; generate ditolak kalau tidak ada butir.
+  - **Aturan teks** (`handoverItems.js`): kolom teks/ukuran di depan masuk judul butir ("Clarifier System : Capacity 10 m3/hr,
+    Material ..."), kolom sebaris (pompa, membran, tangki) jadi baris bullet, Item Tambahan satu baris per barisnya; kolom
+    kosong dicetak `.......` supaya bisa dilengkapi di Google Docs; blower/mixer pendamping dilewati kalau kosong; satu pompa
+    saja jadi satu kalimat. Nama butir ada di `DOC_TITLE` (diuji: ke-40 modul punya nama, tanpa kata Indonesia).
+  - **Kompatibilitas urutan deploy**: payload tetap memuat bentuk lama (`has_*` diturunkan dari modul yang dicetak, isian,
+    Item Tambahan) di samping `equipment`, jadi script lama yang masih live tetap membuat dokumen susunan lama, dan form
+    memberi tahu ("script Generator Hand Over belum diperbarui") karena jawabannya tanpa `generator`. Kalau mengubah
+    kolom/butir, ubah `handoverItems.js`; kalau mengubah template Docs, jaga dua baris contoh di atas.
+
 - **Arah data Teknologi ↔ Spesifikasi (13 Okt 2026): satu arah, Teknologi → Spesifikasi.** Isian di Spesifikasi hanya
   tersimpan sebagai koreksi manual di `Project Specs` dan **tidak** menulis ke Teknologi (keputusan KEP-0008: grid
   Teknologi hanya punya Ada/Kapasitas/Satuan/Detail, sedangkan Spesifikasi punya ratusan kolom rinci tanpa tempat di grid;
@@ -465,3 +497,9 @@ lewat konektor Google Drive dan Google Sheets (bukan lewat API Bening Hub; front
 - Simpan teknologi dari web ke sheet asli belum pernah dicoba (Code.gs v2.8 baru diuji di tiruan Node dengan data sheet
   asli, lihat "Teknologi project aktif"). Setelah pemilik men-deploy v2.8, cek satu project: ubah kapasitas di tab
   Teknologi lalu lihat barisnya di Project Tracker dan baris `Update Teknologi` di Activity Log (TL-0013, TL-0018).
+- Dokumen Hand Over dinamis (`docgen/handover.gs` baru, 13 Okt 2026) baru diuji di tiruan DocumentApp di Node; perilaku
+  Google Docs sungguhan belum pernah dilihat. Setelah pemilik menempel dan men-deploy ulang (Deploy > Manage deployments >
+  ikon pensil > Version: New version > Deploy, URL tetap sama), buat satu dokumen Hand Over dari project yang teknologinya
+  terisi lalu periksa: jumlah dan urutan butir, penomoran berlanjut (1, 2, 3, ...), bullet rinci menjorok di bawah
+  judulnya, dan BUYER/SELLER tetap di bawah (TL-0025). Kalau form menampilkan peringatan "susunan template lama", berarti
+  script belum diperbarui atau cara dinamis jatuh ke cadangan (alasannya ikut ditampilkan).
