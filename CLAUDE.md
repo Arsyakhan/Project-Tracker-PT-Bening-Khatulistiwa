@@ -236,6 +236,8 @@ sungguhan (nomor berlanjut, gaya bullet) tidak bisa diuji dari sandbox; yang ter
 | Nama kolom Project Tracker (header baris 1) | `COL_*`, `TEXT_FIELDS`, `DATE_FIELDS` di `Code.gs` | field hasil `getProjects_`; `EDITABLE_FIELDS` di `pages/projects/[id].js`; `COLUMNS` di `lib/exportCsv.js` |
 | Bobot status dokumen checklist | `CHECKLIST_WEIGHTS` di `Code.gs` | rumus `Progress (%)` di tab Checklist (ada di sheet, bukan di repo) |
 | Allowlist aksi | `doGet`/`doPost` | `pages/api/gas.js` (`GET_ACTIONS`, `POST_ACTIONS`) |
+| Aturan otomatis Status / Prioritas / Stage di detail project (nilai tetap disimpan apa adanya di Sheet) | `STATUSES`, `PRIORITIES`, `STAGE_WEIGHTS`, `CHECKLIST_ITEMS` di `Code.gs` (tidak ada logika aturan di backend) | `lib/projectRules.js` (`FINAL_STAGE`, `DRAWING_ITEMS` = 4 nama item gambar persis seperti `CHECKLIST_ITEMS`, ambang hari dan teks `RULE_SUMMARY`), memakai `STAGES`/`STAGE_WEIGHTS` di `lib/stages.js`; dipakai `pages/projects/[id].js` dan `pages/board.js` |
+| Pilihan PIC project (dropdown) | tidak ada (kolom `PIC` teks bebas di Sheet) | `lib/pics.js` (`picOptions`, `roleDivision`), `components/PicSelect.jsx`; dipakai `pages/projects/[id].js` dan `pages/projects/new.js` |
 | Normalisasi nomor PO (PO kembar) | `normalizePO_` di `Code.gs` | `normalizePo` di `lib/projectHelpers.js` (hanya untuk peringatan di form Project Baru; yang menolak tetap backend) |
 
 Status terakhir diperiksa (9 Okt 2026): `STAGE_WEIGHTS` dan `SYSTEM_KEYS` cocok; nama field HO
@@ -447,6 +449,28 @@ tampilan dengan data hanya bisa diperiksa di produksi, atau lewat salinan sheet 
   `components/NextActionCard.jsx` (kartu di bawah judul detail; nilainya ikut tombol "Simpan perubahan").
   `components/PicInput.jsx` = isian PIC dengan saran nama/divisi; `showDivision` hanya dipasang pada PIC
   langkah berikutnya, karena halaman Hari Ini menyaring per divisi dari teks itu (`divisionFromPic`).
+- **PIC dropdown dan aturan otomatis Status / Prioritas / Stage** (14 Okt 2026, KEP-0013; frontend saja, tanpa `.gs`):
+  kartu "Info umum" di detail project memakai `components/PicSelect.jsx` (pilihan dari `lib/pics.js`: tulisan PIC yang sudah
+  dipakai di project lebih dulu, lalu divisi baku, lalu nama peserta tetap, plus "Lainnya (ketik sendiri)" dan nilai lama yang
+  tidak ada di daftar tetap tampil). Isi sheet memakai kosakata PM ("Engineer", "Technician"); itu dipertahankan dan **tidak
+  ditulis ulang** supaya filter PIC di Semua Project tidak terbelah. Aturan ada di **`lib/projectRules.js`** (fungsi murni,
+  diuji dengan data sheet asli): **Stage** adalah pemicu utama. Status: stage `Hand Over and Finished` = `Completed`; Hambatan
+  (kolom `Blocker`) terisi = `On Hold`; selain itu `In Progress` (`Not Started` hanya manual, karena project baru memang
+  mulai `In Progress` di tahap PO). Prioritas: selesai = `Low`; ada hambatan = `High`; selain itu menurut sisa waktu ke tenggat
+  (Tanggal kirim; sesudah terkirim Target selesai): terlewat atau ≤14 hari = `High`, ≤45 hari = `Medium`, lebih jauh =
+  `Low`; tanpa tanggal = `Medium` (standar, dengan keterangan "isi tanggalnya"). **Status dan Prioritas "mengikuti aturan"
+  kalau isinya sama dengan hasil aturan** (diturunkan saat halaman dimuat, tidak disimpan sebagai penanda): kotak "Otomatis"
+  per kolom tercentang dan nilainya ikut berubah; kalau PM mengubahnya sendiri kotak mati dan nilai manual **tidak pernah
+  ditimpa diam-diam**, hanya muncul "Aturan menyarankan ... / Pakai saran". Status `Completed` manual memindahkan stage ke
+  `Hand Over and Finished`; membuka lagi project selesai (stage akhir diganti) memundurkan stage ke `Preparation Manual Book`.
+  Checklist: BOM, P&ID, EWD, dan GAD sama-sama `Completed` = stage minimal `Review & Approval` (maju otomatis **hanya setelah
+  simpan checklist berhasil**, tidak pernah mundur, dan kalau PM menurunkan stage sendiri hanya muncul saran dengan tombol
+  "Pindahkan"). Papan Kanban memakai `stageChangePatch`: memindah kartu ikut menyesuaikan status/prioritas yang mengikuti
+  aturan (yang manual tidak disentuh) dan toast menyebut yang ikut berubah. **Sengaja tidak dibuat**: aturan stage dari
+  Commissioning Report / Handover Report `Completed` (di data asli 15 dari 17 project aktif sudah berisi itu padahal
+  stage-nya masih jauh, jadi bukan bukti stage) dan stage otomatis dari Pengadaan. Batasan data: 12 dari 17 project aktif
+  belum punya tenggat (Target selesai kosong di semua project), jadi prioritasnya `Medium` standar sampai tanggalnya diisi.
+  Kalau mengubah aturan: ubah `projectRules.js` (satu tempat) dan `RULE_SUMMARY` (teks "Lihat aturan otomatis" di kartu).
 - **Terlambat / segera** dihitung di satu tempat: `buildActionItems` + `severityCounts` di `lib/today.js`
   (aturan project-nya `isOverdue`/`isDueSoon` di `lib/projectHelpers.js`; ≤14 hari untuk tenggat kirim project,
   ≤7 hari untuk langkah berikutnya, pengadaan, dan rapat). Halaman Hari Ini dan banner `TodayBanner` di

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { api } from '../lib/api';
 import { STAGE_WEIGHTS } from '../lib/stages';
+import { stageChangePatch } from '../lib/projectRules';
 import useProjects from '../lib/useProjects';
 import RefreshStatus from '../components/RefreshStatus';
 import KanbanBoard from '../components/KanbanBoard';
@@ -34,26 +35,32 @@ export default function BoardPage() {
 
     const oldStage = project.currentStage;
     const oldProgress = project.stageProgress;
+    const oldStatus = project.status;
+    const oldPriority = project.priority;
     const weight = STAGE_WEIGHTS[newStage];
+    // Status dan Prioritas yang sedang mengikuti aturan ikut menyesuaikan stage baru (lib/projectRules.js);
+    // yang diatur manual dibiarkan.
+    const patch = stageChangePatch(project, newStage);
 
     // Optimistic update: kartu langsung pindah, lalu disimpan di belakang layar.
     setProjects((list) =>
       list.map((p) =>
         p.id === project.id
-          ? { ...p, currentStage: newStage, stageProgress: weight !== undefined ? weight : p.stageProgress }
+          ? { ...p, ...patch, stageProgress: weight !== undefined ? weight : p.stageProgress }
           : p
       )
     );
     setSavingId(project.id);
 
     try {
-      await api.updateProject({ projectId: project.id, currentStage: newStage });
-      showToast(`"${project.projectName}" dipindah ke ${newStage}`);
+      await api.updateProject({ projectId: project.id, ...patch });
+      const ikut = [patch.status && `Status ${patch.status}`, patch.priority && `Prioritas ${patch.priority}`].filter(Boolean);
+      showToast(`"${project.projectName}" dipindah ke ${newStage}${ikut.length ? ` (${ikut.join(', ')})` : ''}`);
     } catch (err) {
       // Gagal simpan -> kembalikan kartu ke stage semula.
       setProjects((list) =>
         list.map((p) =>
-          p.id === project.id ? { ...p, currentStage: oldStage, stageProgress: oldProgress } : p
+          p.id === project.id ? { ...p, currentStage: oldStage, stageProgress: oldProgress, status: oldStatus, priority: oldPriority } : p
         )
       );
       showToast(err.message || 'Gagal memindahkan project', 'error');

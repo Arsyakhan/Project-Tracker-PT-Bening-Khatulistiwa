@@ -7,6 +7,7 @@ import useProjects from '../../lib/useProjects';
 import { useToast } from '../../components/Toast';
 import PageHead from '../../components/PageHead';
 import PicInput from '../../components/PicInput';
+import PicSelect from '../../components/PicSelect';
 import { findDuplicatePo, todayISO } from '../../lib/projectHelpers';
 
 const emptyForm = {
@@ -103,7 +104,7 @@ export default function NewProjectPage() {
               <input id={id('client')} className="input" value={form.client} onChange={(e) => update('client', e.target.value)} />
             </Field>
             <Field id={id('pic')} label="PIC project">
-              <PicInput id={id('pic')} value={form.pic} onChange={(v) => update('pic', v)} />
+              <PicSelect id={id('pic')} value={form.pic} existing={(projects || []).map((p) => p.pic)} onChange={(v) => update('pic', v)} />
             </Field>
             <Field id={id('tpo')} label="Tanggal PO">
               <input id={id('tpo')} type="date" className="input" value={form.tanggalPO} onChange={(e) => update('tanggalPO', e.target.value)} />

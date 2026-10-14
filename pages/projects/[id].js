@@ -17,8 +17,11 @@ import { canDelete, canWrite } from '../../lib/roles';
 import TechFlow from '../../components/TechFlow';
 import SimilarArchive from '../../components/SimilarArchive';
 import NextActionCard from '../../components/NextActionCard';
-import PicInput from '../../components/PicInput';
+import PicSelect from '../../components/PicSelect';
 import ModulePicker from '../../components/ModulePicker';
+import {
+  followsRules, deriveStatus, derivePriority, stageForStatus, stageAdvance, RULE_SUMMARY,
+} from '../../lib/projectRules';
 import {
   TECH_SCHEMA, TECH_DETAIL_MAX, TECH_EXTRA_KEYS, currentTech, writeTech, hasDosingModule,
   projectTechModules, readTech,
@@ -71,6 +74,10 @@ export default function ProjectDetailPage() {
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('ringkasan');
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  // Kolom yang sedang mengikuti aturan otomatis (lib/projectRules.js). Bukan data tersimpan: saat halaman dimuat,
+  // sebuah kolom dianggap otomatis kalau isinya sama dengan hasil aturan, selain itu manual (hanya diberi saran).
+  const [auto, setAuto] = useState({ status: true, priority: true });
+  const [allPics, setAllPics] = useState([]); // PIC yang sudah dipakai di semua project, untuk pilihan dropdown PIC
 
   const [leaveModalOpen, setLeaveModalOpen] = useState(false);
   const [pendingUrl, setPendingUrl] = useState(null);
@@ -107,6 +114,8 @@ export default function ProjectDetailPage() {
       if (!found) { setError('Project tidak ditemukan.'); return; }
       setError(null);
       setProject(found);
+      setAuto(followsRules(found));
+      setAllPics(projects.map((p) => p.pic).filter(Boolean));
       setInitialSnapshot(JSON.stringify(pickEditable(found)));
       addRecentProject({ id: found.id, poNumber: found.poNumber, projectName: found.projectName });
     } catch (err) {
@@ -274,7 +283,9 @@ export default function ProjectDetailPage() {
 
   function discardChanges() {
     if (!initialSnapshot) return;
-    setProject((p) => ({ ...p, ...JSON.parse(initialSnapshot) }));
+    const restored = { ...projectRef.current, ...JSON.parse(initialSnapshot) };
+    setProject(restored);
+    setAuto(followsRules(restored)); // kembali ke keadaan tersimpan, jangan sampai aturan langsung menimpa lagi
     if (specsSaved) setSpecsValues(specsSaved);
     setTechState((t) => (t?.mode === 'grid' ? { ...t, work: t.saved, edited: false } : t));
     setError(null);
@@ -295,6 +306,47 @@ export default function ProjectDetailPage() {
 
   function update(field, value) {
     setProject((p) => ({ ...p, [field]: value }));
+  }
+
+  // ---- Aturan otomatis Stage / Status / Prioritas (lib/projectRules.js) ----
+  // Kolom yang sedang otomatis ikut berubah setiap kali dasarnya berubah: stage, hambatan, tanggal kirim, target selesai.
+  // Berjalan di mana pun dasar itu diubah (kartu Info umum, kartu Langkah berikutnya, tab Jadwal).
+  useEffect(() => {
+    if (!project || !meta) return;
+    const patch = {};
+    if (auto.status) {
+      const s = deriveStatus(project);
+      if (s && s.value !== project.status && meta.statuses.includes(s.value)) patch.status = s.value;
+    }
+    if (auto.priority) {
+      const r = derivePriority(project, todayISO());
+      if (r.value && r.value !== project.priority && meta.priorities.includes(r.value)) patch.priority = r.value;
+    }
+    if (Object.keys(patch).length > 0) setProject((p) => ({ ...p, ...patch }));
+  }, [auto, meta, project?.currentStage, project?.status, project?.priority, project?.blocker, project?.deliveryDate, project?.targetFinishDate]);
+
+  // PM mengubah Status sendiri: kolom itu jadi manual, dan Completed / buka lagi ikut menyelaraskan Stage.
+  function changeStatus(next) {
+    const link = stageForStatus(next, projectRef.current?.currentStage);
+    setAuto((a) => ({ ...a, status: false }));
+    setProject((p) => ({ ...p, status: next, ...(link ? { currentStage: link.stage } : {}) }));
+    if (link) showToast(`Stage ikut dipindah ke ${link.stage} (${link.reason}). Tekan Simpan perubahan untuk menyimpan.`, 'info');
+  }
+
+  function changePriority(next) {
+    setAuto((a) => ({ ...a, priority: false }));
+    update('priority', next);
+  }
+
+  // Menyalakan lagi "Otomatis" langsung menerapkan hasil aturan (lewat efek di atas).
+  function toggleAuto(field, on) {
+    setAuto((a) => ({ ...a, [field]: on }));
+  }
+
+  // Saran stage dari checklist: dipindahkan hanya atas permintaan PM (tombol), atau otomatis saat PM baru saja
+  // menyelesaikan item checklist yang menjadi dasarnya (lihat updateChecklistData).
+  function applyStageAdvance(adv) {
+    setProject((p) => ({ ...p, currentStage: adv.stage }));
   }
 
   // Mengubah kolom yang masih nilai otomatis dari Teknologi = koreksi manual. Angka dan satuannya disimpan sepaket,
@@ -432,6 +484,17 @@ export default function ProjectDetailPage() {
           engineeringDocProgress: result.progress,
           checklist: { ...p.checklist, progress: result.progress },
         }));
+        // Item yang baru diselesaikan bisa menjadi bukti project sudah lebih jauh dari stage-nya (mis. Handover Report
+        // Completed): stage maju otomatis (tidak pernah mundur) dan tersimpan bersama "Simpan perubahan". Baru
+        // dijalankan setelah checklist benar-benar tersimpan, supaya tidak tertinggal kalau penyimpanannya gagal.
+        if (statusVal === 'Completed' || statusVal === 'N/A') {
+          const now = projectRef.current;
+          const adv = now && stageAdvance(now.currentStage, now.checklist?.items);
+          if (adv) {
+            applyStageAdvance(adv);
+            showToast(`Stage dipindah ke ${adv.stage}: ${adv.reason}. Tekan Simpan perubahan untuk menyimpan.`, 'info');
+          }
+        }
       } catch (err) {
         // Gagal: kembalikan tampilan ke nilai yang tersimpan sebelumnya
         setProject((p) => ({
@@ -467,6 +530,10 @@ export default function ProjectDetailPage() {
     : null;
   const targetHint =
     targetDays === null ? '' : targetDays < 0 ? `Terlewat ${Math.abs(targetDays)} hari` : targetDays === 0 ? 'Hari ini' : `${targetDays} hari lagi`;
+  // Aturan otomatis (lib/projectRules.js): hasil aturan untuk keadaan form sekarang, dan saran stage dari checklist.
+  const statusRule = deriveStatus(project);
+  const priorityRule = derivePriority(project, today);
+  const stageHint = stageAdvance(project.currentStage, checklist?.items);
 
   // Teknologi yang sedang dibuka di halaman (termasuk yang belum disimpan): sumber sistem, seksi spesifikasi, dan nilai otomatis.
   const gridTech = tech?.mode === 'grid' ? tech : null;
@@ -730,25 +797,63 @@ export default function ProjectDetailPage() {
 
           {activeTab === 'ringkasan' && (
             <>
-            <Panel title="Info umum" hint="Perubahan baru tersimpan setelah menekan Simpan perubahan.">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Row label="Stage saat ini">
-                  <select className="input" value={project.currentStage} onChange={(e) => update('currentStage', e.target.value)}>
+            <Panel title="Info umum" hint="Perubahan baru tersimpan setelah menekan Simpan perubahan. Status dan Prioritas mengikuti aturan otomatis; ubah langsung kalau perlu.">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
+                <FieldBlock id="info-stage" label="Stage saat ini">
+                  <select id="info-stage" className="input" value={project.currentStage} onChange={(e) => update('currentStage', e.target.value)}>
                     {meta.stages.map((s) => <option key={s} value={s}>{s} ({meta.stageWeights[s]}%)</option>)}
                   </select>
-                </Row>
-                <Row label="Status">
-                  <select className="input" value={project.status} onChange={(e) => update('status', e.target.value)}>
+                  {stageHint && writable && (
+                    <p data-testid="stage-hint" className="text-xs text-amberink flex flex-wrap items-center gap-x-2">
+                      <span>Saran: pindah ke <b className="font-medium">{stageHint.stage}</b> ({stageHint.reason}).</span>
+                      <button type="button" onClick={() => applyStageAdvance(stageHint)} className="tap font-medium text-blueprint hover:underline">Pindahkan</button>
+                    </p>
+                  )}
+                </FieldBlock>
+                <FieldBlock
+                  id="info-status"
+                  label="Status"
+                  aside={statusRule && (
+                    <AutoToggle checked={auto.status} disabled={!writable} onChange={(on) => toggleAuto('status', on)} />
+                  )}
+                >
+                  <select id="info-status" className="input" value={project.status} aria-describedby="info-status-note" onChange={(e) => changeStatus(e.target.value)}>
                     {meta.statuses.map((s) => <option key={s} value={s}>{s}</option>)}
                   </select>
-                </Row>
-                <Row label="Prioritas">
-                  <select className="input" value={project.priority} onChange={(e) => update('priority', e.target.value)}>
+                  <RuleNote
+                    id="info-status-note"
+                    testId="status-note"
+                    auto={auto.status}
+                    rule={statusRule}
+                    current={project.status}
+                    canApply={writable}
+                    onApply={() => toggleAuto('status', true)}
+                    noRule="Stage ini tidak dikenal aturan, jadi status diatur manual."
+                  />
+                </FieldBlock>
+                <FieldBlock
+                  id="info-priority"
+                  label="Prioritas"
+                  aside={priorityRule.value && (
+                    <AutoToggle checked={auto.priority} disabled={!writable} onChange={(on) => toggleAuto('priority', on)} />
+                  )}
+                >
+                  <select id="info-priority" className="input" value={project.priority} aria-describedby="info-priority-note" onChange={(e) => changePriority(e.target.value)}>
                     {meta.priorities.map((s) => <option key={s} value={s}>{s}</option>)}
                   </select>
-                </Row>
+                  <RuleNote
+                    id="info-priority-note"
+                    testId="priority-note"
+                    auto={auto.priority}
+                    rule={priorityRule.value ? priorityRule : null}
+                    current={project.priority}
+                    canApply={writable}
+                    onApply={() => toggleAuto('priority', true)}
+                    noRule=""
+                  />
+                </FieldBlock>
                 <Row label="PIC">
-                  <PicInput value={project.pic} onChange={(v) => update('pic', v)} />
+                  <PicSelect value={project.pic} existing={allPics} onChange={(v) => update('pic', v)} />
                 </Row>
                 <Row label="Client">
                   <input className="input" value={project.client || ''} onChange={(e) => update('client', e.target.value)} />
@@ -757,6 +862,19 @@ export default function ProjectDetailPage() {
                   <input className="input" placeholder="ex: Skid, Plant, Retrofit" value={project.technology || ''} onChange={(e) => update('technology', e.target.value)} />
                 </Row>
               </div>
+              <details data-testid="rules-details" className="text-sm">
+                <summary className="tap cursor-pointer select-none w-fit font-medium text-blueprint hover:underline">Lihat aturan otomatis</summary>
+                <div className="mt-3 grid gap-4 sm:grid-cols-3">
+                  {RULE_SUMMARY.map((g) => (
+                    <div key={g.title} className="min-w-0">
+                      <h3 className="font-medium text-ink">{g.title}</h3>
+                      <ul className="mt-1 list-disc pl-4 space-y-1 text-xs text-inkmute">
+                        {g.lines.map((l) => <li key={l} className="break-words">{l}</li>)}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              </details>
             </Panel>
 
             <Panel title="Lokasi & kontak owner" hint="Dipakai otomatis di form Commissioning Report dan Hand Over.">
@@ -1245,6 +1363,45 @@ function Row({ label, children }) {
       <span className="text-inkmute font-medium">{label}</span>
       {children}
     </label>
+  );
+}
+
+// Baris isian dengan label di kiri dan kontrol tambahan (mis. kotak "Otomatis") di kanan label. Label dikaitkan lewat
+// htmlFor, bukan membungkus isian, karena isi baris ini boleh memuat tombol.
+function FieldBlock({ id, label, aside, children }) {
+  return (
+    <div className="flex flex-col gap-1.5 text-sm min-w-0">
+      <div className="flex items-center justify-between gap-2">
+        <label htmlFor={id} className="text-inkmute font-medium">{label}</label>
+        {aside}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function AutoToggle({ checked, disabled, onChange }) {
+  return (
+    <label className="tap inline-flex items-center gap-1.5 text-xs text-inkmute cursor-pointer select-none">
+      <input type="checkbox" className="w-4 h-4 accent-blueprint" checked={checked} disabled={disabled} onChange={(e) => onChange(e.target.checked)} />
+      Otomatis
+    </label>
+  );
+}
+
+// Keterangan di bawah Status / Prioritas: alasan aturan kalau sedang otomatis; kalau manual, saran aturan (bila beda).
+function RuleNote({ id, testId, auto, rule, current, canApply, onApply, noRule }) {
+  if (!rule) return noRule ? <p id={id} data-testid={testId} className="text-xs text-inkmute">{noRule}</p> : <span id={id} />;
+  if (auto) return <p id={id} data-testid={testId} className="text-xs text-inkmute">Otomatis: {rule.reason}.</p>;
+  const differs = rule.value !== current;
+  return (
+    <p id={id} data-testid={testId} className="text-xs text-inkmute flex flex-wrap items-center gap-x-2">
+      <span>
+        Diatur manual.
+        {differs && <> Aturan menyarankan <b className="font-medium text-ink">{rule.value}</b> ({rule.reason}).</>}
+      </span>
+      {differs && canApply && <button type="button" onClick={onApply} className="tap font-medium text-blueprint hover:underline">Pakai saran</button>}
+    </p>
   );
 }
 
