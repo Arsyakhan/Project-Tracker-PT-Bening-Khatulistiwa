@@ -322,8 +322,8 @@ tampilan dengan data hanya bisa diperiksa di produksi, atau lewat salinan sheet 
   kapasitas + satuan grid (`toSpecCap`) dan teks **Detail Spesifikasi** yang dibaca aturan tetap (bukan AI saat
   dipakai). Format yang dibaca disusun dari 23 Detail arsip yang ada (judul peralatan, lalu baris `Label : isi`:
   Model, Brand/Model, Capacity, Power (kW), Qty, Material, Size, Media, Volume, Valve, Controller, ...; satu sel boleh
-  berisi beberapa peralatan, tiap peralatan dengan judulnya, mis. RO: FEED PUMP, BOOSTER PUMP, MEMBRANE, PRESSURE VESSEL,
-  CARTRIDGE FILTER HOUSING, flowmeter, conductivity, ANTI SCALANT, CIP). `DETAIL_TEMPLATES` = kerangka kosong per modul
+  berisi beberapa peralatan, tiap peralatan dengan judulnya, mis. RO: RO UNIT, MEMBRANE, PRESSURE VESSEL, flowmeter,
+  conductivity; Detail RO lama masih boleh memuat blok booster/cartridge/antiscalant/CIP, lihat aturan kepemilikan di bawah). `DETAIL_TEMPLATES` = kerangka kosong per modul
   (tombol "Isi dari template" di `ModulePicker`, `specHelp`), `DETAIL_EXAMPLES` = contoh placeholder. Nilai yang
   terbaca hanya **nilai otomatis**: di `lib/docgen/specs.js` `withDerived` menaruhnya di kolom yang kosong, isian
   manual (tersimpan di Project Specs) menang, `packSpecs(values, derived)` tidak menyimpan yang sama dengan otomatis
@@ -335,7 +335,7 @@ tampilan dengan data hanya bisa diperiksa di produksi, atau lewat salinan sheet 
 - **Spesifikasi Peralatan: satu modul Teknologi = satu seksi** (13 Okt 2026, KEP-0009; menggantikan susunan yang
   mengikuti template Hand Over): modul apa pun yang dicentang di Teknologi muncul sebagai **satu seksi** di tab
   Spesifikasi Peralatan, urut mengikuti alur Teknologi (40 modul dicentang = tepat 40 seksi). Seksi **tidak** mengikuti
-  pengelompokan template dokumen Hand Over: RO hanya berisi RO (unit, pompa feed RO, membran, pressure vessel, flowmeter,
+  pengelompokan template dokumen Hand Over: RO hanya berisi RO (unit, membran, pressure vessel, flowmeter,
   conductivity, "Instrumen RO Tambahan"), sedangkan Booster, Cartridge Filter, Dosing Antiscalant, Pompa dan Tangki
   Cleaning/Flushing, Pompa Feed UF, Pompa Feed Air Baku, dan Tangki Air Baku masing-masing punya seksi sendiri; pompa dosing
   satu seksi per bahan kimia. Logikanya di **`lib/docgen/specModules.js`** (`moduleSpecContext`, `specSectionsFor`;
@@ -359,6 +359,21 @@ tampilan dengan data hanya bisa diperiksa di produksi, atau lewat salinan sheet 
   baru tampil setelah modulnya dicentang (mis. lewat "+ Tambah peralatan"). Keterbatasan lama yang tetap: id kolom Filter
   mengikuti **slot** (Birm → MMF → Carbon, `f1_*`/`f2_*`), jadi menambah filter yang mengubah urutan slot menggeser isian
   manual ke filter lain (nilai otomatis dari Teknologi tidak terpengaruh).
+  **Aturan kepemilikan peralatan (14 Okt 2026, KEP-0012): satu peralatan hanya boleh muncul di satu tempat.** Peralatan yang
+  punya modul sendiri di Teknologi (booster, cartridge, dosing antiscalant, pompa dan tangki cleaning/flushing, pompa feed UF,
+  pompa dan tangki air baku, soft water tank, product tank, pompa filter, pompa dosing, pompa distribusi) hanya muncul di
+  seksi modulnya, di template/contoh Detail modulnya, dan di butir dokumennya, **tidak diulang di modul lain**. Contoh yang
+  sudah dibereskan: pompa feed RO sama dengan pompa booster (modul Booster Feed Pump), jadi seksi RO dan template/contoh
+  Detail RO tidak lagi memuat pompa feed, booster, cartridge, antiscalant, dan CIP (hanya RO unit, membran, pressure vessel,
+  flowmeter, conductivity); template UF tidak memuat pompa feed UF (modul UF Feed Pump); RO Pass 2 hanya punya satu pompa
+  (`Pass 2 Booster Pump`). Kolom yang dipensiunkan **tetap terdaftar** (id di `HANDOVER_SECTIONS`/`DEFS`, jadi isian lama
+  dan placeholder template Google Docs tidak rusak) tetapi tidak tampil: `RETIRED_FIELD_KEYS` dan `isRetiredField` di
+  `specModules.js` (kolom bawaan template, mis. `ro_fwp_*`) serta `retired: true` di `DEFS` `specExtra.js` (mis. `x_ro2_fwp_*`).
+  Detail lama yang masih memuat blok pompa feed RO tidak salah dibaca sebagai unit RO (blok dikenali dengan `[/feed/i, null,
+  'skip']` di `SUBS.ro`) dan isinya tercetak sebagai baris tambahan (`lib/docgen/techDetail.js`), jadi tidak ada data hilang.
+  Kalau menambah modul/kolom baru, periksa dulu apakah peralatan itu sudah dimiliki modul lain. Tumpang-tindih yang sengaja
+  dibiarkan dan menunggu keputusan pemilik: tangki CIP milik UF vs modul Cleaning/Flushing Tank, pompa dosing + tangki bahan
+  kimia milik Chlorination vs pompa dosing NaOCl.
   Pembaca teks **Detail Spesifikasi** untuk seksi tambahan ada di `readExtra` (`lib/specParser.js`) dan memakai
   definisi yang sama: isi di belakang titik dua (`Label : isi`) dipindah ke kolom yang sesuai; blok ber-judul yang
   cocok dengan sub-peralatan (`match`) mengisi kolom pompa/tangki/membran; satu blok saja = peralatan utama.
