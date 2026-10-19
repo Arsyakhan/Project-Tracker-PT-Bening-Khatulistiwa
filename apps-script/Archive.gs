@@ -62,6 +62,7 @@ const ARCHIVE_MODULE_KEYS = {
   'dosing pump smbs': 'dosing_smbs',
   'dosing pump antiscalant': 'dosing_antiscalant',
   'dosing pump acid / naoh': 'dosing_ph',
+  'dosing pump biocide': 'dosing_biocide',
   'cartridge filter': 'cartridge',
   'booster feed pump': 'booster',
   'cleaning / flushing pump': 'flush_pump',
@@ -70,16 +71,20 @@ const ARCHIVE_MODULE_KEYS = {
   'ro pass 2': 'ro2',
   't-01 cleaning / flushing tank': 'flush_tank',
   'cleaning / flushing tank': 'flush_tank',
+  'ro reject tank / pump': 'ro_reject',
   'degasifier / decarbonator': 'degasifier',
   'cation / anion exchanger': 'ion_exchange',
   'edi': 'edi',
   'mixed bed': 'mixedbed',
+  'neutralization system': 'neutralization',
+  'carbon cartridge filter': 'carbon_cartridge',
   'remineralization': 'remineral',
   'product water tank': 'product_tank',
   'uv sterilizer': 'uv',
   'ozone generator': 'ozone',
   '0.2 micron filter': 'filter_02',
-  'transfer / distribution pump': 'dist_pump'
+  'transfer / distribution pump': 'dist_pump',
+  'bottle filling / flushing': 'bottle_filling'
 };
 
 function archiveModuleKey_(label) {
