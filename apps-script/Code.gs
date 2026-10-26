@@ -1,9 +1,19 @@
 /**
- * PT BENING KHATULISTIWA — BENING HUB API  (v2.8)
+ * PT BENING KHATULISTIWA — BENING HUB API  (v2.9)
  * ---------------------------------------------------
  * Backend untuk aplikasi web "Bening Hub". Paste seluruh file ini ke:
  * Extensions > Apps Script (dibuka DARI spreadsheet
  * "Project Tracker_PT Bening Khatulistiwa", jadi otomatis terikat ke sheet-nya).
+ *
+ * YANG BARU DI v2.9 (perbaikan bug, tanpa aksi API baru; Archive.gs tidak berubah):
+ *   - Simpanan yang ditolak validasi sheet tidak lagi hilang diam-diam. Kalau satu sel berpenolakan ketat ("Tolak
+ *     input") menolak nilai baru, Apps Script tidak melempar error: tulisan itu dan semua tulisan sesudahnya (termasuk
+ *     baris Activity Log) dibuang, sementara web sudah menerima ok:true (bug PIC 26 Okt 2026). Sekarang writeCells_ dan
+ *     writeNewRow_ memeriksa validasi daftar/rentang/kotak centang yang ketat lebih dulu (assertAllowed_) dan menolak
+ *     simpanan dengan pesan berbahasa Indonesia sebelum ada yang ditulis. withLock_ juga memanggil
+ *     SpreadsheetApp.flush() sebelum lock dilepas supaya tulisan masuk selagi lock dipegang.
+ *   - Project baru dan baris Checklist-nya ditulis tepat di bawah baris data terakhir (writeNewRow_, dicari lewat
+ *     Project ID / PO / Nama), bukan appendRow(), yang bisa melompat ke bawah baris kosong berisi FALSE kotak centang.
  *
  * YANG BARU DI v2.8 (perlu Archive.gs terbaru juga; keduanya ditempel, lalu deploy versi baru):
  *   - Teknologi project aktif sekarang dibaca dan ditulis di GRID kolom AA-CT tab Project Tracker (sama dengan yang
@@ -231,7 +241,12 @@ function withLock_(fn) {
   lock.waitLock(LOCK_WAIT_MS);
   LOCK_HELD_ = true;
   try {
-    return fn();
+    const result = fn();
+    // Terapkan semua tulisan SEKARANG, selagi lock masih dipegang (v2.9), supaya simpanan berikutnya tidak membaca
+    // data lama sebelum tulisan ini benar-benar masuk. Catatan: flush TIDAK melempar error kalau sel ditolak validasi
+    // ketat (diuji 26 Okt 2026); penolakan seperti itu dicegah lebih dulu oleh assertAllowed_.
+    SpreadsheetApp.flush();
+    return result;
   } finally {
     LOCK_HELD_ = false;
     lock.releaseLock();
@@ -323,8 +338,21 @@ function doPost(e) {
     });
     return jsonOut_({ ok: true, data: data });
   } catch (err) {
-    return jsonOut_({ ok: false, error: err.message });
+    return jsonOut_({ ok: false, error: friendlyError_(err) });
   }
+}
+
+
+// Pesan error Google yang teknis (bahasa Inggris) diganti kalimat yang bisa dipahami pengguna web.
+function friendlyError_(err) {
+  const msg = String((err && err.message) || err || 'Error');
+  if (/data validation|validasi data/i.test(msg)) {
+    const cell = (msg.match(/\b([A-Z]{1,3}[0-9]{1,6})\b/) || [])[1];
+    return 'Isian ditolak aturan validasi di spreadsheet' + (cell ? ' (sel ' + cell + ')' : '') +
+      ', jadi tidak ada perubahan yang tersimpan. Pilih nilai dari daftar yang tersedia, atau minta admin ' +
+      'melonggarkan validasi kolom itu di sheet.';
+  }
+  return msg;
 }
 
 function jsonOut_(obj) {
@@ -586,6 +614,7 @@ function ensureColumn_(sheet, name) {
 // updates = { indexKolom(0-based): nilai }
 function writeCells_(sheet, rowIndex, updates) {
   const cols = Object.keys(updates).map(Number).sort(function (a, b) { return a - b; });
+  assertAllowed_(sheet, rowIndex, updates);
   let i = 0;
   while (i < cols.length) {
     let j = i;
@@ -594,6 +623,50 @@ function writeCells_(sheet, rowIndex, updates) {
     sheet.getRange(rowIndex, cols[i] + 1, 1, values[0].length).setValues(values);
     i = j + 1;
   }
+}
+
+
+// Tolak nilai yang pasti ditolak validasi KETAT di sheet ("Tolak input"), SEBELUM ada yang ditulis (v2.9).
+// Apps Script tidak melempar error untuk tulisan seperti itu: tulisan yang ditolak dan semua tulisan sesudahnya
+// (termasuk baris Activity Log) dibuang diam-diam, padahal web sudah menerima ok:true (bug PIC 26 Okt 2026). Yang
+// diperiksa: daftar (VALUE_IN_LIST), daftar dari rentang (VALUE_IN_RANGE), dan kotak centang. Validasi tidak ketat
+// (hanya peringatan) dan sel yang dikosongkan selalu boleh. updates = { indexKolom(0-based): nilai }.
+function assertAllowed_(sheet, rowIndex, updates) {
+  const cols = Object.keys(updates).map(Number).filter(function (c) {
+    const v = updates[c];
+    return v !== '' && v !== null && v !== undefined;
+  });
+  if (!cols.length) return;
+  const min = Math.min.apply(null, cols);
+  const max = Math.max.apply(null, cols);
+  const rules = sheet.getRange(rowIndex, min + 1, 1, max - min + 1).getDataValidations()[0];
+  const T = SpreadsheetApp.DataValidationCriteria;
+
+  cols.forEach(function (c) {
+    const rule = rules[c - min];
+    if (!rule || rule.getAllowInvalid()) return;
+    const type = rule.getCriteriaType();
+    const args = rule.getCriteriaValues();
+    const v = updates[c];
+    let allowed = null;
+    if (type === T.VALUE_IN_LIST) {
+      allowed = (args[0] || []).map(String);
+    } else if (type === T.VALUE_IN_RANGE && args[0] && typeof args[0].getDisplayValues === 'function') {
+      allowed = [];
+      args[0].getDisplayValues().forEach(function (r) { r.forEach(function (x) { if (x !== '') allowed.push(String(x)); }); });
+    } else if (type === T.CHECKBOX) {
+      allowed = args.length ? args.map(String) : ['TRUE', 'FALSE'];
+    }
+    if (!allowed) return; // jenis validasi lain tidak diperiksa di sini
+    const key = String(v instanceof Date ? formatDate_(v) : v).trim().toLowerCase();
+    const ok = allowed.some(function (a) { return a.trim().toLowerCase() === key; });
+    if (ok) return;
+    const header = cleanText_(sheet.getRange(1, c + 1).getValue()) || ('kolom ' + (c + 1));
+    const shown = allowed.slice(0, 12).join(', ') + (allowed.length > 12 ? ', ...' : '');
+    throw new Error(header + ': "' + clip_(String(v), 60) + '" tidak ada di daftar pilihan kolom ini di spreadsheet, ' +
+      'jadi tidak ada perubahan yang disimpan. Pilihan yang diterima: ' + shown + '. Pilih salah satunya, atau minta ' +
+      'admin menambah pilihan itu (atau melonggarkan validasinya) di sheet.');
+  });
 }
 
 
@@ -680,7 +753,42 @@ function appendChecklistRow_(checkSheet, id, po, name, client) {
   obj['Overall Status'] = 'Not Started';
   obj['Progress (%)'] = 0;
   CHECKLIST_ITEMS.forEach(function (item) { obj[item] = 'Not Started'; });
-  checkSheet.appendRow(headers.map(function (h) { return obj.hasOwnProperty(h) ? obj[h] : ''; }));
+  writeNewRow_(checkSheet, headers, [ID_HEADER, 'PO Number', 'Project Name'],
+    headers.map(function (h) { return obj.hasOwnProperty(h) ? obj[h] : ''; }));
+}
+
+
+// Tulis satu baris data baru tepat di bawah baris data terakhir (v2.9; menggantikan appendRow). appendRow() dan
+// getLastRow() ikut menghitung baris "kosong" yang sebenarnya berisi FALSE dari kotak centang atau sisa format, sehingga
+// project baru bisa mendarat ratusan baris di bawah (pernah terjadi: baris 1301). Baris data terakhir ditentukan dari
+// kolom kunci (keyNames). Baris sesudahnya yang masih berisi sesuatu selain kosong/FALSE (mis. catatan manual)
+// dilewati supaya tidak tertimpa. Mengembalikan nomor baris yang ditulis.
+function writeNewRow_(sheet, headers, keyNames, row) {
+  const width = row.length;
+  const lastRow = sheet.getLastRow();
+  const values = lastRow > 0 ? sheet.getRange(1, 1, lastRow, width).getValues() : [];
+  const keyCols = keyNames
+    .map(function (n) { return headers.indexOf(n); })
+    .filter(function (c) { return c > -1 && c < width; });
+
+  // Paling atas: sesudah baris judul (Project Tracker punya 2 baris judul yang dibekukan).
+  let last = Math.max(1, sheet.getFrozenRows());
+  for (let r = 0; r < values.length; r++) {
+    for (let k = 0; k < keyCols.length; k++) {
+      if (cleanText_(values[r][keyCols[k]]) !== '') { last = Math.max(last, r + 1); break; }
+    }
+  }
+  function isBlank(v) { return v === '' || v === false || v === null; }
+  while (last < values.length && !values[last].every(isBlank)) last++;
+
+  const target = last + 1;
+  const maxRows = sheet.getMaxRows();
+  if (target > maxRows) sheet.insertRowsAfter(maxRows, target - maxRows);
+  const asUpdates = {};
+  row.forEach(function (v, c) { asUpdates[c] = v; });
+  assertAllowed_(sheet, target, asUpdates);
+  sheet.getRange(target, 1, 1, width).setValues([row]);
+  return target;
 }
 
 
@@ -938,7 +1046,8 @@ function addProject_(payload) {
 
 
   const projSheet = getSheet_(SHEET_PROJECTS);
-  projSheet.appendRow(all.p.headers.map(function (h) { return rowObj.hasOwnProperty(h) ? rowObj[h] : ''; }));
+  writeNewRow_(projSheet, all.p.headers, [ID_HEADER, 'PO Number', 'Project Name'],
+    all.p.headers.map(function (h) { return rowObj.hasOwnProperty(h) ? rowObj[h] : ''; }));
   appendChecklistRow_(getSheet_(SHEET_CHECKLIST), id, poNumber, projectName, rowObj['Client']);
 
 
