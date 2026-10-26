@@ -75,7 +75,7 @@ file-file ini berbagi fungsi helper dari `Code.gs`:
 
 | File | Isi |
 |---|---|
-| `apps-script/Code.gs` (v2.8) | `doGet`/`doPost`, token, cache 30 dtk, proyek (+ kolom `Tahun`), checklist, komentar, activity log, document log, specs, meetings, dan rute teknologi project aktif (`tech`, `saveProjectTech`; isinya di Archive.gs). Tanggal ditulis jam 00:00 menurut zona waktu **spreadsheet** (`sheetTimeZone_`, `dayString_`); sel berisi rumus tidak ditimpa (`isFormulaCell_`) |
+| `apps-script/Code.gs` (v2.9) | `doGet`/`doPost`, token, cache 30 dtk, proyek (+ kolom `Tahun`), checklist, komentar, activity log, document log, specs, meetings, dan rute teknologi project aktif (`tech`, `saveProjectTech`; isinya di Archive.gs). Tanggal ditulis jam 00:00 menurut zona waktu **spreadsheet** (`sheetTimeZone_`, `dayString_`); sel berisi rumus tidak ditimpa (`isFormulaCell_`) |
 | `apps-script/Archive.gs` | tab `[ARSIP] FINISHED PROJECT` dibaca & ditulis dua arah (`getArchive_`, `saveArchiveProject_`, `deleteArchiveProject_`); header 2 baris, kolom A-C = No/Tahun/Nama, lalu grup modul yang **dikenali lewat judulnya** (`archiveSchemaFromHeaders_`; per 26 Okt 2026: 37 modul = 29 × Ada/Kapasitas/Satuan/Detail + 8 pompa dosing hanya Ada; 124 kolom, D-DW). Konflik edit dideteksi lewat `rev` per baris (sidik jari isi baris), karena sheet tidak punya kolom Version. Baris baru ditaruh tepat di bawah project terakhir (`archiveNextRow_`, bukan `getLastRow()`). Baris lama tidak diubah kecuali diedit. **Sejak v2.8** file ini juga membaca dan menulis **grid teknologi project aktif** di tab `Project Tracker` kolom AA-ET (sejak 26 Okt 2026; 19-20 Okt AA-FZ, dulu AA-FI, sebelumnya AA-CT) dengan pembaca modul yang sama (`getProjectTech_`, `saveProjectTech_`, `trackerGridFromHeaders_`): lokasi grid dicari lewat judul (dari kolom `Ada` pertama sampai kolom `Project ID`), konflik lewat `rev` baris, hanya sel yang berubah yang ditulis, sel berumus dan modul yang belum dikenal web dibiarkan, dan perubahan dicatat di Activity Log sebagai `Update Teknologi` |
 | `apps-script/Procurement.gs` | tab Procurement (`getProcurement_`, `saveProcurementItem_`, `deleteProcurementItem_`); `doGet`/`doPost` di Code.gs yang memanggilnya |
 | `apps-script/WeeklyDigest.gs` | email ringkasan mingguan, trigger Senin ~07.00 |
@@ -161,8 +161,27 @@ berbeda dan semuanya lolos; tidak ada kode tingkat-atas yang saling merujuk anta
 > **Uji web TL-0018 lulus (26 Okt 2026):** tambah project lewat web mengisi `Tahun`, No, dan baris Checklist; hapus
 > project (admin) menghapus barisnya dan Checklist-nya serta menyimpan snapshot di Activity Log. Uji pertama jatuh ke
 > baris 1301 karena baris kosong 26-1300 berisi `FALSE` di kolom `Ada`; nilainya dikosongkan (validasi tetap) dan uji
-> kedua masuk tepat di bawah data terakhir. `addProject_` masih memakai `appendRow` (penguatan kode: TL-0034). Tambah
-> arsip lewat web (termasuk tombol "Arsipkan teknologi") menulis nomor terbesar + 1 tepat di bawah baris terakhir.
+> kedua masuk tepat di bawah data terakhir. Sejak Code.gs v2.9 `addProject_` dan baris Checklist baru tidak lagi
+> memakai `appendRow` (lihat di bawah; TL-0034). Tambah arsip lewat web (termasuk tombol "Arsipkan teknologi") menulis
+> nomor terbesar + 1 tepat di bawah baris terakhir.
+>
+> **Bug PIC dan simpanan yang hilang diam-diam (26 Okt 2026, Code.gs v2.9):** kolom `PIC` (L) punya validasi daftar
+> **ketat** (Engineer / Technician / Warehouse & Purchase), padahal dropdown PIC di web juga menawarkan Marketing &
+> Direksi, Warehouse & Purchasing, nama orang, dan "Lainnya". Memilih salah satunya membuat simpanan itu hilang
+> sementara web menerima `ok:true`: Apps Script **tidak melempar error** untuk sel yang ditolak validasi ketat; tulisan
+> itu dan semua tulisan sesudahnya (kolom lain yang diubah bersamaan, baris Activity Log) dibuang diam-diam. Diuji:
+> `SpreadsheetApp.flush()` pun tidak melempar error (tulisan sebelum sel yang ditolak masuk, sisanya hilang).
+> Perbaikan: (1) validasi PIC di sheet L3:L1298 kini **tidak ketat** (hanya peringatan) dengan daftar Engineer,
+> Technician, Warehouse & Purchasing, Marketing & Direksi (chip berwarna tetap; diuji: PIC "Marketing & Direksi" +
+> Catatan sekali simpan, lalu "Mas Adi", tersimpan dan tercatat); (2) `assertAllowed_` (dipanggil `writeCells_` dan
+> `writeNewRow_`) memeriksa validasi daftar/rentang/kotak centang yang ketat **sebelum** menulis dan menolak simpanan
+> dengan pesan berbahasa Indonesia, tanpa ada yang tertulis (diuji di sheet asli dengan validasi ketat sementara di
+> baris uji); `withLock_` juga memanggil `flush()` sebelum lock dilepas; (3) `writeNewRow_` menulis project baru dan
+> baris Checklist-nya tepat di bawah baris terakhir yang berisi Project ID / PO / Nama (baris berisi catatan manual
+> dilewati), bukan `appendRow` (diuji: baris 27 tracker, baris 26 Checklist); (4) `lib/pics.js` mengenali ejaan lama
+> "Warehouse & Purchase" sebagai divisi. **Sudah live**: di-deploy lewat clasp dari akun `ptbeningkhatulistiwa`
+> (versi 30; Apps Script API akun itu dinyalakan 26 Okt 2026). Uji sesudah deploy juga lolos untuk simpan Checklist
+> dan simpan Teknologi dari web (grid tersimpan, `rev` baru). Semua project uji sudah dihapus.
 >
 > **Arsip OneDrive (26 Okt 2026):** tab baru `Arsip Dokumen` (A-K: No, Tahun Folder, Project (Folder), No Arsip,
 > Subfolder, Nama File, Jenis, Kategori, Ukuran (KB), Tanggal Ubah, Tautan "Buka") mengindeks 5.162 file OneDrive
@@ -237,6 +256,13 @@ ubah format angka `Meetings!B:D` dan `Procurement!H:J` (disimpan sebagai teks).
   yang terbukti (26 Okt 2026): `updateCells` dengan `range` baris kosong dan `fields: "userEnteredValue"` tanpa `rows`.
   **Jangan** pakai `values.batchClear` untuk ini: di kolom kotak centang ia ikut membuang validasinya, dan
   `setDataValidation` BOOLEAN sesudahnya mengisi `FALSE` lagi.
+- Validasi **ketat** (`strict: true`, "Tolak input") di kolom yang ditulis web berbahaya: Apps Script tidak melempar
+  error untuk tulisan yang ditolak, tulisan itu dan sesudahnya dibuang diam-diam (bug PIC 26 Okt 2026). Sejak v2.9
+  `assertAllowed_` menolaknya lebih dulu dengan pesan yang jelas, tetapi daftar validasi di sheet tetap harus sama
+  dengan pilihan di web (atau dibuat tidak ketat) supaya pengguna tidak terhalang. Yang masih ketat dan sudah dicek
+  cocok: Current Stage, Status, Priority (tab `Reference`), status 7 dokumen Checklist (`Reference!H2:H6`), `Satuan`
+  grid teknologi (juga dicek `Archive.gs`), kotak centang `Ada`. Jenis validasi lain (angka, tanggal, rumus) tidak
+  diperiksa `assertAllowed_`, jadi jangan dibuat ketat di kolom yang ditulis web.
 - Nomor urut kolom A tab arsip kini angka statis (dulu rumus `ROW()-2` sampai baris 70, yang membuat `getLastRow()`
   keliru). `saveArchiveProject_` menulis nomor terbesar + 1 untuk baris baru. Kapasitas yang dulu tersimpan sebagai
   tanggal (tampil "3.5") sudah diperbaiki menjadi angka desimal.
@@ -319,7 +345,7 @@ sungguhan (nomor berlanjut, gaya bullet) tidak bisa diuji dari sandbox; yang ter
 | Bobot status dokumen checklist | `CHECKLIST_WEIGHTS` di `Code.gs` | rumus `Progress (%)` di tab Checklist (ada di sheet, bukan di repo) |
 | Allowlist aksi | `doGet`/`doPost` | `pages/api/gas.js` (`GET_ACTIONS`, `POST_ACTIONS`) |
 | Aturan otomatis Status / Prioritas / Stage di detail project (nilai tetap disimpan apa adanya di Sheet) | `STATUSES`, `PRIORITIES`, `STAGE_WEIGHTS`, `CHECKLIST_ITEMS` di `Code.gs` (tidak ada logika aturan di backend) | `lib/projectRules.js` (`FINAL_STAGE`, `DRAWING_ITEMS` = 4 nama item gambar persis seperti `CHECKLIST_ITEMS`, ambang hari dan teks `RULE_SUMMARY`), memakai `STAGES`/`STAGE_WEIGHTS` di `lib/stages.js`; dipakai `pages/projects/[id].js` dan `pages/board.js` |
-| Pilihan PIC project (dropdown) | tidak ada (kolom `PIC` teks bebas di Sheet) | `lib/pics.js` (`picOptions`, `roleDivision`), `components/PicSelect.jsx`; dipakai `pages/projects/[id].js` dan `pages/projects/new.js` |
+| Pilihan PIC project (dropdown) | tidak ada di Code.gs; validasi daftar **tidak ketat** di sheet kolom `PIC` (Engineer, Technician, Warehouse & Purchasing, Marketing & Direksi; ejaan harus sama dengan web) | `lib/pics.js` (`picOptions`, `roleDivision`), `components/PicSelect.jsx`; dipakai `pages/projects/[id].js` dan `pages/projects/new.js` |
 | Normalisasi nomor PO (PO kembar) | `normalizePO_` di `Code.gs` | `normalizePo` di `lib/projectHelpers.js` (hanya untuk peringatan di form Project Baru; yang menolak tetap backend) |
 
 Status terakhir diperiksa (9 Okt 2026): `STAGE_WEIGHTS` dan `SYSTEM_KEYS` cocok; nama field HO
@@ -641,9 +667,8 @@ lewat konektor Google Drive dan Google Sheets (bukan lewat API Bening Hub; front
   Perlu dikonfirmasi pemilik sebelum diubah.
 - Kolom Langkah berikutnya (`Next Action*`) dan `Blocker` masih kosong di semua project (dicek 12 Okt 2026), jadi
   halaman Hari Ini baru berguna penuh setelah pemilik mengisinya (lewat kartu Langkah berikutnya di detail project).
-- Simpan teknologi dari web ke sheet asli belum pernah dicoba (Code.gs v2.8 baru diuji di tiruan Node dengan data sheet
-  asli, lihat "Teknologi project aktif"). Setelah pemilik men-deploy v2.8, cek satu project: ubah kapasitas di tab
-  Teknologi lalu lihat barisnya di Project Tracker dan baris `Update Teknologi` di Activity Log (TL-0013, TL-0018).
+- Simpan teknologi dari web ke grid sheet asli sudah terbukti jalan (Activity Log `Update Teknologi` sejak 14 Okt 2026,
+  dan uji `saveProjectTech` 26 Okt 2026 sesudah Code.gs v2.9 live).
 - Dokumen Hand Over dinamis (`docgen/handover.gs` baru, 13 Okt 2026) baru diuji di tiruan DocumentApp di Node; perilaku
   Google Docs sungguhan belum pernah dilihat. Setelah pemilik menempel dan men-deploy ulang (Deploy > Manage deployments >
   ikon pensil > Version: New version > Deploy, URL tetap sama), buat satu dokumen Hand Over dari project yang teknologinya
