@@ -34,7 +34,8 @@ Browser ──► Next.js (Vercel) ──► /api/gas        ──► Apps Scri
 1. Perubahan di `apps-script/*.gs` **tidak otomatis live**. Ada dua jalan:
    - **Lewat clasp (sejak 19 Okt 2026, kalau pemilik login di sesi itu).** Pemilik menjalankan `clasp login` lewat
      Claude (Claude memberi tautan OAuth, pemilik menempel balik URL `localhost:8888/...`); token hanya hidup di sesi
-     itu, jadi sesi berikutnya perlu login ulang. Urutannya: `clasp clone <scriptId>` (atau `clasp pull`) ke folder
+     itu, jadi sesi berikutnya perlu login ulang. **Sejak 26 Okt 2026 login dengan akun `ptbeningkhatulistiwa@gmail.com`**
+     (pemilik semua project Apps Script; lihat "Akun Google dan lokasi file"). Urutannya: `clasp clone <scriptId>` (atau `clasp pull`) ke folder
      kerja di scratchpad, **bandingkan dulu isi live dengan repo** (beda hanya baris kosong di akhir file = sama), salin
      file repo ke nama file live (`Code.gs` = `Kode.js`, `Archive.gs` = `Archive.js`, dst.), `clasp push --force`,
      `clasp create-version "<catatan>"`, lalu `clasp update-deployment <id deployment web> -V <nomor versi>` (id-nya
@@ -48,11 +49,26 @@ Browser ──► Next.js (Vercel) ──► /api/gas        ──► Apps Scri
 3. Jangan mengubah `.gs` kecuali diminta. Setelah mengubahnya, jaga sinkron dengan frontend (lihat
    "Kontrak yang harus sinkron").
 
+### Akun Google dan lokasi file (sejak 26 Okt 2026)
+
+Semua file Bening Hub **milik `ptbeningkhatulistiwa@gmail.com`** dan ada di folder Drive **Bening Super APPS**
+(ID `1fJPjU4J0srHNK-5sr6Wls1CDHAAsz2Rw`): spreadsheet Project Tracker, folder `Template` (template Commissioning dan
+Hand Over, folder arsip hasil generator, `Minutes of Meeting`, Referensi, BOM, EWD), folder `_Claude`, file BACKUP, dan
+PDF Master Thinking. Dulu milik `syafiqkhanafi.123@gmail.com` (folder "Project Engineer - PT Bening Khatulistiwa"),
+tetapi penyimpanan akun itu penuh sejak sekitar 20 Okt 2026 sehingga sheet tidak bisa diedit (simpan dari web gagal).
+Pada 26 Okt 2026 kepemilikan dialihkan (bukan disalin; 118 item, 0 gagal), jadi **semua ID dan URL tetap sama** dan
+Vercel tidak berubah. Akun lama tetap editor, sehingga konektor Google Drive/Sheets Claude yang tersambung ke akun lama
+masih bisa membaca dan menulis (penyimpanan dihitung ke pemilik). Keempat web app (backend + 3 generator) di-deploy
+ulang dari akun baru dengan versi yang sama, jadi semuanya berjalan sebagai akun baru dan dokumen hasil generator
+dimiliki akun baru. Jadwal `sendWeeklyDigest` kini milik akun baru (milik akun lama dihapus); backup otomatis
+(`installBackupTrigger`) belum pernah dipasang. Folder Bening Super APPS saat ini "siapa saja dengan tautan bisa
+mengedit" dan diwarisi semua isinya (TL-0032; jangan ubah izin tanpa diminta). Catatan lengkap: CAT-0013, KEP-0015.
+
 ### Project Apps Script utama (satu project, banyak file)
 
 Terikat ke spreadsheet `Project Tracker_PT Bening Khatulistiwa`
-(ID `1PAyBmvBydNF3cYH54iu2gcSC0vPBTjTmHMy_GNm65K4`). Satu project, file-file ini berbagi fungsi
-helper dari `Code.gs`:
+(ID `1PAyBmvBydNF3cYH54iu2gcSC0vPBTjTmHMy_GNm65K4`; nama project di editor: "Project Dashboard"). Satu project,
+file-file ini berbagi fungsi helper dari `Code.gs`:
 
 | File | Isi |
 |---|---|
@@ -129,8 +145,8 @@ berbeda dan semuanya lolos; tidak ada kode tingkat-atas yang saling merujuk anta
 >
 > **Masih tersisa:**
 >
-> 1. Keputusan dan tindakan pemilik (izin berbagi sheet, zona waktu, data janggal, rahasia generator Notulensi) ada di
->    tab `Tindak Lanjut` di Drive `_Claude`.
+> 1. Keputusan dan tindakan pemilik (izin berbagi folder Bening Super APPS, data janggal, rahasia generator Notulensi,
+>    uji sesudah migrasi akun, selisih P&ID vs arsip) ada di tab `Tindak Lanjut` di Drive `_Claude`.
 
 Tab yang dipakai API: `Project Tracker`, `Engineering Deliverables Checklist`, `Activity Log`, `Comments`,
 `Document Log`, `Project Specs`, `Meetings`, `Procurement` (tab-tab ini dibuat otomatis) dan
@@ -221,6 +237,17 @@ ubah format angka `Meetings!B:D` dan `Procurement!H:J` (disimpan sebagai teks).
 | `apps-script/docgen/commissioning.gs` | `17YubntTUx2Blrm-z9SljsqLAGdkxl6Z8-yBYP4KkbSg` | `1tidqVbWwC7LPUoctyDcMb5K_Zo1PH2kM` | `DOCGEN_COMMISSIONING_URL` |
 | `apps-script/docgen/handover.gs` | `1EkVlnf3xQZT4vvXc8SF_W9hWz8QXfwWqgYETn4rcwf0` | `1jdQ0D_SJ7FvOLzhUGdNh0U3DzrA1DSrv` | `DOCGEN_HANDOVER_URL` |
 | `apps-script/docgen/meeting.gs` (Notulensi) | tidak pakai template: dokumen dibuat dari kode (lanskap, 4 bagian) | `1IaQoI3Swl9LNvLu7PJoZW46DY2KSztDT` | `DOCGEN_MEETING_URL` + `DOCGEN_MEETING_SECRET` |
+
+Ketiganya **terikat ke dokumen** (bukan script mandiri), jadi ikut pemilik dokumennya dan tidak muncul di pencarian
+Drive sebagai file script: Commissioning = project "Comm Generator" (script ID
+`1h8Vh_mSYMz3VgfpdmOvZkTO5cucnKT8LP1ub9s1cNY5FWNSWXpr7F0UC`, terikat ke template Commissioning; 2 deployment aktif,
+versi 14 dan 10), Hand Over = "Hand Over Generator" (`14nzPkJViGsAQ3jOzoqasSnW-qVdDOJh9tDAv8KJzQ_J26FxVcqAsDzEw`,
+terikat ke template Hand Over; versi 10 = generator dinamis), Notulensi = "Project tak berjudul"
+(`1_uHXF_lGPoKBhBZ8SUL71rYTtqTTm24EeVJrFwtbfigwsXM9ayZoVava`, terikat ke Doc "Notulensi Rapat Mingguan" di folder
+Minutes of Meeting; 2 deployment aktif, versi 4 dan 2). Karena script ikut tersalin saat template di-`makeCopy`, setiap
+dokumen hasil generator membawa salinan script "Hand Over Generator"/"Comm Generator"/"Dokumen Generator" tanpa
+deployment; abaikan salinan itu. Saat men-deploy ulang, perbarui **semua** deployment aktif (env Vercel hanya memakai
+salah satunya, dan dari sini tidak terlihat yang mana).
 
 Cara kerja: `makeCopy` template, lalu `replaceText` untuk `{{PLACEHOLDER}}`. Blok
 `{{BEGIN_SECTION_X}} … {{END_SECTION_X}}` dihapus kalau flag `has_*` salah. Isi kosong jadi `.......`
@@ -541,8 +568,9 @@ tampilan dengan data hanya bisa diperiksa di produksi, atau lewat salinan sheet 
 Claude tidak mengingat antar-percakapan. Catatan, keputusan, dan tindak lanjut PM disimpan di Drive,
 lewat konektor Google Drive dan Google Sheets (bukan lewat API Bening Hub; frontend tidak menyentuhnya).
 
-- Folder `_Claude` (ID `1RKhlopBAsrsOVE7M4JG153Gv9MVynEm1`) di dalam folder induk "Project Engineer - PT Bening
-  Khatulistiwa" (ID `1KK8zk3jMyElvd-qYn69Lceza-P-GiLas`). Isinya sheet **Basis Data Catatan**
+- Folder `_Claude` (ID `1RKhlopBAsrsOVE7M4JG153Gv9MVynEm1`), sejak 26 Okt 2026 di dalam folder **Bening Super APPS**
+  milik `ptbeningkhatulistiwa@gmail.com` (dulu di "Project Engineer - PT Bening Khatulistiwa",
+  ID `1KK8zk3jMyElvd-qYn69Lceza-P-GiLas`, akun lama). Isinya sheet **Basis Data Catatan**
   (ID `1E-MlFc-6jSmeBzlV8z9HwLfkr-VtDIICE1J60Nx3FK4`) dan subfolder `Dokumen` (ID `1fW2vAamUiJ_9w8BqLL8lyNN6bpy415kU`).
 - Tab sheet: `Panduan` (aturan), `Catatan` (CAT-), `Keputusan` (KEP-), `Tindak Lanjut` (TL-), `Peta Drive`
   (daftar folder/berkas penting beserta ID).
@@ -550,11 +578,10 @@ lewat konektor Google Drive dan Google Sheets (bukan lewat API Bening Hub; front
   relevan. Tambah baris lewat append, ubah baris lewat ID-nya, **jangan hapus baris** (ubah kolom Status).
 - Konektor Drive hanya bisa mengubah **nama dan lokasi** file, bukan isi Google Doc atau file teks yang sudah
   ada. Dokumen panjang dibuat sebagai Doc baru di `Dokumen`; yang bisa diubah di tempat hanya Google Sheets.
-- **Jangan menyimpan rahasia** (kata sandi, token, API key, data pribadi): folder induk dan `_Claude` dibagikan
-  "siapa saja dengan tautan bisa melihat", dan spreadsheet `Project Tracker_PT Bening Khatulistiwa` bahkan "siapa saja
-  dengan tautan bisa mengedit" (status 12 Okt 2026; TL-0001 di tab Tindak Lanjut, pemilik yang memutuskan). Jangan
-  mengubah izin berbagi tanpa diminta.
-- Sheet `Project Tracker_PT Bening Khatulistiwa` (di folder Project Management) adalah database aplikasi,
+- **Jangan menyimpan rahasia** (kata sandi, token, API key, id deployment, data pribadi): folder Bening Super APPS
+  (beserta `_Claude` dan spreadsheet di dalamnya) dibagikan "siapa saja dengan tautan bisa mengedit" (status 26 Okt
+  2026; TL-0001 dan TL-0032 di tab Tindak Lanjut, pemilik yang memutuskan). Jangan mengubah izin berbagi tanpa diminta.
+- Sheet `Project Tracker_PT Bening Khatulistiwa` (di folder Bening Super APPS) adalah database aplikasi,
   bukan tempat catatan. Jangan mengeditnya lewat konektor kecuali diminta.
 
 ## Hal yang belum diketahui / perlu ditanyakan
@@ -565,8 +592,9 @@ lewat konektor Google Drive dan Google Sheets (bukan lewat API Bening Hub; front
 - Tampilan aplikasi asli belum bisa diperiksa dari sandbox (butuh login Google + data Sheet live); Preview Deployment
   juga tanpa data (lihat catatan `GAS_API_URL` di bagian Environment variable). Hasil nyata terlihat di produksi
   dan di tab `Activity Log` (aksi yang dilakukan pemilik lewat web tercatat di sana).
-- Zona waktu: spreadsheet `America/Los_Angeles`, script WIB (disimpulkan dari jam ringkasan mingguan; pemilik belum
-  mengonfirmasi). v2.7 sudah tahan terhadap perbedaan ini, tetapi jam di tab Activity Log tampil dalam waktu Los Angeles.
+- Sesudah migrasi akun (26 Okt 2026) belum ada uji nyata dari web: simpan satu isian lalu cek baris baru di tab
+  `Activity Log`, dan buat satu dokumen lalu cek pemiliknya `ptbeningkhatulistiwa` (TL-0032). Sebelum migrasi, baris
+  terakhir di Activity Log bertanggal 20 Okt 2026 karena penyimpanan akun lama penuh.
 - Data tanggal lama yang janggal (bukan akibat penataan, hanya terlihat saat dirapikan): project 2015-2018 masih
   `In Progress`; tanggal kirim sebelum tanggal PO pada TKE-ISK; Tanggal DP sebelum Tanggal PO pada TKE MUS, TKE BMM, dan
   TKE CAP; No 18 Unilever Skin RO1 & RO2 Auto berada di tahap Hand Over and Finished tetapi Status masih `In Progress`.
