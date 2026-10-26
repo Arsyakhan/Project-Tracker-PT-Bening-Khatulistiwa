@@ -61,8 +61,11 @@ Vercel tidak berubah. Akun lama tetap editor, sehingga konektor Google Drive/She
 masih bisa membaca dan menulis (penyimpanan dihitung ke pemilik). Keempat web app (backend + 3 generator) di-deploy
 ulang dari akun baru dengan versi yang sama, jadi semuanya berjalan sebagai akun baru dan dokumen hasil generator
 dimiliki akun baru. Jadwal `sendWeeklyDigest` kini milik akun baru (milik akun lama dihapus); backup otomatis
-(`installBackupTrigger`) belum pernah dipasang. Folder Bening Super APPS saat ini "siapa saja dengan tautan bisa
-mengedit" dan diwarisi semua isinya (TL-0032; jangan ubah izin tanpa diminta). Catatan lengkap: CAT-0013, KEP-0015.
+(`installBackupTrigger`) belum pernah dipasang. Izin: folder Bening Super APPS dan semua isinya **Dibatasi** (pemilik
+`ptbeningkhatulistiwa`, editor `syafiqkhanafi.123`; dirapikan pemilik 26 Okt 2026), jadi anggota tim lain perlu
+dibagikan foldernya dulu supaya bisa membuka tautan dokumen dari web (TL-0032; jangan ubah izin tanpa diminta).
+Terbukti 26 Okt 2026 sesudah migrasi: simpan dari web tercatat lagi di Activity Log, dan generator Commissioning
+membuat dokumen milik akun baru di folder arsipnya. Catatan lengkap: CAT-0013, KEP-0015.
 
 ### Project Apps Script utama (satu project, banyak file)
 
@@ -578,9 +581,9 @@ lewat konektor Google Drive dan Google Sheets (bukan lewat API Bening Hub; front
   relevan. Tambah baris lewat append, ubah baris lewat ID-nya, **jangan hapus baris** (ubah kolom Status).
 - Konektor Drive hanya bisa mengubah **nama dan lokasi** file, bukan isi Google Doc atau file teks yang sudah
   ada. Dokumen panjang dibuat sebagai Doc baru di `Dokumen`; yang bisa diubah di tempat hanya Google Sheets.
-- **Jangan menyimpan rahasia** (kata sandi, token, API key, id deployment, data pribadi): folder Bening Super APPS
-  (beserta `_Claude` dan spreadsheet di dalamnya) dibagikan "siapa saja dengan tautan bisa mengedit" (status 26 Okt
-  2026; TL-0001 dan TL-0032 di tab Tindak Lanjut, pemilik yang memutuskan). Jangan mengubah izin berbagi tanpa diminta.
+- **Jangan menyimpan rahasia** (kata sandi, token, API key, id deployment, data pribadi). Folder Bening Super APPS
+  (beserta `_Claude` dan spreadsheet di dalamnya) sejak 26 Okt 2026 Dibatasi (TL-0001 selesai), tetapi aturan ini tetap
+  berlaku karena folder bisa dibagikan ke tim. Jangan mengubah izin berbagi tanpa diminta.
 - Sheet `Project Tracker_PT Bening Khatulistiwa` (di folder Bening Super APPS) adalah database aplikasi,
   bukan tempat catatan. Jangan mengeditnya lewat konektor kecuali diminta.
 
@@ -588,13 +591,13 @@ lewat konektor Google Drive dan Google Sheets (bukan lewat API Bening Hub; front
 
 - `docgen/meeting.gs`: versi live belum memeriksa `GENERATOR_SECRET` (hanya disebut di komentar).
   Salinan di repo sudah ditambah pengecekannya; baru berlaku setelah ditempel & di-deploy ulang, dan
-  `GENERATOR_SECRET` (Script Properties) harus sama dengan `DOCGEN_MEETING_SECRET` (Vercel).
+  `GENERATOR_SECRET` (Script Properties) harus sama dengan `DOCGEN_MEETING_SECRET` (Vercel). Pemilik memutuskan
+  26 Okt 2026 bahwa ini tidak perlu dikerjakan (TL-0014 dibatalkan); jangan diusulkan lagi kecuali ditanya.
 - Tampilan aplikasi asli belum bisa diperiksa dari sandbox (butuh login Google + data Sheet live); Preview Deployment
   juga tanpa data (lihat catatan `GAS_API_URL` di bagian Environment variable). Hasil nyata terlihat di produksi
   dan di tab `Activity Log` (aksi yang dilakukan pemilik lewat web tercatat di sana).
-- Sesudah migrasi akun (26 Okt 2026) belum ada uji nyata dari web: simpan satu isian lalu cek baris baru di tab
-  `Activity Log`, dan buat satu dokumen lalu cek pemiliknya `ptbeningkhatulistiwa` (TL-0032). Sebelum migrasi, baris
-  terakhir di Activity Log bertanggal 20 Okt 2026 karena penyimpanan akun lama penuh.
+- Sesudah migrasi akun (26 Okt 2026) generator Hand Over dan Notulensi belum dicoba (Commissioning dan simpan dari web
+  sudah terbukti jalan). Kalau dicoba, cek pemilik dokumennya `ptbeningkhatulistiwa` dan barisnya di Document Log.
 - Data tanggal lama yang janggal (bukan akibat penataan, hanya terlihat saat dirapikan): project 2015-2018 masih
   `In Progress`; tanggal kirim sebelum tanggal PO pada TKE-ISK; Tanggal DP sebelum Tanggal PO pada TKE MUS, TKE BMM, dan
   TKE CAP; No 18 Unilever Skin RO1 & RO2 Auto berada di tahap Hand Over and Finished tetapi Status masih `In Progress`.
