@@ -12,10 +12,25 @@ Data project tetap di Google Sheet; penghubungnya Project ID `prj_xxxx`.
 | `barang` | Katalog: kode (mis. `FTG-0079`), nama, spesifikasi, ukuran, material, merek, model, satuan, foto (tautan Drive), stok minimum, status cek |
 | `file_bom` | Semua file BOM/BOQ yang pernah diimpor dari Dropbox: project, revisi, tanggal ubah, revisi terakhir, lokasi |
 | `baris_bom_arsip` | Baris BOM apa adanya dari file lama, masing-masing dengan `barang_kode` |
-| `lokasi_gudang` | Lokasi/rak gudang (belum diisi) |
-| `transaksi_stok` | Buku besar stok: saldo awal, masuk, keluar, kembali, penyesuaian. Stok = jumlah transaksi, tidak disimpan sebagai angka |
-| `stok_barang` (view) | Stok per barang hasil penjumlahan `transaksi_stok` |
+| `lokasi_gudang` | Lokasi gudang. `UTAMA` (Gudang utama) dibuat 27 Okt 2026; lokasi lain ditambah dari halaman Stock Opname |
+| `transaksi_stok` | Buku besar stok: saldo awal, masuk, keluar, kembali, penyesuaian. Stok = jumlah transaksi, tidak disimpan sebagai angka. `opname_id` menunjuk sesi opname asalnya |
+| `stok_barang` (view) | Stok per barang hasil penjumlahan `transaksi_stok` (semua lokasi) |
+| `stok_per_lokasi` (view) | Stok per barang per lokasi, plus jumlah transaksinya (0 transaksi = belum punya saldo awal di lokasi itu) |
+| `stock_opname` | Sesi stock opname: judul, lokasi, tanggal, status `draf` / `selesai`, siapa yang membuat dan memposting |
+| `stock_opname_baris` | Hitungan per barang di satu sesi (satu baris per barang per sesi), siapa yang menghitung dan kapan |
 | `pengguna` | Email dan divisi (PM, Engineering, Direksi, Warehouse & Purchasing, Technician) untuk hak akses modul gudang |
+
+## Fungsi dan trigger
+
+- `posting_opname(p_id, p_email)`: memposting satu sesi opname dalam satu transaksi database. Barang yang belum pernah
+  punya transaksi di lokasi sesi menjadi `saldo_awal` (hitungan 0 dilewati); barang yang sudah punya menjadi
+  `penyesuaian` sebesar selisih hitungan dengan stok di lokasi itu; yang sama tidak dicatat. Barang yang tidak dihitung
+  tidak berubah. Sesi dikunci `FOR UPDATE`, jadi tidak bisa diposting dua kali. Hanya `service_role` yang boleh
+  memanggilnya (dicabut dari `public`, `anon`, `authenticated`).
+- Trigger `stock_opname_baris_kunci` (`cek_opname_draf`): hitungan hanya bisa ditambah, diubah, atau dihapus selama
+  sesinya `draf`. Sesi yang sudah diposting juga tidak bisa dihapus karena transaksinya menunjuk sesi itu.
+- Diuji 27 Okt 2026 di database asli dalam transaksi yang dibatalkan: posting pertama (saldo awal), kunci sesudah
+  posting, tolak posting ulang, posting kedua (penyesuaian), hapus draf; tidak ada data uji yang tersisa.
 
 ## Keamanan
 
