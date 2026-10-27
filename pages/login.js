@@ -1,11 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import Image from 'next/image';
 import { clearAllCache } from '../lib/persistedCache';
 import BeningLogo from '../components/brand/BeningLogo';
-import HubDiagram from '../components/brand/HubDiagram';
+import WaterSurface from '../components/brand/WaterSurface';
 
 function GoogleMark() {
   return (
@@ -18,17 +17,34 @@ function GoogleMark() {
   );
 }
 
-// Halaman masuk: sesedikit mungkin tulisan. Panel merek menggambarkan Bening Hub sebagai super app (satu sumber
-// air mengalir ke semua modul); panel masuk hanya berisi logo, satu baris "Super App", dan tombol Google.
+// Halaman masuk. Seluruh latar = foto instalasi WTP yang dilihat dari balik permukaan air (WaterSurface, WebGL):
+// beriak pelan, merespons kursor, dan menerima riak dari tetes logo yang jatuh saat intro. Teks sesedikit mungkin:
+// logo, "Super App PT Bening Khatulistiwa", dan kartu masuk dengan tombol Google.
+const LOGO_LANDS_MS = 430; // sama dengan akhir animasi bl-fall di globals.css
+
 export default function Login() {
   const router = useRouter();
   const { error } = router.query;
   const [loading, setLoading] = useState(false);
+  const waterRef = useRef(null);
+  const brandRef = useRef(null);
 
   // Halaman login = belum/tidak lagi login (keluar atau sesi habis). Buang data tersimpan di
   // browser supaya tidak terlihat oleh siapa pun yang login berikutnya di perangkat ini.
   useEffect(() => {
     clearAllCache();
+  }, []);
+
+  // Saat tetes logo mendarat, riaknya menyebar ke permukaan air di belakangnya.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      const marks = brandRef.current ? brandRef.current.querySelectorAll('.bl-mark') : [];
+      const mark = Array.from(marks).find((m) => m.getClientRects().length > 0);
+      if (!mark || !waterRef.current) return;
+      const r = mark.getBoundingClientRect();
+      waterRef.current.drop(r.left + r.width / 2, r.bottom - r.height * 0.12, 1.4);
+    }, LOGO_LANDS_MS);
+    return () => clearTimeout(t);
   }, []);
 
   const errorMessage =
@@ -43,40 +59,38 @@ export default function Login() {
     signIn('google', { callbackUrl: '/' });
   }
 
+  const year = new Date().getFullYear();
+
   return (
     <>
       <Head>
         <title>Masuk - Bening Hub</title>
       </Head>
-      <div className="min-h-screen flex flex-col lg:flex-row bg-canvas">
-        {/* Panel merek: foto instalasi WTP + lapisan navy ("deep") di kedua tema, isinya ilustrasi saja. */}
-        <section aria-hidden="true" className="relative overflow-hidden bg-deep lg:w-[56%] flex items-center justify-center px-6 pt-8 pb-6 sm:px-10 lg:p-14">
-          <Image
-            src="/wastewater-treatment-upd.webp"
-            alt=""
-            fill
-            sizes="(min-width: 1024px) 56vw, 100vw"
-            style={{ objectFit: 'cover', objectPosition: 'center' }}
-            priority
-            quality={70}
-          />
-          <div className="absolute inset-0 photo-veil" />
-          <div className="absolute inset-0 grid-deep" />
-          <div className="absolute inset-0 glow-air" />
-          <HubDiagram className="relative w-full max-w-[640px] h-auto" />
-        </section>
+      <div className="relative min-h-screen overflow-hidden water-base text-white">
+        <WaterSurface ref={waterRef} src="/wastewater-treatment-upd.webp" />
+        <div className="absolute inset-0 login-scrim" aria-hidden="true" />
 
-        {/* Panel masuk */}
-        <main className="flex-1 flex flex-col px-6 pt-10 pb-8 sm:px-10 lg:px-16 lg:py-10">
-          <div className="flex-1 flex items-start lg:items-center">
-            <div className="w-full max-w-sm mx-auto lg:mx-0">
-              <h1>
-                <BeningLogo height={26} intro ambient />
-              </h1>
-              <p className="mt-5 text-base text-inkmute">Super App PT Bening Khatulistiwa</p>
+        <div className="relative z-10 min-h-screen flex flex-col lg:flex-row">
+          {/* Merek: kiri bawah di desktop, di atas kartu di HP */}
+          <section ref={brandRef} className="flex-1 flex flex-col justify-end px-6 pt-24 pb-8 sm:px-12 lg:px-16 lg:pb-16">
+            <h1 className="hidden lg:block">
+              <BeningLogo height={46} intro className="text-white" />
+            </h1>
+            <h1 className="lg:hidden">
+              <BeningLogo height={26} intro className="text-white" />
+            </h1>
+            <p className="login-sub mt-4 lg:mt-6 text-base lg:text-xl font-medium text-white/85">Super App PT Bening Khatulistiwa</p>
+            <p className="hidden lg:block mt-14 text-xs text-white/60">© {year} PT Bening Khatulistiwa</p>
+          </section>
+
+          {/* Kartu masuk */}
+          <main className="lg:w-[480px] flex items-end justify-center px-4 pb-6 sm:px-8 lg:pl-0 lg:pr-16 lg:pb-16">
+            <div className="login-card w-full max-w-sm bg-panel text-ink rounded-2xl shadow-md ring-1 ring-black/5 dark:ring-white/10 p-6 sm:p-8">
+              <h2 className="text-lg font-semibold">Masuk</h2>
+              <p className="mt-1 text-sm text-inkmute">Gunakan akun Google yang sudah terdaftar.</p>
 
               {errorMessage && (
-                <div role="alert" className="mt-8 flex items-start gap-2.5 bg-rust/10 border border-rust/30 text-rust text-sm p-3 rounded-lg font-medium">
+                <div role="alert" className="mt-5 flex items-start gap-2.5 bg-rust/10 border border-rust/30 text-rust text-sm p-3 rounded-lg font-medium">
                   <svg className="w-5 h-5 flex-shrink-0 mt-px" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
                   </svg>
@@ -88,16 +102,15 @@ export default function Login() {
                 type="button"
                 onClick={handleSignIn}
                 disabled={loading}
-                className="mt-8 w-full flex items-center justify-center gap-3 h-12 rounded-xl border border-line bg-panel text-ink text-sm font-semibold shadow-sm transition-[border-color,box-shadow,transform] duration-150 ease-standard hover:border-blueprint/60 hover:shadow-md active:translate-y-px disabled:opacity-60 disabled:cursor-wait"
+                className="mt-6 w-full flex items-center justify-center gap-3 h-12 rounded-xl border border-line bg-panel text-ink text-sm font-semibold shadow-sm transition-[border-color,box-shadow,transform] duration-150 ease-standard hover:border-blueprint/60 hover:shadow-md active:translate-y-px disabled:opacity-60 disabled:cursor-wait"
               >
                 <GoogleMark />
                 {loading ? 'Mengalihkan ke Google...' : 'Masuk dengan Google'}
               </button>
-              <p className="mt-3 text-xs text-inkmute">Khusus akun yang sudah didaftarkan admin.</p>
+              <p className="lg:hidden mt-5 text-xs text-inkmute text-center">© {year} PT Bening Khatulistiwa</p>
             </div>
-          </div>
-          <p className="text-xs text-inkmute text-center lg:text-left">© {new Date().getFullYear()} PT Bening Khatulistiwa</p>
-        </main>
+          </main>
+        </div>
       </div>
     </>
   );

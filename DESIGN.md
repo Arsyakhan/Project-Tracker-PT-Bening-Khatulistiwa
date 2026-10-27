@@ -10,17 +10,19 @@ perusahaan (water treatment, gambar P&ID), bukan dari perbandingan dengan situs 
 ## Prinsip: jernih, presisi, mengalir
 
 1. **Jernih.** Latar putih kebiruan, garis rambut, satu biru merek. Warna lain hanya untuk arti: selesai (teal),
-   perlu perhatian (amber), terlambat (rust). Tidak ada gradien hiasan; satu-satunya gradien adalah cahaya lembut di
-   belakang tetes dan lapisan di atas foto WTP pada halaman masuk.
+   perlu perhatian (amber), terlambat (rust). Tidak ada gradien hiasan; satu-satunya gradien adalah lapisan gelap di
+   atas foto WTP pada halaman masuk, supaya logo dan kartu masuk terbaca.
 2. **Presisi.** Bahasa gambar teknik: garis P&ID, angka rata (`tnum`), huruf mono hanya untuk kode (nomor PO, persen
    di tabel). Data dikelompokkan dalam satu panel bergaris pemisah, bukan dipotong menjadi banyak kartu yang sama.
 3. **Mengalir.** Gerak hanya lewat air. Logo tampil dengan satu motion graphic (tetes jatuh, memercik, terisi, huruf
    muncul dari garis air). Tetes di logo surut dan bergelombang selama halaman dimuat, lalu penuh lagi.
-   Halaman masuk punya satu momen: tetes terisi, lalu air mengalir lewat pipa ke enam modul (menggambarkan "super app").
+   Halaman masuk punya satu momen: tetes logo jatuh dan riaknya menyebar ke foto instalasi WTP yang dilihat dari balik
+   permukaan air bening; sesudahnya air hanya beriak pelan dan menjawab kursor atau sentuhan.
    Tidak ada yang memantul, berkedip, atau muncul bergiliran di setiap bagian.
 
 Hal yang sengaja dihindari: label huruf kapital semua, gradien ungu-biru, efek kaca, ikon emoji, kartu identik
-berbayang sama di mana-mana, tanda panah di belakang setiap tautan, dan kalimat yang terdengar seperti buatan mesin.
+berbayang sama di mana-mana, tanda panah di belakang setiap tautan, diagram ikon-dan-garis yang "menjelaskan" produk
+(diagram pipa ke enam modul pernah dicoba di halaman masuk dan ditolak), dan kalimat yang terdengar seperti buatan mesin.
 
 ## Warna
 
@@ -35,7 +37,7 @@ berbayang sama di mana-mana, tanda panah di belakang setiap tautan, dan kalimat 
 | `blueprintdark` | `#063E75` | `#84C0F6` | hover aksi utama |
 | `brand` | `#063E75` | `#D6E6F5` | biru logo: wordmark, tetes |
 | `deep` | `#063E75` | `#052442` | permukaan merek (panel login), teks di atasnya selalu putih |
-| `air` | `#20A4D8` | `#3CC3EE` | air: isian logo bergerak, loading bar, denyut pipa (bukan teks) |
+| `air` | `#20A4D8` | `#3CC3EE` | air: isian logo bergerak, riak intro logo, loading bar (bukan teks) |
 | `teal` | `#007066` | `#2BC7B0` | selesai, berhasil |
 | `amber` / `amberink` | `#D98A00` / `#8B5900` | `#EBA844` | perlu perhatian (isian / teks) |
 | `rust` | `#BC2727` | `#EC6F6F` | terlambat, bahaya |
@@ -60,7 +62,7 @@ Semua pasangan teks lolos WCAG AA (>= 4,5:1) di `canvas` dan `panel`, di kedua t
 
 Token: `--ease-standard` `cubic-bezier(0.2,0,0,1)`, `--ease-enter`, `--ease-exit`, `--dur-fast` 120 ms,
 `--dur-normal` 200 ms, `--dur-slow` 320 ms. Umpan balik tekan tombol: turun 1 px. `prefers-reduced-motion` dihormati
-(semua gerak berhenti, diagram login tampil utuh tanpa denyut).
+(semua gerak berhenti; latar halaman masuk menjadi foto statis dengan duotone yang sama).
 
 ## Komponen merek
 
@@ -70,7 +72,10 @@ Token: `--ease-standard` `cubic-bezier(0.2,0,0,1)`, `--ease-enter`, `--ease-exit
   hasil vectorize Adobe Illustrator dari logo asli) + baris kecil opsional ("Super App"). Prop `intro` = motion graphic
   sekitar 1,4 detik: tetes jatuh dan memercik (dua riak), terisi air, huruf muncul satu per satu dari bawah garis air,
   lalu "Super App". Prop `ambient` = air tetap bergelombang pelan sesudahnya (halaman masuk saja).
-- `components/brand/HubDiagram.jsx`: ilustrasi halaman masuk (P&ID: tetes, valve, header, enam modul).
+- `components/brand/WaterSurface.jsx`: latar halaman masuk. Foto WTP dilihat dari balik permukaan air (WebGL 1,
+  satu fragment shader): refraksi, duotone navy `#03182E` ke biru air `#9CD6F0`, kilau tipis. Riak datang dari kursor
+  (kecil), klik/sentuh (sedang), tetes kecil tiap 6,5 detik, dan `ref.drop(x, y, kekuatan)` (tetes logo yang mendarat).
+  Fallback tanpa WebGL atau dengan gerak dikurangi: foto statis dengan duotone CSS yang sama.
 - `lib/useRouteBusy.js`: `true` selama pindah halaman; dipakai logo di sidebar dan header HP.
 
 ## Bahasa

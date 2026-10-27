@@ -411,7 +411,7 @@ tampilan dengan data hanya bisa diperiksa di produksi, atau lewat salinan sheet 
 - Halaman: `/` **Hari Ini** (beranda: hal yang perlu ditindak lintas project, pengadaan, tindak lanjut rapat, dokumen; filter per divisi; logika di `lib/today.js`, pemetaan stage → divisi pemegang di `STAGE_OWNER`, ubah di sana kalau pembagian kerja berbeda), `/dashboard` grafik & tabel project, `/board` kanban, `/projects` (+ `/new`, `/[id]`), `/engineering-docs`,
   `/procurement`, `/documents` (+ `commissioning/new`, `handover/new`, `meetings` + `new`/`[id]`),
   `/arsip` (+ `/new`, `/[id]`; arsip project selesai, bisa ditambah/diubah dari web dan dari spreadsheet), `/activity`, `/login`.
-- Shell: `pages/_app.js` + `components/Sidebar.jsx` (menu `NAV_GROUPS` dikelompokkan Harian / Project / Dokumen & Arsip; tambah halaman baru di sana). `pages/login.js` memakai panel merek dua kolom (foto WTP + diagram hub; lihat "Desain UI").
+- Shell: `pages/_app.js` + `components/Sidebar.jsx` (menu `NAV_GROUPS` dikelompokkan Harian / Project / Dokumen & Arsip; tambah halaman baru di sana). `pages/login.js` = foto WTP layar penuh di balik permukaan air WebGL (`WaterSurface`) + logo + kartu masuk (lihat "Desain UI").
 - Papan Kanban (`pages/board.js` + `components/KanbanBoard.jsx`): dikelompokkan per **fase** (`STAGE_PHASES` di
   `lib/stagePhases.js`, juga dipakai `StagePipeline`): 4 kolom di layar ≥1340px, 2 kolom di tablet, daftar bertingkat
   yang bisa dilipat di HP. Tahap kosong hanya setipis satu baris tapi tetap bisa jadi tujuan seret. Saat kartu
@@ -618,11 +618,18 @@ tampilan dengan data hanya bisa diperiksa di produksi, atau lewat salinan sheet 
   Mono (kode/data), dimuat lewat `<link>` di `pages/_document.js`. Tidak ada label huruf kapital semua.
 - Logo = komponen, bukan gambar: `components/brand/BeningLogo.jsx` (tetes SVG + wordmark vektor per huruf di
   `components/brand/wordmarkPaths.js`, hasil vectorize Adobe dari logo asli). Prop `intro` = motion graphic saat logo
-  pertama tampil (login, sidebar, header HP), `ambient` = air terus bergelombang pelan (login), `busy` = tetes surut
-  selama pindah halaman (`lib/useRouteBusy.js`). File PNG logo lama tetap dipakai untuk ikon PWA dan favicon.
-  Halaman login: foto WTP (`public/wastewater-treatment-upd.webp`, diminta pemilik tetap ada) + lapisan navy +
-  `HubDiagram` (tetes mengalirkan air ke enam modul = "Super App"), panel masuk berisi logo, satu baris
-  "Super App PT Bening Khatulistiwa", dan tombol Google.
+  pertama tampil (login, sidebar, header HP), `ambient` = air di tetes terus bergelombang pelan (saat ini tidak
+  dipakai), `busy` = tetes surut selama pindah halaman (`lib/useRouteBusy.js`). File PNG logo lama tetap dipakai untuk
+  ikon PWA dan favicon.
+  Halaman login (27 Okt 2026, menggantikan diagram pipa `HubDiagram` yang ditolak pemilik karena terlihat seperti
+  buatan AI): foto WTP layar penuh (`public/wastewater-treatment-upd.webp`, diminta pemilik tetap ada) dilihat dari balik
+  permukaan air bening, `components/brand/WaterSurface.jsx` (WebGL 1 tanpa pustaka: refraksi foto, duotone biru merek,
+  kilau; riak dari kursor, klik, tetes kecil sesekali, dan dari tetes logo yang mendarat saat intro lewat `ref.drop()`).
+  Tanpa WebGL atau dengan `prefers-reduced-motion`: foto statis dengan duotone CSS yang warnanya sama (`water-tint`,
+  `water-lift`). Isi halaman: logo putih kiri bawah, satu baris "Super App PT Bening Khatulistiwa", kartu masuk dengan
+  tombol Google. Catatan: efek dipasang dua kali oleh React strict mode di dev, jadi pembersihnya menghapus sumber daya
+  WebGL, **bukan** `loseContext()` (konteks yang hilang membuat pemasangan kedua jatuh ke fallback). Video uji di
+  sandbox (tanpa GPU) direkam dengan waktu halaman diperlambat lalu dipercepat lagi, karena SwiftShader hanya ~5 fps.
 - Target kontras minimal 4,5:1 di kedua tema; hormati `prefers-reduced-motion`.
 - Di HP (lebar < 768px): teks informasi minimal 12px (`text-xs`; jangan `text-[10px]`/`text-[11px]`, kecuali
   glyph dekoratif, petunjuk `kbd`, dan lencana angka), tombol minimal 40px (`h-9 max-md:h-10`), kolom isian
