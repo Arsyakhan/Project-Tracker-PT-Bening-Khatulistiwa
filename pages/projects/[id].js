@@ -125,6 +125,12 @@ export default function ProjectDetailPage() {
 
   useEffect(() => { load(); }, [id]);
 
+  // ?tab=checklist (mis. dari halaman Dokumen) membuka tab itu langsung.
+  useEffect(() => {
+    const t = router.query.tab;
+    if (typeof t === 'string' && TABS.some((x) => x.key === t)) setActiveTab(t);
+  }, [router.query.tab]);
+
   // Ganti project -> komentar project sebelumnya jangan ikut terbawa
   useEffect(() => {
     setComments(null);
@@ -635,7 +641,7 @@ export default function ProjectDetailPage() {
 
       {/* Jejak navigasi */}
       <nav aria-label="Jejak navigasi" className="flex items-center gap-1.5 text-xs text-inkmute min-w-0 -mb-1">
-        <Link href="/projects" className="tap hover:text-blueprint transition-colors">Semua Project</Link>
+        <Link href="/projects" className="tap hover:text-blueprint transition-colors">Project</Link>
         <span aria-hidden="true" className="text-line">/</span>
         <span aria-current="page" className="font-data truncate">{project.poNumber || 'Tanpa PO'}</span>
       </nav>

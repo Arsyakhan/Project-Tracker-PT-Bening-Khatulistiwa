@@ -1,5 +1,5 @@
 import { useRouter } from 'next/router';
-import MeetingEditor from '../../../components/meetings/MeetingEditor';
+import MeetingEditor from '../../components/meetings/MeetingEditor';
 
 export default function MeetingPage() {
   const router = useRouter();

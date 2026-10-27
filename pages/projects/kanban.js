@@ -1,15 +1,16 @@
 import { useMemo, useState } from 'react';
-import { api } from '../lib/api';
-import { STAGE_WEIGHTS } from '../lib/stages';
-import { stageChangePatch } from '../lib/projectRules';
-import useProjects from '../lib/useProjects';
-import RefreshStatus from '../components/RefreshStatus';
-import KanbanBoard from '../components/KanbanBoard';
-import PageHead from '../components/PageHead';
-import { SkeletonPanel } from '../components/Skeleton';
-import { useToast } from '../components/Toast';
-import PageHeader from '../components/ui/PageHeader';
-import SearchField from '../components/ui/SearchField';
+import { api } from '../../lib/api';
+import { STAGE_WEIGHTS } from '../../lib/stages';
+import { stageChangePatch } from '../../lib/projectRules';
+import useProjects from '../../lib/useProjects';
+import RefreshStatus from '../../components/RefreshStatus';
+import KanbanBoard from '../../components/KanbanBoard';
+import PageHead from '../../components/PageHead';
+import { SkeletonPanel } from '../../components/Skeleton';
+import { useToast } from '../../components/Toast';
+import ProjectViews from '../../components/ProjectViews';
+import PageHeader from '../../components/ui/PageHeader';
+import SearchField from '../../components/ui/SearchField';
 
 export default function BoardPage() {
   // mutate = ubah data lokal (update optimis). Setelah itu, hasil penyegaran yang datang
@@ -74,7 +75,8 @@ export default function BoardPage() {
   const blocked = (projects || []).filter((p) => p.blocker).length;
   const header = (
     <PageHeader
-      title="Papan Kanban"
+      title="Project"
+      nav={<ProjectViews active="kanban" />}
       meta={
         <>
           <span className="hidden md:inline">Seret kartu ke tahap tujuan, atau pakai menu tahap di kartu. </span>
@@ -97,7 +99,7 @@ export default function BoardPage() {
   if (error) {
     return (
       <div className="flex flex-col gap-5">
-        <PageHead title="Papan Kanban" />
+        <PageHead title="Kanban Project" />
         {header}
         <div className="bg-panel border border-line rounded-xl p-6 text-rust" role="alert">Gagal memuat data: {error}</div>
       </div>
@@ -106,7 +108,7 @@ export default function BoardPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <PageHead title="Papan Kanban" />
+      <PageHead title="Kanban Project" />
       {header}
 
       {!projects ? (

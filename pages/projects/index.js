@@ -9,6 +9,7 @@ import { SkeletonTable } from '../../components/Skeleton';
 import PageHead from '../../components/PageHead';
 import { useToast } from '../../components/Toast';
 import { downloadProjectsCsv } from '../../lib/exportCsv';
+import ProjectViews from '../../components/ProjectViews';
 import PageHeader from '../../components/ui/PageHeader';
 import SearchField from '../../components/ui/SearchField';
 import EmptyState from '../../components/ui/EmptyState';
@@ -107,8 +108,8 @@ export default function ProjectsPage() {
   if (error) {
     return (
       <div className="flex flex-col gap-6">
-        <PageHead title="Semua Project" />
-        <PageHeader title="Semua Project" actions={actions} />
+        <PageHead title="Project" />
+        <PageHeader title="Project" actions={actions} nav={<ProjectViews active="list" />} />
         <div className="bg-panel border border-line rounded-xl p-6 text-rust" role="alert">{error}</div>
       </div>
     );
@@ -117,8 +118,8 @@ export default function ProjectsPage() {
   if (!projects) {
     return (
       <div className="flex flex-col gap-6">
-        <PageHead title="Semua Project" />
-        <PageHeader title="Semua Project" meta="Memuat daftar project..." actions={actions} />
+        <PageHead title="Project" />
+        <PageHeader title="Project" meta="Memuat daftar project..." actions={actions} nav={<ProjectViews active="list" />} />
         <div className="skeleton-shimmer rounded-xl h-[60px]" />
         <SkeletonTable rows={6} />
       </div>
@@ -130,10 +131,11 @@ export default function ProjectsPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <PageHead title="Semua Project" />
+      <PageHead title="Project" />
 
       <PageHeader
-        title="Semua Project"
+        title="Project"
+        nav={<ProjectViews active="list" />}
         meta={
           <span className="tnum">
             {projects.length} project: {count('Pre-Delivery')} {PHASE_LABEL['Pre-Delivery'].toLowerCase()}, {count('Delivered')} {PHASE_LABEL.Delivered.toLowerCase()}, {count('Completed')} {PHASE_LABEL.Completed.toLowerCase()}

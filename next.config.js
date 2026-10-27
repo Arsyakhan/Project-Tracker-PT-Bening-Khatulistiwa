@@ -21,6 +21,15 @@ const withPWA = require('next-pwa')({
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Alamat lama sebelum menu dirapikan (27 Okt 2026) tetap bisa dibuka: tautan tersimpan, bookmark, dan PWA.
+  async redirects() {
+    return [
+      { source: '/board', destination: '/projects/kanban', permanent: false },
+      { source: '/engineering-docs', destination: '/documents', permanent: false },
+      { source: '/documents/meetings', destination: '/meetings', permanent: false },
+      { source: '/documents/meetings/:path*', destination: '/meetings/:path*', permanent: false },
+    ];
+  },
 };
 
 module.exports = withPWA(nextConfig);

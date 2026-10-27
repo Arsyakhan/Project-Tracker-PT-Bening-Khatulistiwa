@@ -124,7 +124,7 @@ export default function Dashboard() {
         <Panel
           title="Kelengkapan dokumen engineering"
           hint={`Dokumen Completed dari project yang memerlukannya (${activeProjects.length} project aktif dan ${total - activeProjects.length} selesai).`}
-          aside={<Link href="/engineering-docs" className="tap text-sm font-medium text-blueprint hover:underline">Kelola</Link>}
+          aside={<Link href="/documents" className="tap text-sm font-medium text-blueprint hover:underline">Kelola</Link>}
         >
           <DocCoverage projects={projects} items={checklistItems} />
           <p className="flex items-center gap-4 text-xs text-inkmute mt-4">

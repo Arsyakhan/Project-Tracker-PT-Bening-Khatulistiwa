@@ -4,12 +4,16 @@ import { api } from '../lib/api';
 
 const STATIC_ACTIONS = [
   { label: 'Hari Ini', href: '/', keywords: 'hari ini beranda home tindak terlambat prioritas' },
-  { label: 'Dashboard', href: '/dashboard', keywords: 'dashboard grafik statistik' },
-  { label: 'Semua Project', href: '/projects', keywords: 'projects daftar list' },
-  { label: 'Engineering Docs', href: '/engineering-docs', keywords: 'dokumen docs checklist' },
-  { label: 'Arsip Project', href: '/arsip', keywords: 'arsip archive selesai teknologi referensi finished' },
-  { label: 'Aktivitas', href: '/activity', keywords: 'activity log riwayat' },
-  { label: '+ Project Baru', href: '/projects/new', keywords: 'tambah new create' },
+  { label: 'Dashboard', href: '/dashboard', keywords: 'dashboard grafik statistik analitik' },
+  { label: 'Rapat', href: '/meetings', keywords: 'rapat notulensi meeting tindak lanjut jadwal' },
+  { label: 'Project', href: '/projects', keywords: 'projects daftar list semua' },
+  { label: 'Kanban project', href: '/projects/kanban', keywords: 'kanban board papan tahap stage' },
+  { label: 'Checklist dokumen engineering', href: '/documents', keywords: 'dokumen docs checklist engineering bom pid ewd gad' },
+  { label: 'Buat dokumen', href: '/documents/generator', keywords: 'generator commissioning handover hand over dokumen' },
+  { label: 'Pengadaan', href: '/procurement', keywords: 'pengadaan procurement barang material eta' },
+  { label: 'Arsip project', href: '/arsip', keywords: 'arsip archive selesai teknologi referensi finished' },
+  { label: 'Aktivitas', href: '/activity', keywords: 'activity log riwayat perubahan' },
+  { label: '+ Project baru', href: '/projects/new', keywords: 'tambah new create' },
 ];
 
 export default function CommandPalette({ open, onClose }) {

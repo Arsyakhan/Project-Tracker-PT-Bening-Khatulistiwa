@@ -201,12 +201,12 @@ function NextMeeting({ meetings, error }) {
           <p className="font-display text-base font-semibold text-ink mt-1">{fmtLong(next.date)}</p>
           <p className="text-xs text-inkmute mt-0.5">{[fmtTimeRange(next) && `${fmtTimeRange(next)} WIB`, next.location].filter(Boolean).join(' · ')}</p>
           <p className="text-sm font-medium text-blueprint mt-1">{relativeDay(next.date)}</p>
-          <Link href={`/documents/meetings/${next.id}`} className="inline-block text-sm font-medium text-blueprint hover:underline mt-2">Buka notulensi</Link>
+          <Link href={`/meetings/${next.id}`} className="inline-block text-sm font-medium text-blueprint hover:underline mt-2">Buka notulensi</Link>
         </>
       ) : (
         <>
           <p className="text-sm text-inkmute mt-1">Belum ada rapat terjadwal.</p>
-          <Link href="/documents/meetings/new?mode=schedule" className="inline-block text-sm font-medium text-blueprint hover:underline mt-2">Jadwalkan rapat</Link>
+          <Link href="/meetings/new?mode=schedule" className="inline-block text-sm font-medium text-blueprint hover:underline mt-2">Jadwalkan rapat</Link>
         </>
       )}
     </section>
