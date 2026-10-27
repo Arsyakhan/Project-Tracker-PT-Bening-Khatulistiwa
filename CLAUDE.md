@@ -325,6 +325,22 @@ bukan `dynamic`. Payload tanpa `equipment` (form lama) tetap lewat cara lama. Te
 (`lib/docgen/handoverItems.js`), script hanya menuliskannya, jadi aturan teks bisa diuji di Node. Perilaku Google Docs
 sungguhan (nomor berlanjut, gaya bullet) tidak bisa diuji dari sandbox; yang teruji adalah tiruan DocumentApp di Node.
 
+## Database Supabase modul gudang (sejak 27 Okt 2026)
+
+Modul gudang (katalog barang, BOM, stok, pengadaan, serah terima) memakai **Supabase**, bukan Google Sheet. Project
+`bening-hub` (org "Arsyakhan's Org", paket gratis, Singapura, ref `hqzxrcdbzfvtonounoau`); skema dan penjelasan di
+`supabase/` (migrasi = salinan yang sudah dijalankan; jalankan migrasi baru lewat MCP Supabase `apply_migration`, lalu
+simpan salinannya di `supabase/migrations/`). Data project tetap di Sheet; penghubungnya Project ID `prj_xxxx`.
+Semua tabel RLS **tanpa policy**: web harus lewat route server (`/api/...` yang mengecek sesi NextAuth) memakai kunci
+rahasia di env Vercel; kunci jangan ditulis di repo atau dicetak. Paket gratis berhenti sementara kalau tidak dipakai
+sekitar seminggu dan tidak punya backup harian.
+Data awal 27 Okt 2026 dari Dropbox `BK Eng drop box` (116 file BOM/BOQ, semua revisi): 2.220 barang di `barang`,
+`file_bom`, 16.998 baris di `baris_bom_arsip`; salinan Excel untuk diperiksa W&P/Engineering di Dropbox
+`BK Eng drop box/DATABASE GUDANG/`. Alur yang disepakati pemilik: Engineer membuat BOM (Excel atau draf dari project
+mirip) → cek stok otomatis, barang ada disisihkan, yang kurang jadi usulan pembelian → **Direksi menyetujui** → W&P
+order, terima, lalu serah terima ke teknisi per barang (bisa bertahap; fabrikasi boleh mulai sebelum semua barang
+datang) → **tanggung jawab barang tetap di W&P sampai diserahkan**, teknisi bisa memantau status barangnya.
+
 ## Kontrak yang harus sinkron (sumber bug paling umum)
 
 | Hal | Di sisi backend | Di sisi frontend |
