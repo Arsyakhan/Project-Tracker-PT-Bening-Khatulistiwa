@@ -32,3 +32,10 @@ Material Ordered, 3 daftar pressure vessel, 1 template elektrikal): 2.220 barang
 Salinan Excel yang sama ada di Dropbox `BK Eng drop box/DATABASE GUDANG/Database BOM dan Katalog Barang (draf).xlsx`
 untuk diperiksa W&P dan Engineering (kolom "Status cek"). Harga di BOQ penawaran tidak disalin.
 Impor memakai fungsi RPC sementara berkunci token sekali pakai, yang langsung dihapus sesudahnya (tidak ada di repo).
+
+## Dipakai di web
+
+Halaman Katalog Barang (`/gudang/katalog`) membaca dan mengubah tabel `barang` lewat `pages/api/gudang.js`
+(lihat CLAUDE.md, "Database Supabase modul gudang"). Pemeriksaan katalog (kolom `status_cek`, `gabung_ke`, `catatan`)
+dilakukan di halaman itu; berkas Excel draf hanya salinan awal. Setiap simpan mengisi `diubah_oleh` (email) dan
+`diubah_pada` (trigger), yang sekaligus dipakai untuk mendeteksi edit bersamaan.
