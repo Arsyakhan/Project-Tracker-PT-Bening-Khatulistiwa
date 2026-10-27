@@ -362,6 +362,19 @@ Trigger `cek_opname_draf` menolak perubahan hitungan sesudah diposting. Aksi di 
 editor dan admin. Logika server ada di `lib/gudangServer.js`; `pages/api/gudang.js` hanya membagi aksi dan memeriksa
 peran. Galat `P0001` dari fungsi/trigger database diteruskan ke pengguna apa adanya (pesannya berbahasa Indonesia).
 
+**BOM project (27 Okt 2026):** tabel `bom` (per project lewat `project_id` `prj_xxxx` + `project_nama` salinan nama
+saat dibuat; `revisi`, `revisi_dari`, status `draf` → `final` (diterbitkan) → `diganti` (ada revisi baru yang
+diterbitkan)) dan `bom_baris` (kode barang katalog, jumlah, satuan, bagian, catatan; jumlah boleh kosong selama draf),
+view `file_bom_lembar` (lembar per file BOM lama). Fungsi `buat_bom` (atomik): BOM kosong, salinan BOM lama hasil impor
+Dropbox (lembar bisa dipilih; barang berstatus Gabung disalin dengan kode tujuannya; jumlah 0 jadi kosong), salinan BOM
+lain, atau `revisi` (salin BOM final jadi draf revisi + 1; hanya satu draf revisi per BOM). `terbitkan_bom` menolak BOM
+kosong atau yang masih punya jumlah kosong, lalu menandai revisi sebelumnya `diganti`. Trigger `cek_bom_draf` mengunci
+baris BOM yang sudah diterbitkan. Aksi `/api/gudang`: GET `bomList` (`project=` opsional), `bom&id=`, `bomSumber`;
+POST `createBom`, `revisiBom`, `updateBom` (judul/catatan, hanya draf), `deleteBom` (hanya draf), `saveBomLine`
+(tambah atau ubah satu baris), `deleteBomLine`, `terbitkanBom`. **Cek stok** dihitung di halaman: kebutuhan per kode
+barang (semua barisnya dijumlahkan) dibandingkan stok gudang semua lokasi. Stok **belum disisihkan** per project dan
+usulan pembelian + persetujuan Direksi **belum dibuat** (langkah berikutnya di alur gudang).
+
 ## Kontrak yang harus sinkron (sumber bug paling umum)
 
 | Hal | Di sisi backend | Di sisi frontend |
@@ -463,8 +476,17 @@ Cloud) bersamaan. Penyebab lain yang belum tertutup: PWA iOS yang membuka login 
   Kanban), Engineering Docs jadi tab "Checklist engineering" di menu Dokumen (`components/DocsTabs.jsx`: Checklist
   engineering | Buat dokumen), Notulensi jadi menu **Rapat** sendiri, Aktivitas pindah ke bawah menu. Alamat lama
   (`/board`, `/engineering-docs`, `/documents/meetings/...`) dialihkan di `redirects()` `next.config.js`, jadi tautan
-  lama, bookmark, dan PWA tetap jalan. Grup **Material & Gudang** berisi Pengadaan, Katalog Barang, dan Stock Opname;
-  BOM project, barang masuk/keluar, dan serah terima menyusul di grup yang sama.
+  lama, bookmark, dan PWA tetap jalan. Grup **Material & Gudang** berisi BOM Project, Pengadaan, Katalog Barang, dan Stock
+  Opname; usulan pembelian, barang masuk/keluar, dan serah terima menyusul di grup yang sama.
+- **BOM Project** (`/gudang/bom` + `/gudang/bom/[id]`, 27 Okt 2026): daftar BOM dikelompokkan per project (pilihan Aktif /
+  Draf / Diterbitkan / Semua revisi; `?project=prj_xxx` menyaring, `?baru=1` membuka form). Form "Buat BOM"
+  (`components/gudang/BomCreateForm.jsx`): project dari Sheet (berjalan dan selesai), judul, isi awal = kosong, salinan BOM
+  lama dari Dropbox (cari file, pilih lembar), atau salinan BOM lain. Halaman BOM: tambah barang dari katalog (atau barang
+  baru lewat `BarangBaruForm`, `konteks: 'bom'`), jumlah/satuan/bagian/catatan per baris, tampilan "Daftar BOM" per
+  bagian dan "Cek stok" (kebutuhan vs stok, kurang di atas; `stockCheck`), Unduh CSV (`downloadCsv` di
+  `lib/exportCsv.js`), Terbitkan, Buat revisi, Hapus draf. Tab Ringkasan detail project memuat panel "BOM & material"
+  (`components/gudang/ProjectBomPanel.jsx`, gagal dimuat tidak mengganggu halaman project). Status pakai
+  `components/gudang/StatusDot.jsx` (juga dipakai `OpnameStatus`).
 - **Katalog Barang** (`/gudang/katalog` + `/gudang/katalog/[kode]`, 27 Okt 2026, data dari Supabase): daftar induk alat
   dan material dari semua BOM lama, diurutkan dari yang paling sering dipakai project. Angka di `StatStrip` menyaring
   menurut status cek (Belum dicek / OK / Perlu tindakan); pilihan "Pernah dipakai project" (bawaan), "Semua" (termasuk
@@ -482,7 +504,7 @@ Cloud) bersamaan. Penyebab lain yang belum tertutup: PWA iOS yang membuka login 
   `effectOf`). Beberapa orang boleh menghitung di sesi yang sama ("Muat ulang" untuk melihat hitungan mereka).
   "Posting ke stok" meminta konfirmasi dengan ringkasan; sesudahnya sesi hanya bisa dilihat.
 - Shell: `pages/_app.js` + `components/Sidebar.jsx` (menu `NAV_GROUPS` dikelompokkan Harian (Hari Ini, Dashboard, Rapat) /
-  Project (Project, Dokumen) / Material & Gudang (Pengadaan, Katalog Barang, Stock Opname) / Referensi (Arsip), dan `NAV_FOOTER` (Aktivitas) di bawah; tambah halaman baru
+  Project (Project, Dokumen) / Material & Gudang (BOM Project, Pengadaan, Katalog Barang, Stock Opname) / Referensi (Arsip), dan `NAV_FOOTER` (Aktivitas) di bawah; tambah halaman baru
   di sana dan di `STATIC_ACTIONS` `components/CommandPalette.jsx`). `pages/login.js` = foto WTP layar penuh di balik permukaan air WebGL (`WaterSurface`) + logo + kartu masuk (lihat "Desain UI").
 - **Tata letak halaman (27 Okt 2026)**: Hari Ini, Dashboard, Semua Project, detail project, Kanban, Pengadaan, Dokumen,
   Notulensi, dan Arsip memakai komponen bersama di `components/ui/` (`PageHeader`, `StatStrip`, `Panel`, `Segmented`,

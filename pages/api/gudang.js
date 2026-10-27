@@ -11,6 +11,7 @@ import {
   getKatalog, getBarang, updateBarang, createBarang,
   getLokasi, createLokasi,
   listOpname, getOpname, createOpname, deleteOpname, saveOpnameLine, deleteOpnameLine, postOpname,
+  listBom, getBom, getBomSumber, createBom, revisiBom, updateBom, deleteBom, saveBomLine, deleteBomLine, terbitkanBom,
 } from '../../lib/gudangServer';
 
 export const config = { maxDuration: 30 };
@@ -25,6 +26,13 @@ const POST_ACTIONS = {
   saveOpnameLine,
   deleteOpnameLine,
   postOpname,
+  createBom,
+  revisiBom,
+  updateBom,
+  deleteBom,
+  saveBomLine,
+  deleteBomLine,
+  terbitkanBom,
 };
 
 function fail(res, status, message, code) {
@@ -48,6 +56,13 @@ async function handleGet(req, res) {
     if (!data) return fail(res, 404, 'Sesi opname tidak ditemukan.');
     return res.status(200).json({ ok: true, data });
   }
+  if (action === 'bomList') return res.status(200).json({ ok: true, data: await listBom({ project: req.query.project }) });
+  if (action === 'bom') {
+    const data = await getBom(req.query.id);
+    if (!data) return fail(res, 404, 'BOM tidak ditemukan.');
+    return res.status(200).json({ ok: true, data });
+  }
+  if (action === 'bomSumber') return res.status(200).json({ ok: true, data: await getBomSumber() });
   return fail(res, 400, 'Action tidak dikenal.');
 }
 

@@ -28,6 +28,7 @@ import {
   GRID_DETAIL_MAX, gridModules, sameTech, gridTechModules, gridCurrentTech,
 } from '../../lib/techflow';
 import ConfirmModal from '../../components/ConfirmModal';
+import ProjectBomPanel from '../../components/gudang/ProjectBomPanel';
 import { useToast } from '../../components/Toast';
 import { SkeletonBlock } from '../../components/Skeleton';
 import { daysBetween, fmtShort } from '../../lib/meetings';
@@ -880,6 +881,8 @@ export default function ProjectDetailPage() {
                 <textarea className="input" rows={2} placeholder="Alamat detail lokasi plant" value={project.alamat || ''} onChange={(e) => update('alamat', e.target.value)} />
               </Row>
             </Panel>
+
+            <ProjectBomPanel projectId={project.id} writable={writable} />
 
             {canDeleteProject && (
               <details className="group rounded-xl border border-rust/30 bg-panel">

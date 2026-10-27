@@ -18,6 +18,9 @@ Data project tetap di Google Sheet; penghubungnya Project ID `prj_xxxx`.
 | `stok_per_lokasi` (view) | Stok per barang per lokasi, plus jumlah transaksinya (0 transaksi = belum punya saldo awal di lokasi itu) |
 | `stock_opname` | Sesi stock opname: judul, lokasi, tanggal, status `draf` / `selesai`, siapa yang membuat dan memposting |
 | `stock_opname_baris` | Hitungan per barang di satu sesi (satu baris per barang per sesi), siapa yang menghitung dan kapan |
+| `bom` | BOM per project (`project_id` = `prj_xxxx` di Sheet): judul, revisi, `revisi_dari`, status `draf` / `final` / `diganti`, asal isi awal, siapa yang membuat dan menerbitkan |
+| `bom_baris` | Baris BOM: kode barang katalog, jumlah (boleh kosong selama draf), satuan, bagian, catatan, urutan |
+| `file_bom_lembar` (view) | Lembar per file BOM lama beserta jumlah barisnya (untuk memilih lembar yang disalin) |
 | `pengguna` | Email dan divisi (PM, Engineering, Direksi, Warehouse & Purchasing, Technician) untuk hak akses modul gudang |
 
 ## Fungsi dan trigger
@@ -31,6 +34,18 @@ Data project tetap di Google Sheet; penghubungnya Project ID `prj_xxxx`.
   sesinya `draf`. Sesi yang sudah diposting juga tidak bisa dihapus karena transaksinya menunjuk sesi itu.
 - Diuji 27 Okt 2026 di database asli dalam transaksi yang dibatalkan: posting pertama (saldo awal), kunci sesudah
   posting, tolak posting ulang, posting kedua (penyesuaian), hapus draf; tidak ada data uji yang tersisa.
+- `buat_bom(p_project_id, p_project_nama, p_judul, p_email, p_jenis, p_file_id, p_lembar, p_bom_id)`: membuat BOM dalam
+  satu transaksi. `p_jenis` = `kosong`, `arsip` (salin baris BOM lama; `p_lembar` null = semua lembar; barang berstatus
+  Gabung memakai kode tujuannya; jumlah 0 jadi kosong), `bom` (salin BOM lain sebagai Rev. 0 project ini), atau `revisi`
+  (salin BOM final `p_bom_id` jadi draf revisi berikutnya; ditolak kalau sudah ada draf revisinya).
+- `terbitkan_bom(p_id, p_email)`: draf → `final`; ditolak kalau BOM kosong atau ada jumlah kosong; revisi sebelumnya
+  menjadi `diganti`.
+- Trigger `bom_baris_kunci` (`cek_bom_draf`): baris hanya bisa diubah selama BOM-nya draf, dan setiap perubahan baris
+  memperbarui waktu ubah BOM.
+- Diuji 27 Okt 2026 di database asli dalam transaksi yang dibatalkan: salin BOM lama (2 lembar = 91 baris, sama dengan
+  arsipnya; semua lembar = 254), terbit ditolak karena jumlah kosong, terbit, kunci sesudah terbit, revisi (ganda
+  ditolak, revisi dari draf ditolak), terbit revisi menjadikan Rev. 0 `diganti`, salin BOM lain, BOM kosong ditolak
+  saat terbit, hapus draf; tidak ada data uji yang tersisa. Ketiga fungsi hanya bisa dipanggil `service_role`.
 
 ## Keamanan
 

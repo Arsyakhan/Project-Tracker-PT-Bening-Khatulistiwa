@@ -1,15 +1,7 @@
 import { OPNAME_STATUS } from '../../lib/gudang';
+import StatusDot from './StatusDot';
 
-const TONE_TEXT = { amber: 'text-amberink', teal: 'text-teal' };
-const TONE_DOT = { amber: 'bg-amber', teal: 'bg-teal' };
-
-// Status sesi stock opname: titik warna + teks (warna tidak berdiri sendiri).
+// Status sesi stock opname.
 export default function OpnameStatus({ status }) {
-  const s = OPNAME_STATUS[status] || { label: status, tone: 'amber' };
-  return (
-    <span className={`inline-flex items-center gap-1.5 text-xs whitespace-nowrap ${TONE_TEXT[s.tone]}`}>
-      <span className={`w-2 h-2 rounded-full shrink-0 ${TONE_DOT[s.tone]}`} aria-hidden="true" />
-      {s.label}
-    </span>
-  );
+  return <StatusDot status={OPNAME_STATUS[status] || { label: status, tone: 'amber' }} />;
 }
