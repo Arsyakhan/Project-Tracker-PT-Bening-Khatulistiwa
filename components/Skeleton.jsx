@@ -2,22 +2,9 @@ export function SkeletonBlock({ className = '' }) {
   return <div className={`skeleton-shimmer rounded-md ${className}`} />;
 }
 
-export function SkeletonStatCards({ count = 4 }) {
-  return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-      {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="bg-panel border border-line rounded-lg p-5 flex flex-col gap-3">
-          <SkeletonBlock className="h-3 w-20" />
-          <SkeletonBlock className="h-7 w-14" />
-        </div>
-      ))}
-    </div>
-  );
-}
-
 export function SkeletonPanel({ className = 'h-64' }) {
   return (
-    <div className={`bg-panel border border-line rounded-lg p-5 ${className}`}>
+    <div className={`bg-panel border border-line rounded-xl p-5 ${className}`}>
       <SkeletonBlock className="h-full w-full" />
     </div>
   );

@@ -633,166 +633,150 @@ export default function ProjectDetailPage() {
         <title>{project.projectName ? `${project.projectName} — Bening Hub` : 'Detail Project — Bening Hub'}</title>
       </Head>
 
-      {/* Breadcrumb */}
-      <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs text-inkmute">
+      {/* Jejak navigasi */}
+      <nav aria-label="Jejak navigasi" className="flex items-center gap-1.5 text-xs text-inkmute min-w-0 -mb-1">
         <Link href="/projects" className="tap hover:text-blueprint transition-colors">Semua Project</Link>
-        <span aria-hidden="true">/</span>
+        <span aria-hidden="true" className="text-line">/</span>
         <span aria-current="page" className="font-data truncate">{project.poNumber || 'Tanpa PO'}</span>
       </nav>
 
-      {/* Kepala halaman: gaya title block gambar teknik */}
-      <header className="bg-panel border border-line rounded-lg overflow-hidden shadow-sm">
-        <div className="bp-grid px-5 pt-5 pb-4 flex flex-col gap-3">
+      {/* Kepala halaman: satu "title block" gambar teknik. Identitas project, jalur tahapan, dan angka kunci di satu panel. */}
+      <header className="bg-panel border border-line rounded-xl overflow-hidden shadow-sm">
+        <div className="px-5 sm:px-6 pt-5 pb-4 flex flex-col gap-2.5">
           <div className="flex flex-wrap items-center gap-2">
             <input
-              className="text-xs font-data text-inkmute bg-panel/70 rounded border border-transparent hover:border-line focus:border-blueprint outline-none w-fit max-w-full px-1.5 py-0.5 max-md:py-2 max-md:text-sm transition-colors"
+              className="text-xs font-data text-inkmute bg-transparent rounded border border-transparent hover:border-line focus:border-blueprint outline-none max-w-full px-1.5 py-0.5 -ml-1.5 max-md:py-2 max-md:text-sm transition-colors"
               value={project.poNumber}
+              size={Math.max(10, String(project.poNumber || '').length + 1)}
               onChange={(e) => update('poNumber', e.target.value)}
               title="Klik untuk mengedit PO Number"
               aria-label="PO Number"
             />
             <StatusBadge status={project.status} />
             <PriorityBadge priority={project.priority} />
-            {isDirty && (
-              <Pill tone="amber" dot>Belum disimpan</Pill>
-            )}
+            {project.blocker && <Pill tone="rust" dot>Terhambat</Pill>}
+            {isDirty && <Pill tone="amber" dot>Belum disimpan</Pill>}
           </div>
           <h1 className="sr-only">{project.projectName || 'Detail project'}</h1>
           <AutoGrowTitle value={project.projectName} onChange={(v) => update('projectName', v)} />
-          {shownSystems.keys.length > 0 && (
-            <div className="flex flex-col gap-1.5 pt-1">
+          <p className="text-sm text-inkmute -mt-1">
+            {[project.client, project.lokasiPlant, project.technology].filter(Boolean).join(' · ') || 'Client dan lokasi belum diisi'}
+          </p>
+          {flowModules.length > 0 ? (
+            <div className="flex flex-col gap-1.5 pt-2">
               <TechFlow modules={flowModules} />
-              {shownSystems.detected && <span className="text-xs text-inkmute">terdeteksi otomatis dari nama project, belum disimpan</span>}
+              {(shownSystems.detected || !techSaved) && (
+                <span className="text-xs text-inkmute">
+                  {shownSystems.detected ? 'Terdeteksi otomatis dari nama project, belum disimpan.' : 'Dibaca dari data lama (kolom Sistem Terpasang dan spesifikasi).'}
+                  {writable && <> <button type="button" onClick={() => setActiveTab('teknologi')} className="tap font-medium text-blueprint hover:underline">Lengkapi di tab Teknologi</button></>}
+                </span>
+              )}
             </div>
+          ) : (
+            <p className="text-sm text-inkmute pt-1">
+              Teknologi belum dicatat.{' '}
+              {writable && <button type="button" onClick={() => setActiveTab('teknologi')} className="tap font-medium text-blueprint hover:underline">Susun alur teknologi</button>}
+            </p>
           )}
         </div>
 
-        <dl className="grid grid-cols-2 md:grid-cols-5 border-t border-line divide-x divide-y md:divide-y-0 divide-line">
-          <TitleCell label="Client" value={project.client} />
-          <TitleCell label="Lokasi plant" value={project.lokasiPlant} />
+        <div className="px-5 sm:px-6 py-4 border-t border-line bg-canvas/40">
+          <StagePipeline
+            current={project.currentStage}
+            weights={meta.stageWeights}
+            onSelect={(stage) => update('currentStage', stage)}
+          />
+        </div>
+
+        <dl className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 border-t border-line" style={{ gap: 1, background: 'rgb(var(--color-line))' }}>
           <TitleCell label="PIC" value={project.pic} />
-          <TitleCell label="Bentuk Project" value={project.technology} />
-          <TitleCell className="col-span-2 md:col-span-1" label="Tanggal kirim" value={project.deliveryDate ? fmtDate(project.deliveryDate) : ''} extra={<DeliveryHint p={project} />} />
+          <TitleCell label="Tanggal PO" value={project.tanggalPO ? fmtDate(project.tanggalPO) : ''} />
+          <TitleCell label="Tanggal kirim" value={project.deliveryDate ? fmtDate(project.deliveryDate) : ''} extra={<DeliveryHint p={project} />} />
+          <TitleCell
+            label="Target selesai"
+            value={project.targetFinishDate ? fmtDate(project.targetFinishDate) : ''}
+            extra={project.targetFinishDate ? (
+              <span className={`text-xs ${targetDays < 0 ? 'text-rust font-medium' : 'text-inkmute'}`}>{targetHint}</span>
+            ) : (
+              <button type="button" onClick={() => setActiveTab('jadwal')} className="tap text-xs font-medium text-blueprint hover:underline">Atur</button>
+            )}
+          />
+          <MeterCell
+            label="Progres tahapan"
+            value={meta.stageWeights[project.currentStage] ?? project.stageProgress}
+            sub={project.currentStage}
+          />
+          <MeterCell
+            label="Dokumen engineering"
+            value={checklist?.progress ?? project.engineeringDocProgress}
+            sub={`${doneCount} dari ${applicable.length} selesai${reviewCount > 0 ? `, ${reviewCount} direview` : ''}`}
+            onClick={() => setActiveTab('checklist')}
+          />
         </dl>
       </header>
 
-      {/* Project selesai: tawarkan mencatat teknologinya ke arsip */}
-      {canArchive && (
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3 bg-teal/10 border border-teal/30 rounded-lg px-4 py-3">
-          <p className="text-sm text-ink flex-1">
-            <b>Project ini sudah selesai.</b> Catat teknologinya ke arsip sebagai acuan untuk project berikutnya. Alur dan kapasitas terisi otomatis dari data project.
-          </p>
-          <Link href={`/arsip/new?from=${encodeURIComponent(project.id)}`} className="btn btn-secondary whitespace-nowrap">Arsipkan teknologi</Link>
-        </div>
-      )}
-
-      {/* Hambatan & langkah berikutnya */}
-      {project.blocker && (
-        <div role="status" className="flex gap-3 bg-rust/10 border border-rust/30 border-l-4 border-l-rust rounded-lg px-4 py-3">
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-rust">
-              Terhambat{project.blockedSince ? ` sejak ${fmtShort(project.blockedSince)} (${Math.max(daysBetween(project.blockedSince, todayISO()) ?? 0, 0)} hari)` : ''}
-            </p>
-            <p className="text-sm text-ink mt-0.5 break-words">Menunggu: {project.blocker}</p>
-          </div>
-        </div>
-      )}
-      <NextActionCard project={project} writable={writable} update={update} />
-
-      {/* Catatan / kendala aktif */}
-      {hasRemarks && (
-        <div className="flex gap-3 bg-amber/10 border border-amber/30 border-l-4 border-l-amber rounded-lg px-4 py-3">
-          <svg className="w-5 h-5 text-amberink shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-          </svg>
-          <div className="min-w-0">
-            <p className="text-sm font-medium text-ink">Catatan project</p>
-            <p className="text-sm text-ink/80 whitespace-pre-wrap break-words mt-0.5">{project.remarks}</p>
-          </div>
-        </div>
-      )}
-
-      {/* Pipeline tahapan */}
-      <section className="bg-panel border border-line rounded-lg p-5 shadow-sm">
-        <StagePipeline
-          current={project.currentStage}
-          weights={meta.stageWeights}
-          onSelect={(stage) => update('currentStage', stage)}
-        />
-      </section>
-
-      {/* Ringkasan angka */}
-      <section className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="bg-panel border border-line rounded-lg p-4 flex flex-col gap-2 shadow-sm">
-          <div className="flex items-baseline justify-between">
-            <span className="text-xs text-inkmute">Progress tahapan</span>
-            <span className="font-data tnum text-lg font-semibold text-ink">{meta.stageWeights[project.currentStage] ?? project.stageProgress}%</span>
-          </div>
-          <StageGauge progress={meta.stageWeights[project.currentStage] ?? project.stageProgress} showLabel={false} compact />
-          <span className="text-xs text-inkmute truncate">{project.currentStage}</span>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('checklist')}
-          className="text-left bg-panel border border-line rounded-lg p-4 flex flex-col gap-2 shadow-sm hover:border-blueprint/50 transition-colors"
-        >
-          <div className="flex items-baseline justify-between">
-            <span className="text-xs text-inkmute">Dokumen engineering</span>
-            <span className="font-data tnum text-lg font-semibold text-ink">{checklist?.progress ?? project.engineeringDocProgress}%</span>
-          </div>
-          <StageGauge progress={checklist?.progress ?? project.engineeringDocProgress} showLabel={false} compact />
-          <span className="text-xs text-inkmute tnum">
-            {doneCount} dari {applicable.length} selesai{reviewCount > 0 ? ` · ${reviewCount} direview` : ''}
-          </span>
-        </button>
-
-        <div className="bg-panel border border-line rounded-lg p-4 flex flex-col gap-2 shadow-sm">
-          <span className="text-xs text-inkmute">Target selesai</span>
-          {project.targetFinishDate ? (
-            <>
-              <span className="font-data tnum text-lg font-semibold text-ink">{fmtDate(project.targetFinishDate)}</span>
-              <span className={`text-xs ${targetDays < 0 ? 'text-rust font-medium' : 'text-inkmute'}`}>{targetHint}</span>
-            </>
-          ) : (
-            <>
-              <span className="text-sm text-inkmute">Belum diatur</span>
-              <button type="button" onClick={() => setActiveTab('jadwal')} className="tap text-xs font-medium text-blueprint hover:underline self-start">
-                Atur di tab Jadwal
-              </button>
-            </>
+      {/* Hal yang perlu diperhatikan: hambatan, catatan, dan tawaran arsip */}
+      {(project.blocker || hasRemarks || canArchive) && (
+        <div className="flex flex-col gap-3">
+          {project.blocker && (
+            <div role="status" className="flex gap-3 bg-panel border border-line border-l-4 border-l-rust rounded-xl px-4 py-3 shadow-sm">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-rust">
+                  Terhambat{project.blockedSince ? ` sejak ${fmtShort(project.blockedSince)} (${Math.max(daysBetween(project.blockedSince, todayISO()) ?? 0, 0)} hari)` : ''}
+                </p>
+                <p className="text-sm text-ink mt-0.5 break-words">Menunggu: {project.blocker}</p>
+              </div>
+            </div>
+          )}
+          {hasRemarks && (
+            <div className="flex gap-3 bg-panel border border-line border-l-4 border-l-amber rounded-xl px-4 py-3 shadow-sm">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-amberink">Catatan project</p>
+                <p className="text-sm text-ink whitespace-pre-wrap break-words mt-0.5">{project.remarks}</p>
+              </div>
+            </div>
+          )}
+          {canArchive && (
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 bg-panel border border-line border-l-4 border-l-teal rounded-xl px-4 py-3 shadow-sm">
+              <p className="text-sm text-ink flex-1">
+                <b className="font-semibold">Project ini sudah selesai.</b> Catat teknologinya ke arsip sebagai acuan untuk project berikutnya. Alur dan kapasitas terisi otomatis dari data project.
+              </p>
+              <Link href={`/arsip/new?from=${encodeURIComponent(project.id)}`} className="btn btn-secondary whitespace-nowrap">Arsipkan teknologi</Link>
+            </div>
           )}
         </div>
-      </section>
+      )}
+
+      <NextActionCard project={project} writable={writable} update={update} />
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_280px] items-start">
         {/* ===== Kolom utama ===== */}
         <div className="flex flex-col gap-5 min-w-0">
-          <div role="tablist" className="flex gap-1 border-b border-line sticky top-[57px] md:top-0 bg-canvas z-10 overflow-x-auto -mx-1 px-1">
-            {TABS.map((tab) => (
-              <button
-                key={tab.key}
-                role="tab"
-                aria-selected={activeTab === tab.key}
-                onClick={() => setActiveTab(tab.key)}
-                className={`px-3.5 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px whitespace-nowrap ${
-                  activeTab === tab.key
-                    ? 'border-blueprint text-blueprint'
-                    : 'border-transparent text-inkmute hover:text-ink'
-                }`}
-              >
-                {tab.label}
-                {tab.key === 'spesifikasi' && specProgress && specSections.length > 0 && (
-                  <span className="ml-1.5 text-xs tnum opacity-70">{specProgress.percent}%</span>
-                )}
-                {tab.key === 'checklist' && (
-                  <span className="ml-1.5 text-xs tnum opacity-70">{checklist?.progress ?? 0}%</span>
-                )}
-                {tab.key === 'komentar' && comments && comments.length > 0 && (
-                  <span className="ml-1.5 text-xs tnum opacity-70">{comments.length}</span>
-                )}
-              </button>
-            ))}
+          <div className="sticky top-[57px] md:top-0 z-10 -mx-1 px-1 py-2 bg-canvas/95 backdrop-blur supports-[backdrop-filter]:bg-canvas/80">
+            <div role="tablist" aria-label="Bagian project" className="flex w-full max-w-full items-center gap-0.5 p-0.5 rounded-lg bg-line/50 border border-line overflow-x-auto">
+              {TABS.map((tab) => {
+                const on = activeTab === tab.key;
+                const badge =
+                  tab.key === 'spesifikasi' && specProgress && specSections.length > 0 ? `${specProgress.percent}%`
+                  : tab.key === 'checklist' ? `${checklist?.progress ?? 0}%`
+                  : tab.key === 'komentar' && comments && comments.length > 0 ? comments.length
+                  : null;
+                return (
+                  <button
+                    key={tab.key}
+                    role="tab"
+                    aria-selected={on}
+                    onClick={() => setActiveTab(tab.key)}
+                    className={`h-9 max-md:h-10 px-3.5 inline-flex items-center gap-2 rounded-md text-sm font-medium whitespace-nowrap transition-colors ${
+                      on ? 'bg-panel text-ink shadow-sm' : 'text-inkmute hover:text-ink'
+                    }`}
+                  >
+                    {tab.label}
+                    {badge !== null && <span className={`font-data tnum text-xs ${on ? 'text-blueprint' : 'text-inkmute'}`}>{badge}</span>}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {activeTab === 'ringkasan' && (
@@ -891,25 +875,10 @@ export default function ProjectDetailPage() {
               </Row>
             </Panel>
 
-            <Panel
-              title="Teknologi"
-              hint="Satu data: alur teknologi ini juga mengisi sistem, kapasitas, dan spesifikasi di form Commissioning dan Hand Over."
-              aside={writable && <button type="button" onClick={() => setActiveTab('teknologi')} className="tap text-sm font-medium text-blueprint hover:underline">Atur teknologi</button>}
-            >
-              {flowModules.length > 0 ? (
-                <div className="flex flex-col gap-2">
-                  <TechFlow modules={flowModules} />
-                  {!techSaved && <p className="text-xs text-inkmute">Dibaca dari data lama (kolom Sistem Terpasang dan spesifikasi). Buka tab Teknologi untuk melengkapinya.</p>}
-                </div>
-              ) : (
-                <p className="text-sm text-inkmute">Belum ada teknologi yang dicatat. Buka tab Teknologi untuk menyusun alurnya.</p>
-              )}
-            </Panel>
-
             {canDeleteProject && (
-              <details className="group rounded-lg border border-rust/30 bg-panel">
+              <details className="group rounded-xl border border-rust/30 bg-panel">
                 <summary className="cursor-pointer select-none list-none px-4 py-3 text-sm font-medium text-rust flex items-center justify-between">
-                  Zona berbahaya
+                  Hapus project
                   <span className="text-xs text-inkmute group-open:hidden">Klik untuk membuka</span>
                 </summary>
                 <div className="px-4 pb-4 pt-1 flex flex-col sm:flex-row sm:items-center gap-3 border-t border-rust/20">
@@ -1170,8 +1139,8 @@ export default function ProjectDetailPage() {
         </div>
 
         {/* ===== Kolom samping ===== */}
-        <aside className="flex flex-col gap-4 min-w-0">
-          <section className="bg-panel border border-line rounded-lg p-4 shadow-sm">
+        <aside className="flex flex-col gap-4 min-w-0 lg:sticky lg:top-6">
+          <section className="bg-panel border border-line rounded-xl p-4 shadow-sm">
             <h2 className="text-sm font-semibold text-ink mb-3">Kesiapan dokumen</h2>
             <div className="flex flex-col gap-3.5">
               <div>
@@ -1205,7 +1174,7 @@ export default function ProjectDetailPage() {
             </div>
           </section>
 
-          <section className="bg-panel border border-line rounded-lg p-4 shadow-sm">
+          <section className="bg-panel border border-line rounded-xl p-4 shadow-sm">
             <h2 className="text-sm font-semibold text-ink mb-3">Garis waktu</h2>
             <ol className="flex flex-col">
               {scheduleEvents.map((ev, i) => {
@@ -1229,7 +1198,7 @@ export default function ProjectDetailPage() {
           </section>
 
           {checklist && (
-            <section className="bg-panel border border-line rounded-lg p-4 shadow-sm">
+            <section className="bg-panel border border-line rounded-xl p-4 shadow-sm">
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-sm font-semibold text-ink">Status dokumen</h2>
                 <button onClick={() => setActiveTab('checklist')} className="tap text-xs font-medium text-blueprint hover:underline">Kelola</button>
@@ -1332,22 +1301,46 @@ function AutoGrowTitle({ value, onChange }) {
 
 function TitleCell({ label, value, extra, className = '' }) {
   return (
-    <div className={`px-4 py-3 min-w-0 ${className}`}>
+    <div className={`bg-panel px-5 py-3.5 min-w-0 ${className}`}>
       <dt className="text-xs text-inkmute">{label}</dt>
-      <dd className="mt-1 flex items-center gap-2 flex-wrap">
-        <span className="text-sm font-medium text-ink truncate max-w-full" title={value || ''}>{value || '-'}</span>
+      <dd className="mt-1 flex items-center gap-2 flex-wrap min-h-[24px]">
+        <span className={`text-sm font-medium truncate max-w-full ${value ? 'text-ink' : 'text-inkmute'}`} title={value || ''}>{value || 'Belum diisi'}</span>
         {extra}
       </dd>
     </div>
   );
 }
 
+// Sel angka dengan batang progres kecil; bisa diklik (mis. membuka tab Checklist).
+function MeterCell({ label, value, sub, onClick }) {
+  const v = Number(value) || 0;
+  const body = (
+    <>
+      <span className="block text-xs text-inkmute truncate">{label}</span>
+      <span className="mt-1 flex items-center gap-2.5 min-h-[24px]">
+        <span className="font-data tnum text-sm font-semibold text-ink">{v}%</span>
+        <span className="flex-1 h-1.5 rounded-full bg-line/70 overflow-hidden" aria-hidden="true">
+          <span className={`block h-full rounded-full ${v >= 100 ? 'bg-teal' : 'bg-blueprint'}`} style={{ width: `${Math.min(v, 100)}%` }} />
+        </span>
+      </span>
+      {sub && <span className="block text-xs text-inkmute truncate mt-1">{sub}</span>}
+    </>
+  );
+  const cls = 'bg-panel px-5 py-3.5 min-w-0 text-left';
+  if (onClick) {
+    return (
+      <button type="button" onClick={onClick} className={`${cls} flex flex-col justify-start hover:bg-canvas transition-colors`} aria-label={`${label} ${v}%. Buka checklist`}>{body}</button>
+    );
+  }
+  return <div className={cls}>{body}</div>;
+}
+
 function Panel({ title, hint, aside, children }) {
   return (
-    <section className="bg-panel border border-line rounded-lg p-5 flex flex-col gap-4 shadow-sm">
+    <section className="bg-panel border border-line rounded-xl p-5 flex flex-col gap-4 shadow-sm">
       <div className="flex items-start justify-between gap-3">
-        <div>
-          <h2 className="font-display font-semibold text-ink">{title}</h2>
+        <div className="min-w-0">
+          <h2 className="font-display text-base font-semibold text-ink">{title}</h2>
           {hint && <p className="text-xs text-inkmute mt-1">{hint}</p>}
         </div>
         {aside}

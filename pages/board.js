@@ -8,6 +8,8 @@ import KanbanBoard from '../components/KanbanBoard';
 import PageHead from '../components/PageHead';
 import { SkeletonPanel } from '../components/Skeleton';
 import { useToast } from '../components/Toast';
+import PageHeader from '../components/ui/PageHeader';
+import SearchField from '../components/ui/SearchField';
 
 export default function BoardPage() {
   // mutate = ubah data lokal (update optimis). Setelah itu, hasil penyegaran yang datang
@@ -69,38 +71,43 @@ export default function BoardPage() {
     }
   }
 
+  const blocked = (projects || []).filter((p) => p.blocker).length;
+  const header = (
+    <PageHeader
+      title="Papan Kanban"
+      meta={
+        <>
+          <span className="hidden md:inline">Seret kartu ke tahap tujuan, atau pakai menu tahap di kartu. </span>
+          <span className="md:hidden">Pindahkan tahap lewat menu di setiap kartu. </span>
+          Perubahan langsung tersimpan ke spreadsheet dan tercatat di Aktivitas.
+        </>
+      }
+      actions={
+        <SearchField
+          className="w-full sm:w-72"
+          value={query}
+          onChange={setQuery}
+          placeholder="Cari PO, project, client, PIC..."
+          label="Cari project di papan"
+        />
+      }
+    />
+  );
+
   if (error) {
-    return <div className="bg-panel border border-line rounded-lg p-6 text-rust">Gagal memuat data: {error}</div>;
+    return (
+      <div className="flex flex-col gap-5">
+        <PageHead title="Papan Kanban" />
+        {header}
+        <div className="bg-panel border border-line rounded-xl p-6 text-rust" role="alert">Gagal memuat data: {error}</div>
+      </div>
+    );
   }
 
   return (
     <div className="flex flex-col gap-5">
       <PageHead title="Papan Kanban" />
-
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
-        <div>
-          <h1 className="font-display text-2xl font-semibold text-ink">Papan Kanban</h1>
-          <p className="text-sm text-inkmute mt-1">
-            <span className="hidden md:inline">Seret kartu ke tahap tujuan, atau gunakan menu tahap pada kartu. </span>
-            <span className="md:hidden">Ubah tahap melalui menu pada setiap kartu. </span>
-            Perubahan langsung tersimpan ke spreadsheet dan tercatat di Aktivitas.
-          </p>
-        </div>
-
-        <div className="relative w-full sm:w-72 sm:flex-shrink-0">
-          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-inkmute" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-          <input
-            type="search"
-            placeholder="Cari PO, project, client, PIC..."
-            aria-label="Cari project di papan"
-            className="border border-line rounded-md pl-9 pr-4 py-2 text-sm max-md:text-base bg-panel outline-none focus:border-blueprint w-full"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-        </div>
-      </div>
+      {header}
 
       {!projects ? (
         <div className="grid grid-cols-1 md:grid-cols-2 min-[1340px]:grid-cols-4 gap-3" aria-hidden="true">
@@ -110,11 +117,18 @@ export default function BoardPage() {
         </div>
       ) : (
         <>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-xs text-inkmute">
-              Menampilkan {filtered.length} dari {projects.length} project
+          <div className="flex flex-wrap items-center justify-between gap-x-5 gap-y-2 -mb-1">
+            <p className="text-sm text-inkmute" aria-live="polite">
+              Menampilkan <span className="tnum font-semibold text-ink">{filtered.length}</span> dari <span className="tnum">{projects.length}</span> project
+              {blocked > 0 && <span className="text-rust font-medium">, {blocked} terhambat</span>}
             </p>
-            <RefreshStatus refreshing={refreshing} staleError={staleError} />
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-inkmute">
+              <RefreshStatus refreshing={refreshing} staleError={staleError} />
+              <span className="inline-flex items-center gap-1.5">Garis tepi kartu = prioritas:</span>
+              <span className="inline-flex items-center gap-1.5"><span className="w-[3px] h-3 rounded bg-rust" aria-hidden="true" />High</span>
+              <span className="inline-flex items-center gap-1.5"><span className="w-[3px] h-3 rounded bg-amber" aria-hidden="true" />Medium</span>
+              <span className="inline-flex items-center gap-1.5"><span className="w-[3px] h-3 rounded bg-line border border-inkmute/30" aria-hidden="true" />Low</span>
+            </div>
           </div>
           {query.trim() && filtered.length === 0 && (
             <p className="text-sm text-inkmute">Tidak ada project yang cocok dengan &ldquo;{query.trim()}&rdquo;.</p>

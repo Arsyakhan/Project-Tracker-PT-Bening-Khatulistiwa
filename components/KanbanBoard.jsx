@@ -5,10 +5,11 @@ import { STAGES, STAGE_WEIGHTS } from '../lib/stages';
 import NextActionLine from './NextActionLine';
 import { nextActionInfo } from '../lib/nextAction';
 
-const PRIORITY_DOT = {
-  High: 'bg-rust',
-  Medium: 'bg-amber',
-  Low: 'bg-inkmute/50',
+// Garis tepi kiri kartu = prioritas (warna sama dengan lencana prioritas di tabel).
+const PRIORITY_EDGE = {
+  High: 'before:bg-rust',
+  Medium: 'before:bg-amber',
+  Low: 'before:bg-line',
 };
 
 function isNum(v) {
@@ -22,10 +23,10 @@ function DeadlineBadge({ p }) {
     d < 0
       ? 'bg-rust/10 text-rust border border-rust/20'
       : d <= 14
-      ? 'bg-amber/10 text-amberink border border-amber/20'
+      ? 'bg-amber/10 text-amberink border border-amber/25'
       : 'bg-canvas text-inkmute border border-line';
   return (
-    <span className={`text-xs font-semibold rounded px-1.5 py-0.5 whitespace-nowrap ${cls}`}>
+    <span className={`text-xs font-medium rounded-md px-1.5 leading-5 whitespace-nowrap shrink-0 ${cls}`}>
       {d < 0 ? `Terlewat ${Math.abs(d)} hari` : d === 0 ? 'Hari ini' : `${d} hari lagi`}
     </span>
   );
@@ -44,54 +45,44 @@ function Card({ p, busy, dragging, onDragStart, onDragEnd, onMove }) {
         onDragStart(p.id);
       }}
       onDragEnd={onDragEnd}
-      className={`bg-panel border border-line rounded-lg p-3 flex flex-col gap-2 shadow-sm transition-opacity ${
-        busy ? 'cursor-wait' : 'cursor-grab active:cursor-grabbing'
-      } ${dragging ? 'opacity-40' : 'opacity-100'}`}
+      className={`relative bg-panel border border-line rounded-lg pl-3.5 pr-3 py-3 flex flex-col gap-1.5 shadow-sm transition-[opacity,box-shadow,border-color] hover:border-blueprint/40 hover:shadow-md before:absolute before:left-0 before:inset-y-2.5 before:w-[3px] before:rounded-r ${
+        PRIORITY_EDGE[p.priority] || 'before:bg-line'
+      } ${busy ? 'cursor-wait' : 'cursor-grab active:cursor-grabbing'} ${dragging ? 'opacity-40' : 'opacity-100'}`}
     >
-      <div className="flex items-start gap-2">
-        {p.priority && (
-          <span
-            title={`Priority: ${p.priority}`}
-            className={`mt-1.5 w-2 h-2 rounded-full flex-shrink-0 ${PRIORITY_DOT[p.priority] || 'bg-inkmute/50'}`}
-          />
-        )}
-        <div className="min-w-0 flex-1">
-          <Link
-            href={`/projects/${encodeURIComponent(p.id)}`}
-            draggable={false}
-            className="text-sm font-semibold text-ink hover:text-blueprint leading-snug line-clamp-2 max-md:line-clamp-none max-md:py-1.5"
-          >
-            {p.projectName}
-          </Link>
-          <p className="text-xs text-inkmute truncate mt-0.5">
-            {[p.poNumber, p.client].filter(Boolean).join(' · ') || '-'}
-          </p>
-          <NextActionLine info={nextActionInfo(p)} className="mt-1.5" />
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-1">
-        <div className="flex items-center justify-between text-xs text-inkmute">
-          <span>Dokumen engineering</span>
-          <span className="font-semibold text-ink">{doc}%</span>
-        </div>
-        <div className="h-1.5 rounded-full bg-line overflow-hidden">
-          <div className="h-full rounded-full bg-blueprint" style={{ width: `${Math.min(doc, 100)}%` }} />
-        </div>
-      </div>
-
-      <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5">
+      <div className="flex items-center justify-between gap-2 min-w-0">
+        <span className="font-data text-xs text-inkmute truncate" title={p.poNumber || ''}>{p.poNumber || 'Tanpa PO'}</span>
         <DeadlineBadge p={p} />
+      </div>
+      <Link
+        href={`/projects/${encodeURIComponent(p.id)}`}
+        draggable={false}
+        className="text-sm font-semibold text-ink hover:text-blueprint leading-snug line-clamp-2 max-md:line-clamp-none max-md:py-1"
+      >
+        {p.projectName}
+      </Link>
+      <p className="text-xs text-inkmute truncate">
+        {[p.client, p.pic && `PIC ${p.pic}`].filter(Boolean).join(' · ') || '-'}
+        {p.priority && <span className="sr-only">, prioritas {p.priority}</span>}
+      </p>
+      <NextActionLine info={nextActionInfo(p)} className="mt-0.5" />
+
+      <div className="flex items-center gap-2 pt-2 mt-0.5 border-t border-line/70">
+        <span className="flex items-baseline gap-1 shrink-0 text-xs" title={`Dokumen engineering ${doc}%`}>
+          <span className="text-inkmute">Dokumen</span>
+          <span className={`font-data tnum font-medium ${doc >= 100 ? 'text-teal' : 'text-ink'}`}>{doc}%</span>
+        </span>
+        {/* Nilainya selalu kosong supaya tampil "Pindah tahap"; tahap sekarang ditandai dan tidak bisa dipilih. */}
         <select
-          aria-label={`Pindahkan ${p.projectName} ke stage lain`}
-          value={p.currentStage || ''}
+          aria-label={`Pindahkan ${p.projectName} ke tahap lain (sekarang ${p.currentStage || 'tanpa stage'})`}
+          value=""
           disabled={busy}
-          onChange={(e) => onMove(p, e.target.value)}
-          className="ml-auto max-w-[9rem] border border-line rounded bg-canvas text-xs text-inkmute px-1.5 py-1 outline-none focus:border-blueprint max-md:max-w-none max-md:flex-1 max-md:min-h-[40px] max-md:text-base"
+          onChange={(e) => e.target.value && onMove(p, e.target.value)}
+          className="ml-auto w-[8rem] shrink-0 rounded-md border border-transparent bg-transparent text-xs font-medium text-blueprint pl-1.5 pr-1 py-1 hover:border-line hover:bg-canvas focus:border-blueprint outline-none cursor-pointer max-md:w-auto max-md:flex-1 max-md:min-h-[40px] max-md:text-base max-md:border-line max-md:bg-canvas"
         >
-          {!knownStage && <option value={p.currentStage || ''}>{p.currentStage || '(tanpa stage)'}</option>}
+          <option value="" disabled>Pindah tahap</option>
+          {!knownStage && <option value="" disabled>{p.currentStage || '(tanpa stage)'} (sekarang)</option>}
           {STAGES.map((s) => (
-            <option key={s} value={s}>{s}</option>
+            <option key={s} value={s} disabled={s === p.currentStage}>{s}{s === p.currentStage ? ' (sekarang)' : ''}</option>
           ))}
         </select>
       </div>
@@ -161,7 +152,7 @@ export default function KanbanBoard({ projects, busy, onMove }) {
         {phases.map((phase) => {
           const isFolded = folded[phase.id] ?? phase.total === 0;
           return (
-            <section key={phase.id} aria-label={phase.label} className="rounded-lg border border-line bg-canvas min-w-0">
+            <section key={phase.id} aria-label={phase.label} className="rounded-xl border border-line bg-line/25 min-w-0">
               <PhaseHeader
                 phase={phase}
                 folded={isFolded}
@@ -169,7 +160,7 @@ export default function KanbanBoard({ projects, busy, onMove }) {
               />
               <div
                 id={`fase-${phase.id}`}
-                className={`p-1.5 flex-col gap-1 md:max-h-[70vh] md:overflow-y-auto ${isFolded ? 'hidden md:flex' : 'flex'}`}
+                className={`p-2 flex-col gap-1.5 md:max-h-[72vh] md:overflow-y-auto ${isFolded ? 'hidden md:flex' : 'flex'}`}
               >
                 {phase.total === 0 && (
                   <p className="md:hidden text-xs text-inkmute px-1.5 py-2">Belum ada project di fase ini.</p>
@@ -275,7 +266,7 @@ function TrayChip({ stage, here, dnd }) {
 
 function CountPill({ n }) {
   return (
-    <span className="text-xs font-bold text-inkmute bg-panel border border-line rounded-full px-2 py-0.5 tnum flex-shrink-0">
+    <span className="font-data text-xs font-semibold text-ink bg-panel border border-line rounded-md px-2 leading-6 tnum flex-shrink-0">
       {n}
       <span className="sr-only"> project</span>
     </span>
@@ -319,7 +310,7 @@ function PhaseHeader({ phase, folded, onToggle }) {
           </svg>
         </button>
       </h2>
-      <h2 className="hidden md:flex px-3 py-2.5 border-b border-line items-center justify-between gap-2">{info}</h2>
+      <h2 className="hidden md:flex px-3.5 py-3 border-b border-line items-center justify-between gap-2 bg-panel/70 rounded-t-xl">{info}</h2>
     </>
   );
 }
@@ -346,15 +337,15 @@ function StageZone({ stage, items, busy, dnd, onMove }) {
         isOver ? 'border-blueprint bg-blueprint/5' : 'border-transparent'
       } ${empty ? 'hidden md:block' : ''}`}
     >
-      <div className="flex items-start justify-between gap-2 px-0.5 pb-1.5">
-        <h3 id={titleId} className="min-w-0 text-xs font-semibold text-ink leading-snug">
+      <div className="flex items-start justify-between gap-2 px-1 pt-0.5 pb-1.5">
+        <h3 id={titleId} className="min-w-0 text-xs font-semibold text-inkmute leading-snug">
           {stage}
           {STAGE_WEIGHTS[stage] !== undefined && <span className="font-normal text-inkmute"> · {STAGE_WEIGHTS[stage]}%</span>}
         </h3>
         <span className="text-xs font-bold text-inkmute tnum flex-shrink-0">{items.length}</span>
       </div>
       {empty ? (
-        <p className="rounded-md border border-dashed border-line px-2 py-2.5 text-xs text-inkmute text-center">
+        <p className="rounded-lg border border-dashed border-line px-2 py-2 text-xs text-inkmute text-center">
           {dnd.draggingId ? 'Lepas di sini' : 'Kosong'}
         </p>
       ) : (

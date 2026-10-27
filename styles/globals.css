@@ -140,15 +140,6 @@ h1, h2, h3, .font-display {
   }
 }
 
-/* Kertas milimeter halus, dipakai sebagai latar kepala halaman detail project */
-.bp-grid {
-  background-image:
-    linear-gradient(rgb(var(--color-blueprint) / 0.07) 1px, transparent 1px),
-    linear-gradient(90deg, rgb(var(--color-blueprint) / 0.07) 1px, transparent 1px);
-  background-size: 22px 22px;
-  background-position: -1px -1px;
-}
-
 /* Fokus keyboard yang jelas untuk tombol & link */
 button:focus-visible,
 a:focus-visible,

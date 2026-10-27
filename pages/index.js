@@ -6,6 +6,8 @@ import PageHead from '../components/PageHead';
 import RefreshStatus from '../components/RefreshStatus';
 import { Pill } from '../components/Badges';
 import { SkeletonPanel } from '../components/Skeleton';
+import PageHeader from '../components/ui/PageHeader';
+import StatStrip from '../components/ui/StatStrip';
 import { fmtLong, fmtTimeRange, relativeDay, todayIso } from '../lib/meetings';
 import {
   DIVISIONS, countsByDivision, filterByDivision, groupBySeverity, severityCounts, summaryText, workloadByDivision,
@@ -97,28 +99,19 @@ function FeedGroup({ group }) {
   );
 }
 
-// Empat angka kunci di atas halaman, menurut filter divisi yang sedang aktif.
+// Empat angka kunci di atas halaman, menurut filter divisi yang sedang aktif (komponen yang sama dengan halaman lain).
 function Kpis({ items, running }) {
   const n = severityCounts(items);
-  const tiles = [
-    { label: 'Terlambat', value: n.late, text: 'text-rust', bar: 'bg-rust' },
-    { label: 'Segera jatuh tempo', value: n.soon, text: 'text-amberink', bar: 'bg-amber' },
-    { label: 'Perlu dilengkapi', value: n.todo, text: 'text-ink', bar: 'bg-inkmute' },
-    { label: 'Project aktif', value: running, text: 'text-blueprint', bar: 'bg-blueprint' },
-  ];
   return (
-    // Satu panel ukur seperti layar panel kontrol: empat angka dipisah garis rambut, warna hanya pada titik status.
-    <dl className="grid grid-cols-2 lg:grid-cols-4 bg-panel border border-line rounded-xl shadow-sm overflow-hidden divide-line max-lg:[&>*:nth-child(-n+2)]:border-b lg:divide-x max-lg:[&>*:nth-child(odd)]:border-r">
-      {tiles.map((t) => (
-        <div key={t.label} className="px-5 py-4 border-line">
-          <dt className="flex items-center gap-2 text-xs font-medium text-inkmute">
-            <span className={`w-2 h-2 rounded-full ${t.bar} ${t.value === 0 && t.label !== 'Project aktif' ? 'opacity-30' : ''}`} aria-hidden="true" />
-            {t.label}
-          </dt>
-          <dd className={`font-display text-3xl font-semibold tnum mt-1.5 ${t.text}`}>{t.value}</dd>
-        </div>
-      ))}
-    </dl>
+    <StatStrip
+      label="Ringkasan hari ini"
+      items={[
+        { key: 'late', label: 'Terlambat', value: n.late, tone: 'rust', dim: n.late === 0 },
+        { key: 'soon', label: 'Segera jatuh tempo', value: n.soon, tone: 'amber', dim: n.soon === 0 },
+        { key: 'todo', label: 'Perlu dilengkapi', value: n.todo, tone: 'muted', dim: n.todo === 0 },
+        { key: 'run', label: 'Project aktif', value: running, tone: 'blueprint' },
+      ]}
+    />
   );
 }
 
@@ -253,23 +246,18 @@ export default function TodayPage() {
     <div className="flex flex-col gap-6">
       <PageHead title="Hari Ini" />
 
-      <header className="relative overflow-hidden bg-panel border border-line rounded-2xl shadow-sm">
-        <div className="absolute inset-0 bp-grid opacity-70 pointer-events-none" aria-hidden="true" />
-                <div className="relative flex flex-col lg:flex-row lg:items-end justify-between gap-5 px-5 py-6 sm:px-7">
-          <div className="min-w-0">
-            <p className="text-sm font-medium text-inkmute">{fmtLong(today)}</p>
-            <h1 className="font-display text-2xl sm:text-3xl font-semibold text-ink mt-1.5">
-              {hello}{firstName ? `, ${firstName}` : ''}
-            </h1>
-            <p className="text-sm sm:text-base text-ink mt-1.5" aria-live="polite">{projects ? summaryText(shown) : 'Memuat...'}</p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
+      <PageHeader
+        eyebrow={fmtLong(today)}
+        title={`${hello}${firstName ? `, ${firstName}` : ''}`}
+        meta={<span className="text-ink sm:text-base" aria-live="polite">{projects ? summaryText(shown) : 'Memuat...'}</span>}
+        actions={
+          <>
             <RefreshStatus refreshing={refreshing} staleError={staleError} />
             <Link href="/procurement" className="btn btn-secondary flex-1 sm:flex-none">+ Pengadaan</Link>
             <Link href="/projects/new" className="btn btn-primary flex-1 sm:flex-none">+ Project Baru</Link>
-          </div>
-        </div>
-      </header>
+          </>
+        }
+      />
 
       {projects && <Kpis items={shown} running={running} />}
 
