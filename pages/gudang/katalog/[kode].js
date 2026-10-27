@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useSession } from 'next-auth/react';
 import { canWrite, MSG_VIEWER } from '../../../lib/roles';
-import { gudangApi, STATUS_CEK, SATUAN_UMUM, BARANG_EDITABLE, fmtQty, patchKatalogCache } from '../../../lib/gudang';
+import { gudangApi, STATUS_CEK, SATUAN_UMUM, BARANG_EDITABLE, JENIS_TRANSAKSI, fmtQty, patchKatalogCache } from '../../../lib/gudang';
 import PageHead from '../../../components/PageHead';
 import { useToast } from '../../../components/Toast';
 import PageHeader from '../../../components/ui/PageHeader';
@@ -134,6 +134,39 @@ function BomUsage({ baris, files, satuan }) {
   );
 }
 
+// Riwayat transaksi stok barang ini (50 terbaru): saldo awal, masuk, keluar, kembali, penyesuaian opname.
+function StockHistory({ transaksi, satuan, lokasiNama }) {
+  return (
+    <Panel title="Riwayat stok" hint={transaksi.length >= 50 ? '50 transaksi terbaru.' : `${transaksi.length} transaksi.`} flush>
+      <ul className="divide-y divide-line">
+        {transaksi.map((t) => {
+          const q = Number(t.qty);
+          return (
+            <li key={t.id} className="px-5 py-3 grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 text-sm">
+              <span className="min-w-0">
+                <span className="text-ink">{JENIS_TRANSAKSI[t.jenis] || t.jenis}</span>
+                <span className="block text-xs text-inkmute mt-0.5">
+                  {fmtDate(t.tanggal)} · {lokasiNama[t.lokasi_kode] || t.lokasi_kode || 'tanpa lokasi'} ·{' '}
+                  {t.opname_id ? (
+                    <Link href={`/gudang/opname/${t.opname_id}`} className="text-blueprint hover:underline">{t.referensi || `Opname #${t.opname_id}`}</Link>
+                  ) : (
+                    t.referensi || '-'
+                  )}{' '}
+                  · {t.dicatat_oleh}
+                  {t.catatan ? ` · ${t.catatan}` : ''}
+                </span>
+              </span>
+              <span className={`tnum text-right whitespace-nowrap ${q < 0 ? 'text-rust' : 'text-ink'}`}>
+                {q > 0 ? '+' : q < 0 ? '−' : ''}{fmtQty(Math.abs(q))} {satuan}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    </Panel>
+  );
+}
+
 function toForm(b) {
   const f = {};
   BARANG_EDITABLE.forEach((k) => { f[k] = b[k] === null || b[k] === undefined ? '' : String(b[k]); });
@@ -233,6 +266,7 @@ export default function BarangDetail() {
 
   const b = data.barang;
   const katNama = Object.fromEntries((data.kategori || []).map((k) => [k.kode, k.nama]));
+  const lokasiNama = Object.fromEntries((data.lokasi || []).map((l) => [l.kode, l.nama]));
   const disabled = !writable || saving;
 
   return (
@@ -334,6 +368,8 @@ export default function BarangDetail() {
             )}
           </Panel>
 
+          {(data.transaksi || []).length > 0 && <StockHistory transaksi={data.transaksi} satuan={b.satuan} lokasiNama={lokasiNama} />}
+
           <BomUsage baris={data.baris} files={data.files} satuan={b.satuan} />
         </div>
 
@@ -347,6 +383,16 @@ export default function BarangDetail() {
                 ? `Transaksi terakhir ${fmtDate(data.stok.transaksi_terakhir)}.`
                 : 'Belum ada transaksi. Stok awal diisi saat stock opname pertama.'}
             </p>
+            {(data.stok.perLokasi || []).length > 1 && (
+              <ul className="mt-3 flex flex-col gap-1 text-sm">
+                {data.stok.perLokasi.map((p) => (
+                  <li key={p.lokasi_kode} className="flex justify-between gap-3">
+                    <span className="text-inkmute">{lokasiNama[p.lokasi_kode] || p.lokasi_kode}</span>
+                    <span className="tnum text-ink">{fmtQty(p.stok)} {b.satuan}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
             {b.foto_url && (
               <a href={b.foto_url} target="_blank" rel="noopener noreferrer" className="tap inline-block mt-3 text-sm font-medium text-blueprint hover:underline">
                 Buka foto barang

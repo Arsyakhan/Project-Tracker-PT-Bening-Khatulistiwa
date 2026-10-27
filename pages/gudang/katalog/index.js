@@ -1,7 +1,10 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
+import { useSession } from 'next-auth/react';
+import { canWrite } from '../../../lib/roles';
 import useCachedResource from '../../../lib/useCachedResource';
-import { gudangApi, statusCekInfo, barangSearchText, fmtQty, reviewFlags } from '../../../lib/gudang';
+import { gudangApi, statusCekInfo, barangSearchText, fmtQty, reviewFlags, FLAG_PENAWARAN, addToKatalogCache } from '../../../lib/gudang';
 import PageHead from '../../../components/PageHead';
 import RefreshStatus from '../../../components/RefreshStatus';
 import { SkeletonTable } from '../../../components/Skeleton';
@@ -11,6 +14,7 @@ import Panel from '../../../components/ui/Panel';
 import Segmented from '../../../components/ui/Segmented';
 import SearchField from '../../../components/ui/SearchField';
 import EmptyState from '../../../components/ui/EmptyState';
+import BarangBaruForm from '../../../components/gudang/BarangBaruForm';
 
 const PAGE = 60;
 
@@ -22,6 +26,7 @@ const STATUS_FILTERS = [
 
 const SCOPES = [
   { key: 'project', label: 'Pernah dipakai project', test: (b) => b.dipakai_project > 0 },
+  { key: 'stok', label: 'Ada stok', test: (b) => Number(b.stok) !== 0 },
   { key: 'all', label: 'Semua', test: () => true },
   { key: 'flag', label: 'Ditandai saat impor', test: (b) => reviewFlags(b).length > 0 },
 ];
@@ -39,6 +44,12 @@ function StatusCek({ b }) {
   );
 }
 
+// Kolom "Dipakai": jumlah project lama, "penawaran" kalau hanya muncul di BOQ, "-" untuk barang baru dari web.
+function usage(b) {
+  if (b.dipakai_project > 0) return `${b.dipakai_project} project`;
+  return (b.perlu_dicek || []).includes(FLAG_PENAWARAN) ? 'penawaran' : '-';
+}
+
 function detailLine(b) {
   return [b.spesifikasi, b.merek].filter(Boolean).join(' · ');
 }
@@ -46,7 +57,11 @@ function detailLine(b) {
 // Katalog barang (Supabase): daftar induk alat dan material dari semua BOM lama. Dicek W&P/Engineering lewat kolom
 // "Status cek"; kodenya dipakai untuk BOM, stok, dan pengadaan.
 export default function KatalogBarang() {
-  const { data, error, staleError, refreshing } = useCachedResource('gudang-katalog', () => gudangApi.getKatalog());
+  const router = useRouter();
+  const { data: session } = useSession();
+  const writable = canWrite(session?.user?.role || 'admin'); // pengecekan sebenarnya di server
+  const { data, error, staleError, refreshing, mutate } = useCachedResource('gudang-katalog', () => gudangApi.getKatalog());
+  const [adding, setAdding] = useState(false);
   const [query, setQuery] = useState('');
   const [kategori, setKategori] = useState('');
   const [scope, setScope] = useState('project');
@@ -91,7 +106,14 @@ export default function KatalogBarang() {
     <PageHeader
       title="Katalog Barang"
       meta="Daftar induk alat dan material dari semua BOM lama. Kode barang dipakai untuk BOM, stok gudang, dan pengadaan."
-      actions={<RefreshStatus refreshing={refreshing && !!data} staleError={staleError} />}
+      actions={
+        <>
+          <RefreshStatus refreshing={refreshing && !!data} staleError={staleError} />
+          {writable && data && !adding && (
+            <button type="button" onClick={() => setAdding(true)} className="btn btn-secondary">Tambah barang</button>
+          )}
+        </>
+      }
     />
   );
 
@@ -122,6 +144,23 @@ export default function KatalogBarang() {
     <div className="flex flex-col gap-5">
       <PageHead title="Katalog Barang" />
       {header}
+
+      {adding && (
+        <Panel>
+          <BarangBaruForm
+            kategori={kategoriList}
+            katalog={barang}
+            namaAwal={query}
+            onCancel={() => setAdding(false)}
+            onPickExisting={(b) => router.push(`/gudang/katalog/${b.kode}`)}
+            onCreated={(b) => {
+              addToKatalogCache(b);
+              mutate((d) => (d ? { ...d, barang: [...d.barang, { ...b, stok: 0 }] } : d));
+              router.push(`/gudang/katalog/${b.kode}`);
+            }}
+          />
+        </Panel>
+      )}
 
       <StatStrip
         label="Status pemeriksaan katalog"
@@ -170,7 +209,7 @@ export default function KatalogBarang() {
 
       {rows.length === 0 ? (
         <EmptyState title="Tidak ada barang yang cocok">
-          Ubah pencarian, kategori, atau pilihan di atas. Barang yang hanya muncul di penawaran ada di pilihan &ldquo;Semua&rdquo;.
+          Ubah pencarian, kategori, atau pilihan di atas. Barang yang hanya muncul di penawaran atau baru ditambahkan ada di pilihan &ldquo;Semua&rdquo;.
         </EmptyState>
       ) : (
         <Panel flush>
@@ -205,7 +244,7 @@ export default function KatalogBarang() {
                     <td className="px-3 py-3 whitespace-nowrap">{b.material || <span className="text-inkmute">-</span>}</td>
                     <td className="px-3 py-3 font-data text-xs max-w-[12rem] truncate" title={b.model || ''}>{b.model || <span className="text-inkmute">-</span>}</td>
                     <td className="px-3 py-3 text-right tnum whitespace-nowrap">
-                      {b.dipakai_project > 0 ? `${b.dipakai_project} project` : <span className="text-inkmute">penawaran</span>}
+                      {b.dipakai_project > 0 ? usage(b) : <span className="text-inkmute">{usage(b)}</span>}
                     </td>
                     <td className="px-3 py-3 text-right tnum whitespace-nowrap">
                       {b.stok ? `${fmtQty(b.stok)} ${b.satuan}` : <span className="text-inkmute">-</span>}
@@ -230,7 +269,7 @@ export default function KatalogBarang() {
                       </span>
                     </span>
                     <span className="text-xs text-inkmute tnum whitespace-nowrap">
-                      {b.dipakai_project > 0 ? `${b.dipakai_project} project` : 'penawaran'}
+                      {usage(b)}
                     </span>
                   </span>
                   <span className="flex items-center justify-between gap-3 mt-2">

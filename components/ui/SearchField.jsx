@@ -1,5 +1,5 @@
 // Kolom pencarian dengan ikon kaca pembesar. Lebar mengikuti pembungkus (className).
-export default function SearchField({ value, onChange, placeholder = 'Cari...', label, className = '', autoFocus = false }) {
+export default function SearchField({ value, onChange, placeholder = 'Cari...', label, className = '', autoFocus = false, id }) {
   return (
     <div className={`relative ${className}`}>
       <svg
@@ -14,6 +14,7 @@ export default function SearchField({ value, onChange, placeholder = 'Cari...', 
       </svg>
       <input
         type="search"
+        id={id}
         className="input !pl-9 !min-h-[36px] max-md:!min-h-[40px]"
         placeholder={placeholder}
         aria-label={label || placeholder}

@@ -12,6 +12,7 @@ const STATIC_ACTIONS = [
   { label: 'Buat dokumen', href: '/documents/generator', keywords: 'generator commissioning handover hand over dokumen' },
   { label: 'Pengadaan', href: '/procurement', keywords: 'pengadaan procurement barang material eta' },
   { label: 'Katalog barang', href: '/gudang/katalog', keywords: 'katalog barang material gudang stok bom kode fitting valve pompa' },
+  { label: 'Stock opname', href: '/gudang/opname', keywords: 'stock opname stok gudang hitung saldo awal penyesuaian' },
   { label: 'Arsip project', href: '/arsip', keywords: 'arsip archive selesai teknologi referensi finished' },
   { label: 'Aktivitas', href: '/activity', keywords: 'activity log riwayat perubahan' },
   { label: '+ Project baru', href: '/projects/new', keywords: 'tambah new create' },

@@ -351,6 +351,17 @@ wajib; GET `katalog`, GET `barang&kode=`, POST `updateBarang` untuk editor dan a
 `Gabung` wajib menunjuk kode yang ada dan bukan barang yang sendirinya sudah digabung. Pemeriksaan katalog oleh
 W&P/Engineering kini dilakukan di halaman Katalog Barang; berkas Excel draf di Dropbox hanya salinan awal 27 Okt 2026.
 
+**Stock opname (27 Okt 2026):** tabel `stock_opname` (sesi per lokasi gudang, `draf` → `selesai`) dan
+`stock_opname_baris` (hitungan per barang, satu baris per barang per sesi), view `stok_per_lokasi`, lokasi bawaan
+`UTAMA`. Posting = fungsi database `posting_opname` (atomik; barang tanpa transaksi di lokasi itu → `saldo_awal`,
+selain itu → `penyesuaian` sebesar selisih; barang yang tidak dihitung tidak berubah), dipanggil route lewat `sbRpc`.
+Trigger `cek_opname_draf` menolak perubahan hitungan sesudah diposting. Aksi di `/api/gudang`: GET `lokasi`,
+`opnameList`, `opname&id=`; POST `createLokasi`, `createOpname`, `deleteOpname` (hanya draf), `saveOpnameLine`
+(upsert per barang; barang berstatus Gabung ditolak, hitung di kode tujuannya), `deleteOpnameLine`, `postOpname`,
+`createBarang` (kode = kategori + nomor berikutnya; nama + ukuran + material yang sama ditolak). Semua aksi tulis untuk
+editor dan admin. Logika server ada di `lib/gudangServer.js`; `pages/api/gudang.js` hanya membagi aksi dan memeriksa
+peran. Galat `P0001` dari fungsi/trigger database diteruskan ke pengguna apa adanya (pesannya berbahasa Indonesia).
+
 ## Kontrak yang harus sinkron (sumber bug paling umum)
 
 | Hal | Di sisi backend | Di sisi frontend |
@@ -452,8 +463,8 @@ Cloud) bersamaan. Penyebab lain yang belum tertutup: PWA iOS yang membuka login 
   Kanban), Engineering Docs jadi tab "Checklist engineering" di menu Dokumen (`components/DocsTabs.jsx`: Checklist
   engineering | Buat dokumen), Notulensi jadi menu **Rapat** sendiri, Aktivitas pindah ke bawah menu. Alamat lama
   (`/board`, `/engineering-docs`, `/documents/meetings/...`) dialihkan di `redirects()` `next.config.js`, jadi tautan
-  lama, bookmark, dan PWA tetap jalan. Grup **Material & Gudang** berisi Pengadaan dan Katalog Barang; BOM, stok gudang,
-  dan serah terima menyusul di grup yang sama.
+  lama, bookmark, dan PWA tetap jalan. Grup **Material & Gudang** berisi Pengadaan, Katalog Barang, dan Stock Opname;
+  BOM project, barang masuk/keluar, dan serah terima menyusul di grup yang sama.
 - **Katalog Barang** (`/gudang/katalog` + `/gudang/katalog/[kode]`, 27 Okt 2026, data dari Supabase): daftar induk alat
   dan material dari semua BOM lama, diurutkan dari yang paling sering dipakai project. Angka di `StatStrip` menyaring
   menurut status cek (Belum dicek / OK / Perlu tindakan); pilihan "Pernah dipakai project" (bawaan), "Semua" (termasuk
@@ -461,9 +472,17 @@ Cloud) bersamaan. Penyebab lain yang belum tertutup: PWA iOS yang membuka login 
   barang yang bisa diubah, stok, ejaan lain, barang yang digabung ke kode ini, dan "Dipakai di BOM" (satu baris per
   project, dibuka untuk melihat baris BOM-nya; penawaran terpisah; bawaan hanya file revisi terakhir). Jumlah di
   ringkasan project sengaja tidak dijumlahkan karena satu project bisa memuat barang yang sama di beberapa file atau
-  lembar. Sesudah simpan, data katalog yang tersimpan di browser ikut diperbarui (`patchKatalogCache`).
+  lembar. Sesudah simpan, data katalog yang tersimpan di browser ikut diperbarui (`patchKatalogCache`). Juga ada pilihan
+  "Ada stok", tombol "Tambah barang" (`components/gudang/BarangBaruForm.jsx`: menampilkan barang mirip supaya tidak ada
+  kode ganda), serta stok per lokasi dan "Riwayat stok" (50 transaksi terbaru) di detail barang.
+- **Stock Opname** (`/gudang/opname` + `/gudang/opname/[id]`, 27 Okt 2026): daftar sesi dan form "Mulai opname" (judul,
+  lokasi gudang atau lokasi baru, tanggal). Halaman sesi dibuat untuk HP: cari barang dari katalog (`searchKatalog`),
+  isi jumlah (angka besar), simpan; barang yang belum ada di katalog bisa ditambah langsung. Setiap baris menampilkan
+  akibatnya terhadap stok (saldo awal, selisih terhadap stok sistem di lokasi itu, sama, atau 0 tidak dicatat;
+  `effectOf`). Beberapa orang boleh menghitung di sesi yang sama ("Muat ulang" untuk melihat hitungan mereka).
+  "Posting ke stok" meminta konfirmasi dengan ringkasan; sesudahnya sesi hanya bisa dilihat.
 - Shell: `pages/_app.js` + `components/Sidebar.jsx` (menu `NAV_GROUPS` dikelompokkan Harian (Hari Ini, Dashboard, Rapat) /
-  Project (Project, Dokumen) / Material & Gudang (Pengadaan, Katalog Barang) / Referensi (Arsip), dan `NAV_FOOTER` (Aktivitas) di bawah; tambah halaman baru
+  Project (Project, Dokumen) / Material & Gudang (Pengadaan, Katalog Barang, Stock Opname) / Referensi (Arsip), dan `NAV_FOOTER` (Aktivitas) di bawah; tambah halaman baru
   di sana dan di `STATIC_ACTIONS` `components/CommandPalette.jsx`). `pages/login.js` = foto WTP layar penuh di balik permukaan air WebGL (`WaterSurface`) + logo + kartu masuk (lihat "Desain UI").
 - **Tata letak halaman (27 Okt 2026)**: Hari Ini, Dashboard, Semua Project, detail project, Kanban, Pengadaan, Dokumen,
   Notulensi, dan Arsip memakai komponen bersama di `components/ui/` (`PageHeader`, `StatStrip`, `Panel`, `Segmented`,
@@ -669,7 +688,8 @@ Cloud) bersamaan. Penyebab lain yang belum tertutup: PWA iOS yang membuka login 
 - API: `pages/api/gas.js` (proxy utama), `docgen.js` (Commissioning/Hand Over + catat ke Document Log
   + update checklist), `meeting-doc.js` (Notulensi), `gudang.js` (modul gudang, Supabase), `auth/[...nextauth].js`.
 - Pustaka: `lib/` (`api.js`, `useProjects.js`, `useCachedResource.js`, `persistedCache.js`, `stages.js`,
-  `systems.js`, `meetings.js`, `procurement.js`, `roles.js`, `gudang.js`, `supabaseServer.js` (server saja), `docgen/*`).
+  `systems.js`, `meetings.js`, `procurement.js`, `roles.js`, `gudang.js`, `supabaseServer.js` dan `gudangServer.js`
+  (server saja), `docgen/*`).
 
 ## Desain UI
 
