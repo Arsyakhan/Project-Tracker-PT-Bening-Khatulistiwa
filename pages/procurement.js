@@ -12,6 +12,11 @@ import RefreshStatus from '../components/RefreshStatus';
 import ConfirmModal from '../components/ConfirmModal';
 import { useToast } from '../components/Toast';
 import { Pill } from '../components/Badges';
+import PageHeader from '../components/ui/PageHeader';
+import StatStrip from '../components/ui/StatStrip';
+import SearchField from '../components/ui/SearchField';
+import Segmented from '../components/ui/Segmented';
+import EmptyState from '../components/ui/EmptyState';
 import { copyText, fmtShort, todayIso } from '../lib/meetings';
 import {
   PROC_STATUSES, OPEN_STATUSES, SHIPMENT_OPTIONS, isOpen, etaState, etaText, statusTone,
@@ -35,6 +40,37 @@ function EtaPill({ it }) {
     <span className="inline-flex flex-col items-start gap-0.5">
       <Pill tone={tone}>{etaText(it)}</Pill>
       {isOpen(it) && <span className="text-xs text-inkmute tnum">{fmtShort(it.eta)}</span>}
+    </span>
+  );
+}
+
+// Posisi barang di alur pengadaan: Perlu dibeli -> Sudah order -> Dalam pengiriman -> Diterima.
+// "Tiba sebagian" berada di antara pengiriman dan diterima; "Batal" ditampilkan sebagai jalur abu-abu putus-putus.
+const FLOW = ['Perlu dibeli', 'Sudah order', 'Dalam pengiriman', 'Diterima'];
+function ProcSteps({ status }) {
+  const cancelled = status === 'Batal';
+  const pos = status === 'Tiba sebagian' ? 2.5 : FLOW.indexOf(status);
+  const done = status === 'Diterima';
+  return (
+    <span className="flex items-center w-full px-0.5" aria-hidden="true">
+      {FLOW.map((step, i) => {
+        const reached = !cancelled && pos >= i;
+        const current = !cancelled && (Math.floor(pos) === i);
+        return (
+          <span key={step} className={`flex items-center ${i < FLOW.length - 1 ? 'flex-1' : ''}`} title={step}>
+            <span
+              className={`block rounded-full shrink-0 ${current ? 'w-2.5 h-2.5 ring-[3px]' : 'w-2 h-2'} ${
+                cancelled ? 'bg-line' : reached ? (done ? 'bg-teal ring-teal/20' : 'bg-blueprint ring-blueprint/20') : 'bg-panel border border-line'
+              }`}
+            />
+            {i < FLOW.length - 1 && (
+              <span
+                className={`flex-1 h-0.5 mx-0.5 ${cancelled ? 'border-t border-dashed border-line h-0' : pos > i ? (done ? 'bg-teal' : 'bg-blueprint') : 'bg-line'}`}
+              />
+            )}
+          </span>
+        );
+      })}
     </span>
   );
 }
@@ -155,7 +191,7 @@ export default function ProcurementPage() {
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('open'); // open | all | <status>
   const [projectFilter, setProjectFilter] = useState(''); // '' | '__none' | projectId
-  const [onlyLate, setOnlyLate] = useState(false);
+  const [etaFilter, setEtaFilter] = useState(''); // '' | 'late' | 'soon'
   const [editing, setEditing] = useState(null);
   const [saving, setSaving] = useState(false);
   const [busyId, setBusyId] = useState('');
@@ -183,7 +219,7 @@ export default function ProcurementPage() {
       if (statusFilter !== 'open' && statusFilter !== 'all' && it.status !== statusFilter) return false;
       if (projectFilter === '__none' && it.projectId) return false;
       if (projectFilter && projectFilter !== '__none' && it.projectId !== projectFilter) return false;
-      if (onlyLate && etaState(it, today).state !== 'late') return false;
+      if (etaFilter && etaState(it, today).state !== etaFilter) return false;
       if (q) {
         const pn = projectsById[it.projectId]?.projectName || '';
         const hay = [it.item, it.vendor, it.forLabel, it.poRef, it.notes, it.qty, pn].join(' ').toLowerCase();
@@ -191,7 +227,7 @@ export default function ProcurementPage() {
       }
       return true;
     });
-  }, [all, query, statusFilter, projectFilter, onlyLate, projectsById, today]);
+  }, [all, query, statusFilter, projectFilter, etaFilter, projectsById, today]);
 
   const groups = useMemo(() => groupItems(filtered, projectsById), [filtered, projectsById]);
 
@@ -245,115 +281,117 @@ export default function ProcurementPage() {
     showToast(ok ? 'Rekap disalin dan siap ditempel di WhatsApp.' : 'Gagal menyalin teks.', ok ? 'success' : 'error');
   }
 
-  const filtersActive = query || statusFilter !== 'open' || projectFilter || onlyLate;
+  const filtersActive = query || statusFilter !== 'open' || projectFilter || etaFilter;
+  function resetFilters() { setQuery(''); setStatusFilter('open'); setProjectFilter(''); setEtaFilter(''); }
+  function pick(status, eta = '') { setStatusFilter(status); setEtaFilter(eta); }
 
   return (
     <div className="flex flex-col gap-6">
       <PageHead title="Pengadaan" />
 
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
-        <div>
-          <h1 className="font-display text-2xl font-semibold text-ink">Pengadaan Material</h1>
-          <p className="text-sm text-inkmute mt-1">Pantau pembelian dan kedatangan material untuk setiap project.</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <RefreshStatus refreshing={refreshing && !!items} staleError={staleError} />
-          <button
-            type="button"
-            onClick={copyRecap}
-            disabled={!items || filtered.filter(isOpen).length === 0}
-            className="border border-line rounded-md px-4 h-9 max-md:h-10 text-sm font-medium text-ink bg-panel hover:border-blueprint hover:text-blueprint disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-          >
-            Salin rekap untuk WhatsApp
-          </button>
-          {writable && (
-            <button
-              type="button"
-              onClick={() => setEditing(emptyItem(projectFilter && projectFilter !== '__none' ? projectFilter : ''))}
-              className="bg-blueprint hover:bg-blueprintdark text-onaccent rounded-md px-4 h-9 max-md:h-10 text-sm font-medium transition-colors"
-            >
-              + Tambah barang
+      <PageHeader
+        title="Pengadaan Material"
+        meta="Pantau pembelian dan kedatangan material untuk setiap project."
+        actions={
+          <>
+            <RefreshStatus refreshing={refreshing && !!items} staleError={staleError} />
+            <button type="button" onClick={copyRecap} disabled={!items || filtered.filter(isOpen).length === 0} className="btn btn-secondary">
+              Salin rekap untuk WhatsApp
             </button>
-          )}
-        </div>
-      </div>
+            {writable && (
+              <button
+                type="button"
+                onClick={() => setEditing(emptyItem(projectFilter && projectFilter !== '__none' ? projectFilter : ''))}
+                className="btn btn-primary"
+              >
+                + Tambah barang
+              </button>
+            )}
+          </>
+        }
+      />
 
       {error && !items ? (
-        <div className="bg-panel border border-line rounded-lg p-5 text-sm text-rust">Gagal memuat data pengadaan: {error}</div>
+        <div className="bg-panel border border-line rounded-xl p-5 text-sm text-rust" role="alert">Gagal memuat data pengadaan: {error}</div>
       ) : !items ? (
         <div className="flex flex-col gap-3">
-          <div className="skeleton-shimmer rounded-lg h-20 w-full" />
-          <div className="skeleton-shimmer rounded-lg h-56 w-full" />
+          <div className="skeleton-shimmer rounded-xl h-[96px] w-full" />
+          <div className="skeleton-shimmer rounded-xl h-56 w-full" />
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {[
-              { label: 'Belum datang', value: open.length, tone: 'text-ink' },
-              { label: 'Terlambat', value: lateCount, tone: lateCount > 0 ? 'text-rust' : 'text-teal' },
-              { label: `Tiba ≤ 7 hari`, value: soonCount, tone: soonCount > 0 ? 'text-amberink' : 'text-ink' },
-              { label: 'Sudah diterima', value: doneCount, tone: 'text-teal' },
-            ].map((c) => (
-              <div key={c.label} className="bg-panel border border-line rounded-lg p-4 shadow-sm">
-                <p className="text-xs text-inkmute">{c.label}</p>
-                <p className={`font-data tnum text-2xl font-semibold mt-1 ${c.tone}`}>{c.value}</p>
-              </div>
-            ))}
-          </div>
+          <StatStrip
+            label="Ringkasan pengadaan"
+            items={[
+              { key: 'open', label: 'Belum datang', value: open.length, tone: 'muted', hint: 'Semua yang belum selesai', onClick: () => pick('open'), active: statusFilter === 'open' && !etaFilter },
+              { key: 'late', label: 'Terlambat', value: lateCount, tone: 'rust', dim: lateCount === 0, hint: 'ETA sudah lewat', onClick: () => pick('open', 'late'), active: etaFilter === 'late' },
+              { key: 'soon', label: 'Tiba dalam 7 hari', value: soonCount, tone: 'amber', dim: soonCount === 0, hint: 'Siapkan penerimaan', onClick: () => pick('open', 'soon'), active: etaFilter === 'soon' },
+              { key: 'done', label: 'Sudah diterima', value: doneCount, tone: 'teal', hint: 'Lihat riwayat', onClick: () => pick('Diterima'), active: statusFilter === 'Diterima' && !etaFilter },
+            ]}
+          />
 
-          <div className="bg-panel border border-line rounded-lg p-3 sm:p-4 flex flex-col gap-3 shadow-sm">
-            <input type="search" className="input" aria-label="Cari barang pengadaan" placeholder="Cari barang, vendor, project, atau catatan..." value={query} onChange={(e) => setQuery(e.target.value)} />
+          <div className="bg-panel border border-line rounded-xl px-3 py-3 sm:px-4 flex flex-col lg:flex-row lg:items-center gap-2.5 shadow-sm">
+            <SearchField className="lg:flex-1 lg:max-w-sm" value={query} onChange={setQuery} placeholder="Cari barang, vendor, project, atau catatan..." label="Cari barang pengadaan" />
             <div className="flex flex-wrap items-center gap-2">
-              <select className="input !w-auto !min-h-[36px] max-md:!min-h-[40px] !py-1" aria-label="Filter status" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+              <select className="input !w-auto max-md:!w-full !min-h-[36px] max-md:!min-h-[40px] !py-1" aria-label="Filter status" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
                 <option value="open">Belum selesai</option>
                 <option value="all">Semua status</option>
-                {PROC_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+                {PROC_STATUSES.map((st) => <option key={st} value={st}>{st}</option>)}
               </select>
-              <select className="input !w-auto !min-h-[36px] max-md:!min-h-[40px] !py-1 max-w-[260px]" aria-label="Filter project" value={projectFilter} onChange={(e) => setProjectFilter(e.target.value)}>
+              <select className="input !w-auto max-md:!w-full !min-h-[36px] max-md:!min-h-[40px] !py-1 md:max-w-[240px]" aria-label="Filter project" value={projectFilter} onChange={(e) => setProjectFilter(e.target.value)}>
                 <option value="">Semua project</option>
                 <option value="__none">Tanpa project</option>
-                {projectList.map((p) => <option key={p.id} value={p.id}>{p.projectName}</option>)}
+                {projectList.map((pr) => <option key={pr.id} value={pr.id}>{pr.projectName}</option>)}
               </select>
-              <label className="inline-flex items-center gap-2 max-md:min-h-[40px] text-sm cursor-pointer">
-                <input type="checkbox" className="w-4 h-4 max-md:w-5 max-md:h-5 accent-blueprint" checked={onlyLate} onChange={(e) => setOnlyLate(e.target.checked)} />
-                Hanya yang terlambat
-              </label>
-              {filtersActive && (
-                <button type="button" onClick={() => { setQuery(''); setStatusFilter('open'); setProjectFilter(''); setOnlyLate(false); }} className="tap text-sm font-medium text-blueprint hover:underline ml-auto">
-                  Reset filter
-                </button>
-              )}
+              <Segmented
+                size="sm"
+                label="Filter ETA"
+                value={etaFilter}
+                onChange={setEtaFilter}
+                options={[{ key: '', label: 'Semua ETA' }, { key: 'late', label: 'Terlambat' }, { key: 'soon', label: '≤ 7 hari' }]}
+              />
             </div>
+            {filtersActive && (
+              <button type="button" onClick={resetFilters} className="tap text-sm font-medium text-blueprint hover:underline lg:ml-auto whitespace-nowrap self-start lg:self-center">
+                Reset filter
+              </button>
+            )}
           </div>
 
           {all.length === 0 ? (
-            <div className="bg-panel border border-dashed border-line rounded-lg p-10 text-center">
-              <p className="text-sm font-medium text-ink">Belum ada barang yang dicatat</p>
-              <p className="text-xs text-inkmute mt-1">{writable ? 'Klik "Tambah barang" untuk mencatat pembelian, misalnya pressure vessel atau pompa yang sedang dipesan.' : 'Admin atau Editor dapat menambahkan barang.'}</p>
-            </div>
+            <EmptyState title="Belum ada barang yang dicatat">
+              {writable ? 'Klik "Tambah barang" untuk mencatat pembelian, misalnya pressure vessel atau pompa yang sedang dipesan.' : 'Admin atau Editor dapat menambahkan barang.'}
+            </EmptyState>
           ) : groups.length === 0 ? (
-            <p className="text-sm text-inkmute text-center py-10">Tidak ada barang yang cocok dengan filter.</p>
+            <EmptyState title="Tidak ada barang yang cocok dengan filter" dashed={false} action={<button type="button" onClick={resetFilters} className="btn btn-secondary">Reset filter</button>} />
           ) : (
             <div className="flex flex-col gap-4">
+              <p className="hidden md:grid grid-cols-[minmax(0,1fr)_200px_150px_150px] gap-4 px-5 -mb-2 text-xs font-semibold text-inkmute">
+                <span>Barang</span><span>Status</span><span>ETA</span><span className="text-right">Aksi</span>
+              </p>
               {groups.map((g) => {
                 const gLate = g.items.filter((i) => etaState(i, today).state === 'late').length;
+                const pr = g.projectId ? projectsById[g.projectId] : null;
                 return (
-                  <section key={g.key} className="bg-panel border border-line rounded-lg shadow-sm overflow-hidden">
-                    <div className="px-4 py-3 bg-canvas/60 border-b border-line flex flex-wrap items-center justify-between gap-2">
-                      {g.projectId ? (
-                        <Link href={`/projects/${encodeURIComponent(g.projectId)}`} className="font-display font-semibold text-ink hover:text-blueprint transition-colors">{g.title}</Link>
-                      ) : (
-                        <h2 className="font-display font-semibold text-ink">{g.title}</h2>
-                      )}
+                  <section key={g.key} className="bg-panel border border-line rounded-xl shadow-sm overflow-hidden">
+                    <div className="px-5 py-3 border-b border-line flex flex-wrap items-center justify-between gap-2 bg-canvas/50">
+                      <div className="min-w-0">
+                        {g.projectId ? (
+                          <Link href={`/projects/${encodeURIComponent(g.projectId)}`} className="font-display font-semibold text-ink hover:text-blueprint transition-colors">{g.title}</Link>
+                        ) : (
+                          <h2 className="font-display font-semibold text-ink">{g.title}</h2>
+                        )}
+                        {pr && <p className="text-xs text-inkmute mt-0.5">{[pr.currentStage, pr.pic && `PIC ${pr.pic}`].filter(Boolean).join(' · ')}</p>}
+                      </div>
                       <div className="flex items-center gap-1.5">
-                        <Pill tone="neutral">{g.items.length} barang</Pill>
+                        <span className="text-xs text-inkmute tnum">{g.items.length} barang</span>
                         {gLate > 0 && <Pill tone="rust" dot>{gLate} terlambat</Pill>}
                       </div>
                     </div>
 
                     <ul className="divide-y divide-line">
                       {g.items.map((it) => (
-                        <li key={it.id} className="px-4 py-3 grid gap-3 md:grid-cols-[minmax(0,1fr)_180px_130px_auto] md:items-center">
+                        <li key={it.id} className="px-5 py-3.5 grid gap-3 md:gap-4 md:grid-cols-[minmax(0,1fr)_200px_150px_150px] md:items-center">
                           <div className="min-w-0">
                             <p className={`text-sm font-medium ${it.status === 'Batal' ? 'line-through text-inkmute' : 'text-ink'}`}>
                               {it.item}{it.qty && <span className="text-inkmute font-normal"> · {it.qty}</span>}
@@ -364,27 +402,30 @@ export default function ProcurementPage() {
                             {it.notes && <p className="text-xs text-ink/80 mt-1 whitespace-pre-wrap break-words line-clamp-2">{it.notes}</p>}
                           </div>
 
-                          {writable ? (
-                            <select
-                              className="input !min-h-[34px] max-md:!min-h-[40px] !py-1 text-sm"
-                              aria-label={`Status ${it.item}`}
-                              value={it.status}
-                              disabled={busyId === it.id}
-                              onChange={(e) => quickStatus(it, e.target.value)}
-                            >
-                              {PROC_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
-                            </select>
-                          ) : (
-                            <Pill tone={statusTone(it.status)} dot>{it.status}</Pill>
-                          )}
+                          <div className="flex flex-col gap-1.5">
+                            <ProcSteps status={it.status} />
+                            {writable ? (
+                              <select
+                                className="input !min-h-[32px] max-md:!min-h-[40px] !py-0.5 !px-2 text-sm"
+                                aria-label={`Status ${it.item}`}
+                                value={it.status}
+                                disabled={busyId === it.id}
+                                onChange={(e) => quickStatus(it, e.target.value)}
+                              >
+                                {PROC_STATUSES.map((st) => <option key={st} value={st}>{st}</option>)}
+                              </select>
+                            ) : (
+                              <Pill tone={statusTone(it.status)} dot className="self-start">{it.status}</Pill>
+                            )}
+                          </div>
 
                           <div><EtaPill it={it} /></div>
 
-                          <div className="flex items-center gap-3 md:justify-end text-sm">
+                          <div className="flex items-center gap-2 md:justify-end text-sm">
                             {writable && isOpen(it) && (
-                              <button type="button" onClick={() => quickStatus(it, 'Diterima')} disabled={busyId === it.id} className="font-medium text-teal hover:underline disabled:opacity-40 whitespace-nowrap max-md:min-h-[40px] max-md:px-3.5 max-md:rounded-md max-md:border max-md:border-line max-md:bg-canvas">Diterima</button>
+                              <button type="button" onClick={() => quickStatus(it, 'Diterima')} disabled={busyId === it.id} className="btn btn-secondary !min-h-[32px] !py-1 max-md:!min-h-[40px] !px-3 text-teal disabled:opacity-40">Diterima</button>
                             )}
-                            {writable && <button type="button" onClick={() => setEditing(it)} className="font-medium text-blueprint hover:underline max-md:min-h-[40px] max-md:px-3.5 max-md:rounded-md max-md:border max-md:border-line max-md:bg-canvas">Ubah</button>}
+                            {writable && <button type="button" onClick={() => setEditing(it)} className="btn btn-ghost !min-h-[32px] !py-1 max-md:!min-h-[40px] !px-3">Ubah</button>}
                           </div>
                         </li>
                       ))}

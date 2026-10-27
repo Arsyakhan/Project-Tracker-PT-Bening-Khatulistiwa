@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { StageBadge, PriorityBadge, DeliveryHint, Pill } from './Badges';
 import NextActionLine from './NextActionLine';
-import { fmtDate, initialOf, hasDocGap, todayISO } from '../lib/projectHelpers';
+import { fmtDate, hasDocGap, todayISO } from '../lib/projectHelpers';
 import { nextActionInfo, nextActionSortKey } from '../lib/nextAction';
 
 const PRIORITY_RANK = { High: 3, Medium: 2, Low: 1 };
@@ -70,14 +70,6 @@ function DeliveryCell({ p }) {
   );
 }
 
-function ClientAvatar({ name }) {
-  return (
-    <span className="w-6 h-6 rounded-md bg-canvas border border-line flex items-center justify-center text-[10px] font-bold text-inkmute shrink-0">
-      {initialOf(name)}
-    </span>
-  );
-}
-
 export default function ProjectTable({ projects }) {
   const router = useRouter();
   const [sortKey, setSortKey] = useState(null);
@@ -115,16 +107,16 @@ export default function ProjectTable({ projects }) {
   return (
     <>
       {/* Tabel - tablet & desktop */}
-      <div className="hidden md:block overflow-x-auto bg-panel rounded-lg border border-line shadow-sm">
+      <div className="hidden md:block overflow-x-auto bg-panel rounded-xl border border-line shadow-sm">
         <table className="w-full text-sm text-left">
-          <thead className="bg-canvas/70 border-b border-line">
+          <thead className="bg-canvas/60 border-b border-line">
             <tr>
               {columns.map((col) => (
                 <th
                   key={col.key}
                   scope="col"
                   aria-sort={sortKey === col.key ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
-                  className={`px-2.5 py-3 text-xs font-semibold text-inkmute whitespace-nowrap ${col.align === 'right' ? 'text-right' : ''}`}
+                  className={`px-3 first:pl-5 last:pr-5 py-2.5 text-xs font-semibold text-inkmute whitespace-nowrap ${col.align === 'right' ? 'text-right' : ''}`}
                 >
                   <button
                     type="button"
@@ -144,27 +136,26 @@ export default function ProjectTable({ projects }) {
               <tr
                 key={p.id || p.poNumber}
                 onClick={() => router.push(hrefOf(p))}
-                className="hover:bg-blueprint/[0.04] transition-colors cursor-pointer group align-middle"
+                className="hover:bg-canvas/70 transition-colors cursor-pointer group align-middle"
               >
-                <td className="px-2.5 py-3.5 min-w-[200px] max-w-[220px]">
-                  <span className="block text-xs font-data text-inkmute truncate">{p.poNumber}</span>
+                <td className={`relative pl-5 pr-3 py-3.5 min-w-[220px] max-w-[260px] ${p.blocker ? 'before:absolute before:left-0 before:inset-y-2 before:w-[3px] before:rounded-r before:bg-rust' : ''}`}>
                   <Link
                     href={hrefOf(p)}
                     title={p.projectName}
                     onClick={(e) => e.stopPropagation()}
-                    className="font-medium text-ink group-hover:text-blueprint transition-colors line-clamp-2 leading-snug mt-0.5"
+                    className="font-medium text-ink group-hover:text-blueprint transition-colors line-clamp-2 leading-snug"
                   >
                     {p.projectName}
                   </Link>
-                  <div className="flex items-center gap-1.5 mt-1.5 text-xs text-inkmute min-w-0">
-                    <ClientAvatar name={p.client} />
-                    <span className="truncate">{p.client || '-'}</span>
-                  </div>
+                  <span className="block text-xs text-inkmute truncate mt-1">
+                    <span className="font-data">{p.poNumber || 'Tanpa PO'}</span>
+                    {p.client && <span> · {p.client}</span>}
+                  </span>
                 </td>
 
-                <td className="px-2.5 py-3.5 text-sm text-ink whitespace-nowrap">{p.pic || '-'}</td>
+                <td className="px-3 py-3.5 text-sm text-ink whitespace-nowrap">{p.pic || '-'}</td>
 
-                <td className="px-2.5 py-3.5 min-w-[180px]">
+                <td className="px-3 py-3.5 min-w-[180px]">
                   <div className="flex items-center gap-2 flex-wrap">
                     <StageBadge stage={p.currentStage} />
                     {(p.status === 'On Hold' || p.status === 'Not Started') && (
@@ -179,16 +170,16 @@ export default function ProjectTable({ projects }) {
                 </td>
 
                 {showNext && (
-                  <td className="px-2.5 py-3.5 min-w-[200px] max-w-[260px] align-top">
+                  <td className="px-3 py-3.5 min-w-[200px] max-w-[260px]">
                     <NextActionLine info={nextActionInfo(p, today)} showEmpty />
                   </td>
                 )}
 
-                <td className="px-2.5 py-3.5"><DocCell p={p} /></td>
+                <td className="px-3 py-3.5"><DocCell p={p} /></td>
 
-                <td className="px-2.5 py-3.5"><PriorityBadge priority={p.priority} /></td>
+                <td className="px-3 py-3.5"><PriorityBadge priority={p.priority} /></td>
 
-                <td className="px-2.5 py-3.5 whitespace-nowrap"><DeliveryCell p={p} /></td>
+                <td className="pl-3 pr-5 py-3.5 whitespace-nowrap"><DeliveryCell p={p} /></td>
               </tr>
             ))}
           </tbody>
@@ -201,12 +192,12 @@ export default function ProjectTable({ projects }) {
           <Link
             key={p.id || p.poNumber}
             href={hrefOf(p)}
-            className="bg-panel rounded-lg border border-line shadow-sm p-4 flex flex-col gap-3 active:bg-canvas/60 transition-colors"
+            className={`relative bg-panel rounded-xl border border-line shadow-sm p-4 flex flex-col gap-3 active:bg-canvas/60 transition-colors overflow-hidden ${p.blocker ? 'before:absolute before:left-0 before:inset-y-3 before:w-[3px] before:rounded-r before:bg-rust' : ''}`}
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <span className="block text-xs font-data text-inkmute">{p.poNumber}</span>
-                <span className="block font-medium text-ink leading-snug line-clamp-2 mt-0.5">{p.projectName}</span>
+                <span className="block font-medium text-ink leading-snug line-clamp-2">{p.projectName}</span>
+                <span className="block text-xs text-inkmute truncate mt-1"><span className="font-data">{p.poNumber || 'Tanpa PO'}</span>{p.client ? ` · ${p.client}` : ''}</span>
               </div>
               <PriorityBadge priority={p.priority} />
             </div>
@@ -225,7 +216,7 @@ export default function ProjectTable({ projects }) {
             <NextActionLine info={nextActionInfo(p, today)} className="pt-2 border-t border-line/60" />
 
             <div className="flex items-center justify-between text-xs text-inkmute pt-2 border-t border-line/60">
-              <span className="truncate">{p.client || '-'} · {p.pic || '-'}</span>
+              <span className="truncate">PIC {p.pic || '-'}</span>
               <span className="tnum shrink-0 ml-3">Dok {p.engineeringDocProgress}%</span>
             </div>
           </Link>

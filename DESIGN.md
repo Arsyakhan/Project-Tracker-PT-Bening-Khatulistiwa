@@ -64,6 +64,29 @@ Token: `--ease-standard` `cubic-bezier(0.2,0,0,1)`, `--ease-enter`, `--ease-exit
 `--dur-normal` 200 ms, `--dur-slow` 320 ms. Umpan balik tekan tombol: turun 1 px. `prefers-reduced-motion` dihormati
 (semua gerak berhenti; latar halaman masuk menjadi foto statis dengan duotone yang sama).
 
+## Tata letak halaman
+
+Semua halaman kerja memakai susunan yang sama, dari atas ke bawah (komponen di `components/ui/`):
+
+1. `PageHeader`: jejak navigasi (halaman detail), judul, satu baris keterangan, tombol aksi di kanan (di HP turun ke
+   bawah judul), dan navigasi bagian bila ada (mis. tab Dokumen).
+2. `StatStrip`: angka kunci dalam satu panel bergaris pemisah, seperti layar panel kontrol. Titik berwarna hanya bila
+   angkanya berarti (terlambat, segera, selesai). Angka yang bisa diklik menyaring daftar di bawahnya.
+3. Baris alat: `SearchField` + filter dalam satu panel. Pilihan pendek memakai `Segmented`.
+4. Isi: `Panel` (judul, keterangan, aksi; `flush` untuk daftar bergaris pemisah). Daftar = satu panel dengan baris,
+   bukan kartu terpisah per item. Kosong = `EmptyState` (apa yang terjadi + tindakan berikutnya).
+
+Pola per halaman:
+
+- Dashboard: `StageFlowChart` (jumlah project di 12 tahap, digambar sebagai satu jalur proses per fase; klik tahap
+  membuka Semua Project dengan filter tahap itu), tenggat kirim terdekat, kelengkapan dokumen engineering, lalu daftar.
+- Detail project: satu "title block" (identitas, alur teknologi, jalur tahapan, enam angka kunci), lalu hal yang perlu
+  diperhatikan (hambatan, catatan), langkah berikutnya, tab bersegmen yang menempel di atas, dan kolom samping yang
+  ikut menempel di layar lebar.
+- Kanban: garis tepi kiri kartu = prioritas (merah High, kuning Medium, abu Low).
+- Pengadaan: titik alur per barang (Perlu dibeli, Sudah order, Dalam pengiriman, Diterima).
+- Arsip: filter di kolom kiri yang menempel; detail arsip memakai susunan daftar modul dan panel spesifikasi.
+
 ## Komponen merek
 
 - `components/brand/BeningMark.jsx`: tetes air SVG (geometri sama dengan logo), terisi air bergelombang.

@@ -6,6 +6,9 @@ import { useSession } from 'next-auth/react';
 import { canWrite } from '../../lib/roles';
 import useArchive from '../../lib/useArchive';
 import { FLOW_STEPS, chainText, formatCapacity, moduleLabel, sortModules } from '../../lib/techflow';
+import PageHeader from '../../components/ui/PageHeader';
+import SearchField from '../../components/ui/SearchField';
+import EmptyState from '../../components/ui/EmptyState';
 
 // Teknologi yang dijadikan filter (modul inti + beberapa pendukung yang sering dicari).
 const FILTER_KEYS = ['ro', 'ro2', 'uf', 'softener', 'acf', 'mmf', 'birm', 'greensand', 'clarifier', 'mixedbed', 'ion_exchange', 'edi', 'chlorination', 'uv'];
@@ -16,7 +19,7 @@ function Chip({ active, onClick, children, count }) {
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`rounded-full border px-3 h-8 max-md:h-10 text-sm transition-colors ${active ? 'bg-blueprint text-onaccent border-blueprint' : 'bg-panel text-ink border-line hover:border-blueprint hover:text-blueprint'}`}
+      className={`rounded-md border px-2.5 h-8 max-md:h-10 text-sm transition-colors ${active ? 'bg-blueprint text-onaccent border-blueprint' : 'bg-panel text-ink border-line hover:border-blueprint hover:text-blueprint'}`}
     >
       {children}
       {count !== undefined && <span className={`ml-1.5 font-data tnum text-xs ${active ? 'text-onaccent' : 'text-inkmute'}`}>{count}</span>}
@@ -32,6 +35,7 @@ export default function ArsipPage() {
   const [year, setYear] = useState('');
   const [techs, setTechs] = useState([]);
   const [sort, setSort] = useState('terbaru');
+  const [showFilters, setShowFilters] = useState(false); // HP: pilihan filter dilipat
 
   const all = data || [];
   const years = useMemo(() => {
@@ -69,106 +73,129 @@ export default function ArsipPage() {
   const filtersActive = query || year || techs.length > 0;
   const filterOptions = FLOW_STEPS.filter((s) => FILTER_KEYS.includes(s.key) && techCount[s.key]);
 
+  const yearSpan = years.length ? `${years[years.length - 1][0]}-${years[0][0]}` : '';
+  const resetFilters = () => { setQuery(''); setYear(''); setTechs([]); };
+
   return (
     <div className="flex flex-col gap-6">
       <PageHead title="Arsip Project" />
 
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
-        <div>
-          <h1 className="font-display text-2xl font-semibold text-ink">Arsip Project Selesai</h1>
-          <p className="text-sm text-inkmute mt-1 max-w-2xl">
-            Acuan teknologi dari project yang sudah rampung. Cari yang mirip dengan project baru: kapasitas, urutan unit, dan spesifikasi peralatannya.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <RefreshStatus refreshing={refreshing && !!data} staleError={staleError} />
-          {writable && <Link href="/arsip/new" className="btn btn-primary">+ Tambah arsip</Link>}
-        </div>
-      </div>
+      <PageHeader
+        title="Arsip Project Selesai"
+        meta={
+          data && all.length > 0
+            ? <>Acuan teknologi dari <span className="tnum font-medium text-ink">{all.length}</span> project yang sudah rampung{yearSpan ? ` (${yearSpan})` : ''}. Cari yang mirip dengan project baru: kapasitas, urutan unit, dan spesifikasi peralatannya.</>
+            : 'Acuan teknologi dari project yang sudah rampung: kapasitas, urutan unit, dan spesifikasi peralatannya.'
+        }
+        actions={
+          <>
+            <RefreshStatus refreshing={refreshing && !!data} staleError={staleError} />
+            {writable && <Link href="/arsip/new" className="btn btn-primary">+ Tambah arsip</Link>}
+          </>
+        }
+      />
 
       {error && !data ? (
-        <div className="bg-panel border border-line rounded-lg p-5 text-sm text-rust" role="alert">
+        <div className="bg-panel border border-line rounded-xl p-5 text-sm text-rust" role="alert">
           Gagal memuat arsip: {error}
           {/Unknown action/i.test(error) && <span className="block text-inkmute mt-1">Backend belum diperbarui: tempel Archive.gs di Apps Script lalu deploy versi baru.</span>}
         </div>
       ) : !data ? (
-        <div className="flex flex-col gap-3">
-          <div className="skeleton-shimmer rounded-lg h-24 w-full" />
-          <div className="skeleton-shimmer rounded-lg h-56 w-full" />
+        <div className="grid grid-cols-1 lg:grid-cols-[260px_minmax(0,1fr)] gap-6">
+          <div className="skeleton-shimmer rounded-xl h-72 w-full" />
+          <div className="skeleton-shimmer rounded-xl h-96 w-full" />
         </div>
       ) : all.length === 0 ? (
-        <div className="bg-panel border border-line rounded-lg p-8 text-center text-sm text-inkmute">
-          Belum ada data. Pastikan tab <b className="text-ink">[ARSIP] FINISHED PROJECT</b> terisi dan Archive.gs sudah terpasang.
-        </div>
+        <EmptyState title="Belum ada data arsip">
+          Pastikan tab <b className="text-ink">[ARSIP] FINISHED PROJECT</b> terisi dan Archive.gs sudah terpasang.
+        </EmptyState>
       ) : (
-        <>
-          <div className="bg-panel border border-line rounded-lg p-3 sm:p-4 flex flex-col gap-3 shadow-sm">
-            <input type="search" className="input" placeholder="Cari nama project, teknologi, atau isi spesifikasi..." value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Cari arsip" />
+        <div className="grid grid-cols-1 lg:grid-cols-[260px_minmax(0,1fr)] gap-6 items-start">
+          {/* Panel filter: di layar lebar menempel di kiri saat digulir */}
+          <aside className="bg-panel border border-line rounded-xl shadow-sm p-4 flex flex-col gap-4 lg:sticky lg:top-6" aria-label="Filter arsip">
+            <SearchField value={query} onChange={setQuery} placeholder="Cari nama, teknologi, spesifikasi..." label="Cari arsip" />
+            <button
+              type="button"
+              onClick={() => setShowFilters((v) => !v)}
+              aria-expanded={showFilters}
+              aria-controls="arsip-filter"
+              className="lg:hidden btn btn-secondary w-full justify-between"
+            >
+              Filter teknologi dan tahun{techs.length + (year ? 1 : 0) > 0 ? ` (${techs.length + (year ? 1 : 0)} aktif)` : ''}
+              <svg className={`w-4 h-4 transition-transform ${showFilters ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+            </button>
+            <div id="arsip-filter" className={`${showFilters ? 'flex' : 'hidden'} lg:flex flex-col gap-4`}>
             <div className="flex flex-col gap-2">
-              <span className="text-xs font-medium text-inkmute">Teknologi (semua pilihan harus ada)</span>
-              <div className="flex flex-wrap gap-2">
-                {filterOptions.map((s) => (
-                  <Chip key={s.key} active={techs.includes(s.key)} onClick={() => toggleTech(s.key)} count={techCount[s.key]}>{s.short}</Chip>
+              <span className="text-xs font-semibold text-inkmute">Teknologi <span className="font-normal">(semua pilihan harus ada)</span></span>
+              <div className="flex flex-wrap gap-1.5">
+                {filterOptions.map((st) => (
+                  <Chip key={st.key} active={techs.includes(st.key)} onClick={() => toggleTech(st.key)} count={techCount[st.key]}>{st.short}</Chip>
                 ))}
               </div>
             </div>
             <div className="flex flex-col gap-2">
-              <span className="text-xs font-medium text-inkmute">Tahun</span>
-              <div className="flex flex-wrap gap-2">
+              <span className="text-xs font-semibold text-inkmute">Tahun selesai</span>
+              <div className="flex flex-wrap gap-1.5">
                 <Chip active={!year} onClick={() => setYear('')}>Semua</Chip>
                 {years.map(([y, n]) => (
                   <Chip key={y} active={year === y} onClick={() => setYear(year === y ? '' : y)} count={n}>{y}</Chip>
                 ))}
               </div>
             </div>
-            <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-line">
-              <p className="text-sm text-inkmute" aria-live="polite">
-                <b className="text-ink font-data tnum">{filtered.length}</b> dari {all.length} project
-              </p>
-              <div className="flex items-center gap-2">
-                {filtersActive && (
-                  <button type="button" onClick={() => { setQuery(''); setYear(''); setTechs([]); }} className="btn btn-ghost">Reset filter</button>
-                )}
-                <select className="input !w-auto !min-h-[36px] max-md:!min-h-[40px] !py-1" aria-label="Urutkan" value={sort} onChange={(e) => setSort(e.target.value)}>
-                  <option value="terbaru">Terbaru</option>
-                  <option value="terlama">Terlama</option>
-                  <option value="nama">Nama A-Z</option>
-                </select>
-              </div>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs font-semibold text-inkmute">Urutkan</span>
+              <select className="input !min-h-[36px] max-md:!min-h-[40px] !py-1" value={sort} onChange={(e) => setSort(e.target.value)}>
+                <option value="terbaru">Terbaru</option>
+                <option value="terlama">Terlama</option>
+                <option value="nama">Nama A-Z</option>
+              </select>
+            </label>
             </div>
-          </div>
+            {filtersActive && (
+              <button type="button" onClick={resetFilters} className="btn btn-ghost w-full">Reset filter</button>
+            )}
+          </aside>
 
-          {filtered.length === 0 ? (
-            <div className="bg-panel border border-line rounded-lg p-8 text-center text-sm text-inkmute">Tidak ada project yang cocok dengan filter ini.</div>
-          ) : (
-            <ul className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-              {filtered.map((p) => {
-                const chain = chainText(p.modules, 5);
-                const ro = p.modules.find((m) => m.key === 'ro');
-                return (
-                  <li key={p.id}>
-                    <Link
-                      href={`/arsip/${encodeURIComponent(p.id)}`}
-                      className="block h-full bg-panel border border-line rounded-lg p-4 shadow-sm hover:border-blueprint transition-colors"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <h2 className="font-display font-semibold text-ink leading-snug">{p.name}</h2>
-                        <span className="font-data tnum text-xs text-inkmute border border-line rounded px-1.5 py-0.5 shrink-0">{p.year || '-'}</span>
-                      </div>
-                      <p className="text-sm text-blueprint font-medium mt-2 min-h-[1.25rem]">{chain || 'Tidak ada modul proses tercatat'}</p>
-                      <div className="flex flex-wrap gap-1.5 mt-3">
-                        {sortModules(p.modules).map((m) => (
-                          <span key={m.key} className="text-xs rounded-full bg-canvas border border-line text-inkmute px-2 py-0.5">{moduleLabel(m, true)}</span>
-                        ))}
-                      </div>
-                      {ro && formatCapacity(ro.cap, ro.unit) && <span className="sr-only">Kapasitas RO {formatCapacity(ro.cap, ro.unit)}</span>}
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </>
+          <section className="flex flex-col gap-3 min-w-0" aria-label="Hasil arsip">
+            <p className="text-sm text-inkmute" aria-live="polite">
+              Menampilkan <b className="text-ink font-semibold tnum">{filtered.length}</b> dari <span className="tnum">{all.length}</span> project
+            </p>
+            {filtered.length === 0 ? (
+              <EmptyState title="Tidak ada project yang cocok" dashed={false} action={<button type="button" onClick={resetFilters} className="btn btn-secondary">Reset filter</button>}>
+                Kurangi pilihan teknologi atau ganti tahun.
+              </EmptyState>
+            ) : (
+              <ul className="bg-panel border border-line rounded-xl shadow-sm divide-y divide-line overflow-hidden">
+                {filtered.map((p) => {
+                  const chain = chainText(p.modules, 6);
+                  const main = ['ro', 'uf', 'softener', 'mmf', 'clarifier'].map((k) => p.modules.find((m) => m.key === k)).find((m) => m && formatCapacity(m.cap, m.unit));
+                  return (
+                    <li key={p.id}>
+                      <Link
+                        href={`/arsip/${encodeURIComponent(p.id)}`}
+                        className="group grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-1.5 px-5 py-4 hover:bg-canvas transition-colors"
+                      >
+                        <span className="min-w-0">
+                          <span className="block font-medium text-ink group-hover:text-blueprint leading-snug">{p.name}</span>
+                          <span className="block text-sm text-blueprint mt-1 truncate">{chain || 'Tidak ada modul proses tercatat'}</span>
+                        </span>
+                        <span className="flex flex-col items-end gap-1 shrink-0">
+                          <span className="font-data tnum text-xs text-inkmute border border-line rounded-md px-1.5 leading-5">{p.year || '-'}</span>
+                          {main && <span className="font-data tnum text-xs font-medium text-ink">{moduleLabel(main, true)} {formatCapacity(main.cap, main.unit)}</span>}
+                        </span>
+                        <span className="col-span-2 flex flex-wrap gap-1">
+                          {sortModules(p.modules).map((m) => (
+                            <span key={m.key} className="text-xs rounded-md bg-canvas border border-line text-inkmute px-1.5 leading-5">{moduleLabel(m, true)}</span>
+                          ))}
+                        </span>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </section>
+        </div>
       )}
     </div>
   );

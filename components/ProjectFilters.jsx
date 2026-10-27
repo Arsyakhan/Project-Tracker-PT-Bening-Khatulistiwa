@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { STAGES } from '../lib/stages';
-import { PHASES, FLAG, phaseOf, flagsOf, techTypes, yearOf } from '../lib/projectHelpers';
+import { PHASES, PHASE_LABEL, FLAG, phaseOf, flagsOf, techTypes, yearOf } from '../lib/projectHelpers';
 
 // Definisi filter. `get` mengembalikan daftar nilai milik sebuah project
 // (bisa lebih dari satu, mis. project dengan RO + UF).
 // Aturan: pilihan DI DALAM satu filter = ATAU, ANTAR filter = DAN.
 export const FACETS = [
-  { key: 'phase', label: 'Fase', get: (p) => [phaseOf(p)], order: PHASES },
+  { key: 'phase', label: 'Fase', get: (p) => [phaseOf(p)], order: PHASES, display: PHASE_LABEL },
   { key: 'status', label: 'Status', get: (p) => [p.status || 'Tanpa status'], order: ['Not Started', 'In Progress', 'On Hold', 'Completed'] },
   { key: 'stage', label: 'Stage', get: (p) => [p.currentStage || 'Tanpa stage'], order: STAGES },
   { key: 'priority', label: 'Prioritas', get: (p) => [p.priority || 'Tanpa prioritas'], order: ['High', 'Medium', 'Low'] },
@@ -57,7 +57,7 @@ function FacetDropdown({ facet, options, selected, open, onToggleOpen, onToggleV
         onClick={onToggleOpen}
         aria-expanded={open}
         aria-haspopup="dialog"
-        className={`inline-flex items-center gap-1.5 h-9 max-md:h-10 px-3 rounded-md border text-sm font-medium transition-colors ${
+        className={`inline-flex items-center gap-1.5 h-9 max-md:h-10 px-3 rounded-lg border text-sm font-medium transition-colors ${
           hasSelection
             ? 'border-blueprint/40 bg-blueprint/10 text-blueprint'
             : 'border-line bg-panel text-ink hover:border-blueprint/50'
@@ -123,7 +123,7 @@ function FacetDropdown({ facet, options, selected, open, onToggleOpen, onToggleV
                         onChange={() => onToggleValue(o.value)}
                       />
                       <span className={`flex-1 truncate ${o.count === 0 && !checked ? 'text-inkmute' : 'text-ink'}`}>
-                        {o.value}
+                        {facet.display?.[o.value] || o.value}
                       </span>
                       <span className="text-xs font-data tnum text-inkmute">{o.count}</span>
                     </label>
@@ -206,13 +206,7 @@ export default function ProjectFilters({ base, filters, onChange }) {
 
   return (
     <div ref={wrapRef} className="flex flex-col gap-2.5">
-      <div className="flex items-center gap-2 overflow-x-auto sm:overflow-visible sm:flex-wrap pb-1 sm:pb-0 -mx-1 px-1">
-        <span className="hidden sm:inline-flex items-center gap-1.5 text-xs font-medium text-inkmute mr-1">
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z" />
-          </svg>
-          Filter
-        </span>
+      <div className="flex items-center gap-1.5 overflow-x-auto sm:overflow-visible sm:flex-wrap pb-1 sm:pb-0 -mx-1 px-1">
         {FACETS.map((f) => (
           <FacetDropdown
             key={f.key}
@@ -239,7 +233,7 @@ export default function ProjectFilters({ base, filters, onChange }) {
                 className="inline-flex items-center gap-1.5 h-7 max-md:h-9 pl-2.5 pr-2 rounded-full bg-blueprint/10 border border-blueprint/25 text-blueprint text-xs font-medium hover:bg-blueprint/20 transition-colors"
               >
                 <span className="text-inkmute font-normal">{f.label}:</span>
-                {v}
+                {f.display?.[v] || v}
                 <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>

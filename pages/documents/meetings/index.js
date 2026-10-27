@@ -8,14 +8,15 @@ import DocsTabs from '../../../components/DocsTabs';
 import RefreshStatus from '../../../components/RefreshStatus';
 import { useToast } from '../../../components/Toast';
 import { Pill } from '../../../components/Badges';
+import PageHeader from '../../../components/ui/PageHeader';
+import StatStrip from '../../../components/ui/StatStrip';
+import Panel from '../../../components/ui/Panel';
+import SearchField from '../../../components/ui/SearchField';
 import {
   computeOpenItems, buildWhatsAppText, buildOpenItemsText, buildIcs, downloadText, copyText,
   meetingFileBase, meetingPayload, suggestNextDate, fmtLong, fmtShort, fmtTimeRange, relativeDay, todayIso,
 } from '../../../lib/meetings';
 
-function Card({ children, className = '' }) {
-  return <section className={`bg-panel border border-line rounded-lg shadow-sm ${className}`}>{children}</section>;
-}
 
 export default function MeetingsPage() {
   const { data: meetings, error, staleError, refreshing, reload } = useCachedResource('meetings', () => api.getMeetings());
@@ -72,70 +73,72 @@ export default function MeetingsPage() {
     }
   }
 
+  const lateOpen = openItems.filter((src) => src.item.target && src.item.target < today).length;
+
   return (
     <div className="flex flex-col gap-6">
       <PageHead title="Notulensi Rapat" />
-      <DocsTabs active="meetings" />
-
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 pt-2">
-        <div>
-          <h1 className="font-display text-2xl font-semibold text-ink">Notulensi Rapat</h1>
-          <p className="text-sm text-inkmute mt-1">Catat hasil rapat, pantau tindak lanjut, dan kirim rekap ke WhatsApp.</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <RefreshStatus refreshing={refreshing && !!meetings} staleError={staleError} />
-          <Link href="/documents/meetings/new?mode=schedule" className="border border-line rounded-md px-4 h-9 max-md:h-10 inline-flex items-center text-sm font-medium text-ink bg-panel hover:border-blueprint hover:text-blueprint transition-colors">
-            Jadwalkan rapat
-          </Link>
-          <Link href="/documents/meetings/new" className="bg-blueprint hover:bg-blueprintdark text-onaccent rounded-md px-4 h-9 max-md:h-10 inline-flex items-center text-sm font-medium transition-colors">
-            + Catat rapat
-          </Link>
-        </div>
-      </div>
+      <PageHeader
+        title="Notulensi Rapat"
+        meta="Catat hasil rapat, pantau tindak lanjut, dan kirim rekap ke WhatsApp."
+        nav={<DocsTabs active="meetings" />}
+        actions={
+          <>
+            <RefreshStatus refreshing={refreshing && !!meetings} staleError={staleError} />
+            <Link href="/documents/meetings/new?mode=schedule" className="btn btn-secondary">Jadwalkan rapat</Link>
+            <Link href="/documents/meetings/new" className="btn btn-primary">+ Catat rapat</Link>
+          </>
+        }
+      />
 
       {error ? (
-        <div className="bg-panel border border-line rounded-lg p-5 text-sm text-rust">Gagal memuat notulensi: {error}</div>
+        <div className="bg-panel border border-line rounded-xl p-5 text-sm text-rust" role="alert">Gagal memuat notulensi: {error}</div>
       ) : !meetings ? (
         <div className="flex flex-col gap-3">
-          <div className="skeleton-shimmer rounded-lg h-28 w-full" />
-          <div className="skeleton-shimmer rounded-lg h-48 w-full" />
+          <div className="skeleton-shimmer rounded-xl h-28 w-full" />
+          <div className="skeleton-shimmer rounded-xl h-48 w-full" />
         </div>
       ) : (
         <>
-          {/* Jadwal berikutnya */}
+          {/* Rapat berikutnya */}
           {nextMeeting ? (
-            <Card className="p-5 flex flex-wrap items-center justify-between gap-4 border-l-4 border-l-blueprint">
-              <div>
-                <p className="text-xs text-inkmute">Rapat berikutnya</p>
-                <p className="font-display text-lg font-semibold text-ink mt-0.5">{fmtLong(nextMeeting.date)}</p>
-                <p className="text-sm text-inkmute mt-0.5">
-                  {[fmtTimeRange(nextMeeting) && `${fmtTimeRange(nextMeeting)} WIB`, nextMeeting.location].filter(Boolean).join(' · ')}
-                  <span className="ml-2 font-medium text-blueprint">{relativeDay(nextMeeting.date)}</span>
-                </p>
+            <section className="bg-panel border border-line border-l-4 border-l-blueprint rounded-xl shadow-sm p-5 flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-4 min-w-0">
+                <span className="flex flex-col items-center justify-center w-14 h-14 rounded-lg border border-line bg-canvas leading-none shrink-0" aria-hidden="true">
+                  <span className="font-display tnum text-xl font-semibold text-ink">{Number(nextMeeting.date.slice(8, 10))}</span>
+                  <span className="text-xs text-inkmute mt-1">{fmtShort(nextMeeting.date).split(' ')[1]}</span>
+                </span>
+                <div className="min-w-0">
+                  <p className="text-xs font-medium text-inkmute">Rapat berikutnya · <span className="text-blueprint">{relativeDay(nextMeeting.date)}</span></p>
+                  <p className="font-display text-lg font-semibold text-ink mt-0.5">{fmtLong(nextMeeting.date)}</p>
+                  <p className="text-sm text-inkmute mt-0.5">
+                    {[nextMeeting.kind, fmtTimeRange(nextMeeting) && `${fmtTimeRange(nextMeeting)} WIB`, nextMeeting.location].filter(Boolean).join(' · ')}
+                  </p>
+                </div>
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <Link href={`/documents/meetings/${nextMeeting.id}`} className="bg-blueprint hover:bg-blueprintdark text-onaccent rounded-md px-4 h-9 max-md:h-10 inline-flex items-center text-sm font-medium transition-colors">Mulai notulensi</Link>
                 <button
                   type="button"
                   onClick={() => downloadText(`${meetingFileBase(nextMeeting)}.ics`, buildIcs(nextMeeting), 'text/calendar;charset=utf-8')}
-                  className="border border-line rounded-md px-4 h-9 max-md:h-10 text-sm font-medium text-ink hover:border-blueprint hover:text-blueprint transition-colors"
+                  className="btn btn-secondary"
                 >
                   Tambah ke kalender
                 </button>
+                <Link href={`/documents/meetings/${nextMeeting.id}`} className="btn btn-primary">Mulai notulensi</Link>
               </div>
-            </Card>
+            </section>
           ) : (
-            <Card className="p-5 flex flex-wrap items-center justify-between gap-4 border-dashed">
+            <section className="bg-panel border border-dashed border-line rounded-xl p-5 flex flex-wrap items-center justify-between gap-4">
               <div>
-                <p className="font-medium text-ink">Belum ada rapat terjadwal</p>
+                <p className="text-sm font-semibold text-ink">Belum ada rapat terjadwal</p>
                 <p className="text-sm text-inkmute mt-0.5">Saran jadwal berikutnya (2 minggu sekali): {fmtLong(suggestNextDate(meetings))}</p>
               </div>
-              <Link href="/documents/meetings/new?mode=schedule" className="tap text-sm font-medium text-blueprint hover:underline">Jadwalkan sekarang</Link>
-            </Card>
+              <Link href="/documents/meetings/new?mode=schedule" className="btn btn-secondary">Jadwalkan sekarang</Link>
+            </section>
           )}
 
           {missed.length > 0 && (
-            <div className="bg-amber/10 border border-amber/30 border-l-4 border-l-amber rounded-lg px-4 py-3 text-sm text-ink">
+            <div className="bg-panel border border-line border-l-4 border-l-amber rounded-xl px-4 py-3 text-sm text-ink shadow-sm">
               Rapat terjadwal berikut sudah lewat tanggalnya dan belum dicatat:{' '}
               {missed.map((m, i) => (
                 <span key={m.id}>
@@ -147,145 +150,136 @@ export default function MeetingsPage() {
             </div>
           )}
 
-          {/* Ringkasan */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            <Card className="p-4">
-              <p className="text-xs text-inkmute">Rapat tercatat</p>
-              <p className="font-data tnum text-2xl font-semibold text-ink mt-1">{done.length}</p>
-            </Card>
-            <Card className="p-4">
-              <p className="text-xs text-inkmute">Tindak lanjut terbuka</p>
-              <p className={`font-data tnum text-2xl font-semibold mt-1 ${openItems.length > 0 ? 'text-amberink' : 'text-teal'}`}>{openItems.length}</p>
-            </Card>
-            <Card className="p-4 col-span-2 sm:col-span-1">
-              <p className="text-xs text-inkmute">Rapat terakhir</p>
-              <p className="text-sm font-medium text-ink mt-2">{done[0] ? fmtLong(done[0].date) : '-'}</p>
-            </Card>
-          </div>
+          <StatStrip
+            label="Ringkasan rapat"
+            items={[
+              { key: 'done', label: 'Rapat tercatat', value: done.length, tone: 'muted' },
+              { key: 'open', label: 'Tindak lanjut terbuka', value: openItems.length, tone: openItems.length > 0 ? 'amber' : 'teal', hint: lateOpen > 0 ? `${lateOpen} melewati target` : 'Tidak ada yang melewati target' },
+              { key: 'last', label: 'Rapat terakhir', value: done[0] ? fmtShort(done[0].date) : '-', tone: 'blueprint', dim: !done[0], hint: done[0] ? relativeDay(done[0].date) : '' },
+            ]}
+          />
 
-          {/* Tindak lanjut terbuka */}
-          <Card className="p-5 flex flex-col gap-3">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <h2 className="font-display font-semibold text-ink">Tindak lanjut yang masih terbuka</h2>
-                <p className="text-xs text-inkmute mt-1">Dari seluruh rapat. Agenda yang sudah dibawa ke rapat berikutnya tidak dihitung ulang.</p>
-              </div>
-              {openItems.length > 0 && (
-                <button type="button" onClick={() => copy(buildOpenItemsText(openItems), 'Rekap tindak lanjut disalin.')} className="tap text-sm font-medium text-blueprint hover:underline whitespace-nowrap">
-                  Salin rekap untuk WhatsApp
-                </button>
+          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] gap-6 items-start">
+            {/* Riwayat */}
+            <Panel
+              title="Riwayat rapat"
+              aside={done.length > 0 && (
+                <SearchField className="hidden sm:block w-60" value={query} onChange={setQuery} placeholder="Cari topik, isi, atau PIC..." label="Cari riwayat rapat" />
               )}
-            </div>
-            {openItems.length === 0 ? (
-              <p className="text-sm text-teal">Semua tindak lanjut sudah selesai.</p>
-            ) : (
-              <ul className="flex flex-col divide-y divide-line border border-line rounded-lg max-h-96 overflow-y-auto">
-                {openItems.map((src) => {
-                  const key = `${src.meeting.id}:${src.item.id}`;
-                  const late = src.item.target && src.item.target < today;
-                  return (
-                    <li key={key} className="flex items-start justify-between gap-3 p-3">
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-ink">{src.item.topic || 'Tanpa judul'}</p>
-                        <p className="text-xs text-inkmute mt-0.5">
-                          <Link href={`/documents/meetings/${src.meeting.id}`} className="tap hover:text-blueprint hover:underline">Rapat {fmtShort(src.meeting.date)}</Link>
-                          {src.item.pic ? ` · ${src.item.pic}` : ''}
-                        </p>
-                        {src.item.cta && <p className="text-xs text-ink/80 mt-1">Tindak lanjut: {src.item.cta}</p>}
-                        {src.item.target && (
-                          <span className="inline-block mt-1.5">
-                            <Pill tone={late ? 'rust' : 'neutral'}>Target {fmtShort(src.item.target)}{late ? ' (lewat)' : ''}</Pill>
-                          </span>
-                        )}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => markDone(src)}
-                        disabled={!!busyItem}
-                        className="tap text-sm font-medium text-teal hover:underline whitespace-nowrap disabled:opacity-40"
-                      >
-                        {busyItem === key ? 'Menyimpan...' : 'Tandai selesai'}
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </Card>
-
-          {/* Riwayat */}
-          <div className="flex flex-col gap-3">
-            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
-              <h2 className="font-display text-lg font-semibold text-ink">Riwayat rapat</h2>
+              flush
+            >
               {done.length > 0 && (
-                <input
-                  type="search"
-                  placeholder="Cari topik, isi bahasan, atau PIC..."
-                  aria-label="Cari riwayat rapat"
-                  className="input !w-full sm:!w-72"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                />
+                <div className="sm:hidden px-5 pt-3">
+                  <SearchField value={query} onChange={setQuery} placeholder="Cari topik, isi, atau PIC..." label="Cari riwayat rapat" />
+                </div>
               )}
-            </div>
+              {done.length === 0 ? (
+                <div className="px-5 py-10 text-center">
+                  <p className="text-sm font-semibold text-ink">Belum ada rapat yang dicatat</p>
+                  <p className="text-sm text-inkmute mt-1">Klik "Catat rapat" untuk membuat notulensi pertama. Peserta tetap sudah disiapkan.</p>
+                </div>
+              ) : visible.length === 0 ? (
+                <p className="text-sm text-inkmute text-center py-8">Tidak ada rapat yang cocok.</p>
+              ) : (
+                <ul className="divide-y divide-line">
+                  {visible.map((m) => {
+                    const present = (m.attendees || []).filter((a) => a.status === 'Hadir').length;
+                    const open = (m.items || []).filter((i) => i.status === 'Open').length;
+                    return (
+                      <li key={m.id} className="px-5 py-4 flex flex-col gap-2.5">
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <Link href={`/documents/meetings/${m.id}`} className="font-display font-semibold text-ink hover:text-blueprint transition-colors">
+                              {fmtLong(m.date)}
+                            </Link>
+                            <p className="text-xs text-inkmute mt-0.5">
+                              {[m.kind, fmtTimeRange(m) && `${fmtTimeRange(m)} WIB`, m.location].filter(Boolean).join(' · ')}
+                            </p>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span className="text-xs text-inkmute tnum">{present} dari {(m.attendees || []).length} hadir · {(m.items || []).length} agenda</span>
+                            {open > 0 && <Pill tone="amber" dot>{open} terbuka</Pill>}
+                          </div>
+                        </div>
 
-            {done.length === 0 ? (
-              <div className="bg-panel border border-dashed border-line rounded-lg p-8 text-center">
-                <p className="text-sm font-medium text-ink">Belum ada rapat yang dicatat</p>
-                <p className="text-xs text-inkmute mt-1">Klik "Catat rapat" untuk membuat notulensi pertama. Peserta tetap sudah disiapkan.</p>
-              </div>
-            ) : visible.length === 0 ? (
-              <p className="text-sm text-inkmute text-center py-8">Tidak ada rapat yang cocok.</p>
-            ) : (
-              <ul className="flex flex-col gap-3">
-                {visible.map((m) => {
-                  const present = (m.attendees || []).filter((a) => a.status === 'Hadir').length;
-                  const open = (m.items || []).filter((i) => i.status === 'Open').length;
-                  return (
-                    <li key={m.id} className="bg-panel border border-line rounded-lg p-4 shadow-sm flex flex-col gap-3">
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <Link href={`/documents/meetings/${m.id}`} className="font-display font-semibold text-ink hover:text-blueprint transition-colors">
-                            {fmtLong(m.date)}
-                          </Link>
-                          <p className="text-xs text-inkmute mt-1">
-                            {[m.kind, fmtTimeRange(m) && `${fmtTimeRange(m)} WIB`, m.location].filter(Boolean).join(' · ')}
+                        {(m.items || []).length > 0 && (
+                          <p className="text-sm text-ink/80 line-clamp-2">
+                            {(m.items || []).map((i) => i.topic).filter(Boolean).join(' · ')}
                           </p>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          <Pill tone="neutral">{present} dari {(m.attendees || []).length} hadir</Pill>
-                          <Pill tone="blueprint">{(m.items || []).length} agenda</Pill>
-                          {open > 0 && <Pill tone="amber" dot>{open} terbuka</Pill>}
-                        </div>
-                      </div>
-
-                      {(m.items || []).length > 0 && (
-                        <p className="text-sm text-ink/80 line-clamp-2">
-                          {(m.items || []).map((i) => i.topic).filter(Boolean).join(' · ')}
-                        </p>
-                      )}
-
-                      <div className="flex flex-wrap items-center gap-x-4 gap-y-3 text-sm pt-2 border-t border-line/70">
-                        <Link href={`/documents/meetings/${m.id}`} className="tap font-medium text-blueprint hover:underline">Buka</Link>
-                        <button type="button" onClick={() => copy(buildWhatsAppText(m), 'Teks WhatsApp disalin.')} className="tap font-medium text-blueprint hover:underline">Salin untuk WhatsApp</button>
-                        <button type="button" onClick={() => downloadText(`${meetingFileBase(m)}.txt`, buildWhatsAppText(m))} className="tap font-medium text-blueprint hover:underline">Unduh .txt</button>
-                        {m.docUrl ? (
-                          <a href={m.docUrl} target="_blank" rel="noopener noreferrer" className="tap font-medium text-blueprint hover:underline">Google Doc</a>
-                        ) : (
-                          <span className="text-xs text-inkmute">Belum ada Google Doc</span>
                         )}
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
 
-            {!query && filtered.length > 8 && (
-              <button onClick={() => setShowAll((v) => !v)} className="tap text-xs font-medium text-blueprint hover:underline self-start">
-                {showAll ? 'Tampilkan lebih sedikit' : `Tampilkan semua (${filtered.length})`}
-              </button>
-            )}
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+                          <Link href={`/documents/meetings/${m.id}`} className="tap font-medium text-blueprint hover:underline">Buka</Link>
+                          <button type="button" onClick={() => copy(buildWhatsAppText(m), 'Teks WhatsApp disalin.')} className="tap font-medium text-blueprint hover:underline">Salin untuk WhatsApp</button>
+                          <button type="button" onClick={() => downloadText(`${meetingFileBase(m)}.txt`, buildWhatsAppText(m))} className="tap font-medium text-blueprint hover:underline">Unduh .txt</button>
+                          {m.docUrl ? (
+                            <a href={m.docUrl} target="_blank" rel="noopener noreferrer" className="tap font-medium text-blueprint hover:underline">Google Doc</a>
+                          ) : (
+                            <span className="text-xs text-inkmute">Belum ada Google Doc</span>
+                          )}
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+              {!query && filtered.length > 8 && (
+                <div className="px-5 py-3 border-t border-line">
+                  <button onClick={() => setShowAll((v) => !v)} className="tap text-sm font-medium text-blueprint hover:underline">
+                    {showAll ? 'Tampilkan lebih sedikit' : `Tampilkan semua (${filtered.length})`}
+                  </button>
+                </div>
+              )}
+            </Panel>
+
+            {/* Tindak lanjut terbuka */}
+            <Panel
+              className="lg:sticky lg:top-6"
+              title="Tindak lanjut terbuka"
+              hint="Dari seluruh rapat. Agenda yang sudah dibawa ke rapat berikutnya tidak dihitung ulang."
+              flush
+            >
+              {openItems.length === 0 ? (
+                <p className="px-5 py-6 text-sm text-teal">Semua tindak lanjut sudah selesai.</p>
+              ) : (
+                <ul className="divide-y divide-line max-h-[60vh] overflow-y-auto">
+                  {openItems.map((src) => {
+                    const key = `${src.meeting.id}:${src.item.id}`;
+                    const late = src.item.target && src.item.target < today;
+                    return (
+                      <li key={key} className="px-5 py-3 flex flex-col gap-1.5">
+                        <div className="flex items-start justify-between gap-3">
+                          <p className="text-sm font-medium text-ink min-w-0">{src.item.topic || 'Tanpa judul'}</p>
+                          {src.item.target && <Pill tone={late ? 'rust' : 'neutral'} className="shrink-0">{late ? 'Lewat · ' : ''}{fmtShort(src.item.target)}</Pill>}
+                        </div>
+                        {src.item.cta && <p className="text-xs text-ink/80">Tindak lanjut: {src.item.cta}</p>}
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-xs text-inkmute min-w-0 truncate">
+                            <Link href={`/documents/meetings/${src.meeting.id}`} className="tap hover:text-blueprint hover:underline">Rapat {fmtShort(src.meeting.date)}</Link>
+                            {src.item.pic ? ` · ${src.item.pic}` : ''}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => markDone(src)}
+                            disabled={!!busyItem}
+                            className="tap text-sm font-medium text-teal hover:underline whitespace-nowrap disabled:opacity-40"
+                          >
+                            {busyItem === key ? 'Menyimpan...' : 'Tandai selesai'}
+                          </button>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+              {openItems.length > 0 && (
+                <div className="px-5 py-3 border-t border-line">
+                  <button type="button" onClick={() => copy(buildOpenItemsText(openItems), 'Rekap tindak lanjut disalin.')} className="tap text-sm font-medium text-blueprint hover:underline">
+                    Salin rekap untuk WhatsApp
+                  </button>
+                </div>
+              )}
+            </Panel>
           </div>
         </>
       )}

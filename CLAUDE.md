@@ -416,10 +416,21 @@ Cloud) bersamaan. Penyebab lain yang belum tertutup: PWA iOS yang membuka login 
 
 ## Peta frontend
 
-- Halaman: `/` **Hari Ini** (beranda: hal yang perlu ditindak lintas project, pengadaan, tindak lanjut rapat, dokumen; filter per divisi; logika di `lib/today.js`, pemetaan stage → divisi pemegang di `STAGE_OWNER`, ubah di sana kalau pembagian kerja berbeda), `/dashboard` grafik & tabel project, `/board` kanban, `/projects` (+ `/new`, `/[id]`), `/engineering-docs`,
+- Halaman: `/` **Hari Ini** (beranda: hal yang perlu ditindak lintas project, pengadaan, tindak lanjut rapat, dokumen; filter per divisi; logika di `lib/today.js`, pemetaan stage → divisi pemegang di `STAGE_OWNER`, ubah di sana kalau pembagian kerja berbeda), `/dashboard` analitik (posisi project di alur, tenggat kirim, kelengkapan dokumen, tabel project), `/board` kanban, `/projects` (+ `/new`, `/[id]`), `/engineering-docs`,
   `/procurement`, `/documents` (+ `commissioning/new`, `handover/new`, `meetings` + `new`/`[id]`),
   `/arsip` (+ `/new`, `/[id]`; arsip project selesai, bisa ditambah/diubah dari web dan dari spreadsheet), `/activity`, `/login`.
 - Shell: `pages/_app.js` + `components/Sidebar.jsx` (menu `NAV_GROUPS` dikelompokkan Harian / Project / Dokumen & Arsip; tambah halaman baru di sana). `pages/login.js` = foto WTP layar penuh di balik permukaan air WebGL (`WaterSurface`) + logo + kartu masuk (lihat "Desain UI").
+- **Tata letak halaman (27 Okt 2026)**: Hari Ini, Dashboard, Semua Project, detail project, Kanban, Pengadaan, Dokumen,
+  Notulensi, dan Arsip memakai komponen bersama di `components/ui/` (`PageHeader`, `StatStrip`, `Panel`, `Segmented`,
+  `SearchField`, `EmptyState`); polanya ada di DESIGN.md bagian "Tata letak halaman". Halaman baru sebaiknya memakai
+  komponen itu juga. Dashboard: `components/StageFlowChart.jsx` (jumlah project per tahap; klik tahap membuka
+  `/projects?stage=<stage>`, yang dibaca `pages/projects/index.js` sebagai filter tahap lalu alamatnya dibersihkan),
+  `components/DeliveryList.jsx`, `components/DocCoverage.jsx` (dokumen Completed dari project yang memerlukannya, N/A
+  tidak dihitung). Komponen lama `StatusPie`, `ProgressChart`, `Timeline`, `StatCard` sudah dihapus. Detail project:
+  jalur tahapan dan angka kunci kini di dalam kepala halaman (`TitleCell`, `MeterCell`), panel Teknologi di tab
+  Ringkasan dihapus karena sama dengan alur di kepala halaman. Kanban: menu di kartu selalu tampil "Pindah tahap"
+  (nilainya kosong, tahap sekarang tidak bisa dipilih). Pengadaan: angka di `StatStrip` menyaring daftar
+  (`etaFilter` '' | 'late' | 'soon' menggantikan kotak "Hanya yang terlambat").
 - Papan Kanban (`pages/board.js` + `components/KanbanBoard.jsx`): dikelompokkan per **fase** (`STAGE_PHASES` di
   `lib/stagePhases.js`, juga dipakai `StagePipeline`): 4 kolom di layar ≥1340px, 2 kolom di tablet, daftar bertingkat
   yang bisa dilipat di HP. Tahap kosong hanya setipis satu baris tapi tetap bisa jadi tujuan seret. Saat kartu
@@ -602,12 +613,14 @@ Cloud) bersamaan. Penyebab lain yang belum tertutup: PWA iOS yang membuka login 
   (aturan project-nya `isOverdue`/`isDueSoon` di `lib/projectHelpers.js`; ≤14 hari untuk tenggat kirim project,
   ≤7 hari untuk langkah berikutnya, pengadaan, dan rapat). Halaman Hari Ini dan banner `TodayBanner` di
   Dashboard memakai hook yang sama (`lib/useActionItems.js`), jadi angkanya selalu sama. Jangan menghitung ulang
-  terlambat/segera di halaman lain. Dashboard sengaja hanya berisi analitik (kartu, grafik, tabel); daftar yang
+  terlambat/segera di halaman lain. Dashboard sengaja hanya berisi analitik (angka, grafik, tabel); daftar yang
   perlu ditindak ada di Hari Ini. (Panel lama `AttentionPanel`, `MeetingSummary`, dan `ProcurementSummary`
   sudah dihapus; kalau perlu, ada di riwayat git.)
 - **Istilah UI**: teks yang tampil ke pengguna berbahasa Indonesia (Tanggal kirim, Tenggat, Prioritas, Pengguna).
   Nilai yang tersimpan di Sheet tetap apa adanya (status `In Progress`/`Completed`, prioritas `High`/`Medium`/`Low`,
-  nama 12 stage, kolom `Delivery Date`), dan nama fase Dashboard (Pre-Delivery/Delivered/Completed) belum diganti.
+  nama 12 stage, kolom `Delivery Date`). Nama fase Dashboard tampil sebagai Sebelum kirim / Terkirim / Selesai
+  (`PHASE_LABEL` di `lib/projectHelpers.js`, juga di filter Fase); nilai kuncinya tetap Pre-Delivery/Delivered/Completed
+  supaya filter yang tersimpan di browser tetap berlaku.
 - API: `pages/api/gas.js` (proxy utama), `docgen.js` (Commissioning/Hand Over + catat ke Document Log
   + update checklist), `meeting-doc.js` (Notulensi), `auth/[...nextauth].js`.
 - Pustaka: `lib/` (`api.js`, `useProjects.js`, `useCachedResource.js`, `persistedCache.js`, `stages.js`,
