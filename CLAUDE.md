@@ -19,11 +19,13 @@ Bening Hub = pelacak project & dokumen engineering (water treatment: RO, UF, sof
 ```
 Browser ──► Next.js (Vercel) ──► /api/gas        ──► Apps Script "Code.gs" ──► Google Sheet
                               ├─► /api/docgen     ──► Apps Script docgen (Commissioning / Hand Over) ──► Google Docs
-                              └─► /api/meeting-doc ─► Apps Script generator Notulensi ──► Google Docs
+                              ├─► /api/meeting-doc ─► Apps Script generator Notulensi ──► Google Docs
+                              └─► /api/gudang     ──► Supabase (Postgres) modul gudang: katalog barang, BOM, stok
 ```
 
 - **Frontend:** Next.js 14 (pages router), Tailwind 3 (`darkMode: 'class'`), NextAuth (login Google,
-  dibatasi `ALLOWED_EMAILS`), next-pwa. Tidak ada database lain: **Google Sheet adalah database**.
+  dibatasi `ALLOWED_EMAILS`), next-pwa. **Google Sheet adalah database project**; modul gudang (sejak 27 Okt 2026)
+  memakai Supabase (lihat "Database Supabase modul gudang").
 - **Backend:** Google Apps Script yang terikat ke spreadsheet. Kode salinannya ada di `apps-script/`.
 - Browser tidak pernah melihat URL/token Apps Script; semua lewat route `/api/*` yang mengecek sesi.
 
@@ -341,6 +343,14 @@ mirip) → cek stok otomatis, barang ada disisihkan, yang kurang jadi usulan pem
 order, terima, lalu serah terima ke teknisi per barang (bisa bertahap; fabrikasi boleh mulai sebelum semua barang
 datang) → **tanggung jawab barang tetap di W&P sampai diserahkan**, teknisi bisa memantau status barangnya.
 
+**Akses dari web (27 Okt 2026):** `lib/supabaseServer.js` (hanya untuk route server: `sbSelect`, `sbSelectAll` dengan
+header `Range` karena PostgREST membatasi 1.000 baris per permintaan, `sbUpdate`) dan `pages/api/gudang.js` (sesi
+wajib; GET `katalog`, GET `barang&kode=`, POST `updateBarang` untuk editor dan admin). Kolom yang boleh diubah dari web
+= `BARANG_EDITABLE` di `lib/gudang.js` (allowlist yang sama dipakai route). Simpan memakai `diubah_pada` sebagai versi
+(filter `diubah_pada=eq.<nilai lama>`): kalau baris sudah diubah orang lain, route membalas 409 `conflict`. Status
+`Gabung` wajib menunjuk kode yang ada dan bukan barang yang sendirinya sudah digabung. Pemeriksaan katalog oleh
+W&P/Engineering kini dilakukan di halaman Katalog Barang; berkas Excel draf di Dropbox hanya salinan awal 27 Okt 2026.
+
 ## Kontrak yang harus sinkron (sumber bug paling umum)
 
 | Hal | Di sisi backend | Di sisi frontend |
@@ -414,8 +424,9 @@ Hapus **rapat** dan **barang pengadaan** boleh untuk editor (sudah dikonfirmasi 
 
 `GAS_API_URL`, `GAS_API_TOKEN`, `DOCGEN_COMMISSIONING_URL`, `DOCGEN_HANDOVER_URL`, `DOCGEN_MEETING_URL`,
 `DOCGEN_MEETING_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `ALLOWED_EMAILS`, `ADMIN_EMAILS`,
-`VIEWER_EMAILS`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL`. Jangan pernah menaruh nilai rahasia di repo atau
-mencetaknya di log/PR.
+`VIEWER_EMAILS`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, `SUPABASE_URL`, `SUPABASE_SECRET_KEY` (modul gudang; kunci
+rahasia bertipe sensitif di Vercel, ada di Production, Preview, dan Development sejak 27 Okt 2026). Jangan pernah menaruh
+nilai rahasia di repo atau mencetaknya di log/PR.
 
 Catatan (dicek 12 Okt 2026): `GAS_API_URL` hanya ada di Production, jadi Preview Deployment tidak bisa membaca data
 Sheet (`/api/gas` membalas "Server belum dikonfigurasi"). Itu aman karena Preview tidak menulis ke data asli, tetapi
@@ -441,10 +452,18 @@ Cloud) bersamaan. Penyebab lain yang belum tertutup: PWA iOS yang membuka login 
   Kanban), Engineering Docs jadi tab "Checklist engineering" di menu Dokumen (`components/DocsTabs.jsx`: Checklist
   engineering | Buat dokumen), Notulensi jadi menu **Rapat** sendiri, Aktivitas pindah ke bawah menu. Alamat lama
   (`/board`, `/engineering-docs`, `/documents/meetings/...`) dialihkan di `redirects()` `next.config.js`, jadi tautan
-  lama, bookmark, dan PWA tetap jalan. Grup "Material & Gudang" (BOM, Pengadaan, Gudang, Katalog) direncanakan menyusul
-  bersama modul gudang (Supabase).
+  lama, bookmark, dan PWA tetap jalan. Grup **Material & Gudang** berisi Pengadaan dan Katalog Barang; BOM, stok gudang,
+  dan serah terima menyusul di grup yang sama.
+- **Katalog Barang** (`/gudang/katalog` + `/gudang/katalog/[kode]`, 27 Okt 2026, data dari Supabase): daftar induk alat
+  dan material dari semua BOM lama, diurutkan dari yang paling sering dipakai project. Angka di `StatStrip` menyaring
+  menurut status cek (Belum dicek / OK / Perlu tindakan); pilihan "Pernah dipakai project" (bawaan), "Semua" (termasuk
+  barang yang hanya ada di penawaran), dan "Ditandai saat impor" (`reviewFlags`). Detail: status cek + catatan, data
+  barang yang bisa diubah, stok, ejaan lain, barang yang digabung ke kode ini, dan "Dipakai di BOM" (satu baris per
+  project, dibuka untuk melihat baris BOM-nya; penawaran terpisah; bawaan hanya file revisi terakhir). Jumlah di
+  ringkasan project sengaja tidak dijumlahkan karena satu project bisa memuat barang yang sama di beberapa file atau
+  lembar. Sesudah simpan, data katalog yang tersimpan di browser ikut diperbarui (`patchKatalogCache`).
 - Shell: `pages/_app.js` + `components/Sidebar.jsx` (menu `NAV_GROUPS` dikelompokkan Harian (Hari Ini, Dashboard, Rapat) /
-  Project (Project, Dokumen, Pengadaan) / Referensi (Arsip), dan `NAV_FOOTER` (Aktivitas) di bawah; tambah halaman baru
+  Project (Project, Dokumen) / Material & Gudang (Pengadaan, Katalog Barang) / Referensi (Arsip), dan `NAV_FOOTER` (Aktivitas) di bawah; tambah halaman baru
   di sana dan di `STATIC_ACTIONS` `components/CommandPalette.jsx`). `pages/login.js` = foto WTP layar penuh di balik permukaan air WebGL (`WaterSurface`) + logo + kartu masuk (lihat "Desain UI").
 - **Tata letak halaman (27 Okt 2026)**: Hari Ini, Dashboard, Semua Project, detail project, Kanban, Pengadaan, Dokumen,
   Notulensi, dan Arsip memakai komponen bersama di `components/ui/` (`PageHeader`, `StatStrip`, `Panel`, `Segmented`,
@@ -648,9 +667,9 @@ Cloud) bersamaan. Penyebab lain yang belum tertutup: PWA iOS yang membuka login 
   (`PHASE_LABEL` di `lib/projectHelpers.js`, juga di filter Fase); nilai kuncinya tetap Pre-Delivery/Delivered/Completed
   supaya filter yang tersimpan di browser tetap berlaku.
 - API: `pages/api/gas.js` (proxy utama), `docgen.js` (Commissioning/Hand Over + catat ke Document Log
-  + update checklist), `meeting-doc.js` (Notulensi), `auth/[...nextauth].js`.
+  + update checklist), `meeting-doc.js` (Notulensi), `gudang.js` (modul gudang, Supabase), `auth/[...nextauth].js`.
 - Pustaka: `lib/` (`api.js`, `useProjects.js`, `useCachedResource.js`, `persistedCache.js`, `stages.js`,
-  `systems.js`, `meetings.js`, `procurement.js`, `roles.js`, `docgen/*`).
+  `systems.js`, `meetings.js`, `procurement.js`, `roles.js`, `gudang.js`, `supabaseServer.js` (server saja), `docgen/*`).
 
 ## Desain UI
 
