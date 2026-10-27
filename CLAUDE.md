@@ -406,6 +406,14 @@ Sheet (`/api/gas` membalas "Server belum dikonfigurasi"). Itu aman karena Previe
 tampilan dengan data hanya bisa diperiksa di produksi, atau lewat salinan sheet uji dengan Apps Script terpisah.
 `NEXT_PUBLIC_API_URL` masih ada di Vercel tetapi tidak dipakai kode mana pun (aman dihapus).
 
+**`NEXTAUTH_URL` = alamat utama web (sejak 27 Okt 2026, TL-0038).** Di produksi (`VERCEL_ENV=production`)
+`middleware.js` mengalihkan setiap halaman (GET/HEAD) yang dibuka dari alamat lain, yaitu alias Vercel atau URL
+deployment, ke alamat `NEXTAUTH_URL` dengan path dan query yang sama (307). Alasannya: login Google yang dimulai dari
+alamat lain menyimpan cookie `state` di alamat itu, sedangkan Google mengembalikan pengguna ke alamat `NEXTAUTH_URL`,
+sehingga login gagal "State cookie was missing" (6 kali di log sejak Sep 2026). Preview Deployment dan lokal tidak
+dialihkan, `/api/*` tidak lewat middleware. Kalau domain web diganti, ganti `NEXTAUTH_URL` (dan redirect URI di Google
+Cloud) bersamaan. Penyebab lain yang belum tertutup: PWA iOS yang membuka login Google di jendela browser terpisah.
+
 ## Peta frontend
 
 - Halaman: `/` **Hari Ini** (beranda: hal yang perlu ditindak lintas project, pengadaan, tindak lanjut rapat, dokumen; filter per divisi; logika di `lib/today.js`, pemetaan stage → divisi pemegang di `STAGE_OWNER`, ubah di sana kalau pembagian kerja berbeda), `/dashboard` grafik & tabel project, `/board` kanban, `/projects` (+ `/new`, `/[id]`), `/engineering-docs`,
