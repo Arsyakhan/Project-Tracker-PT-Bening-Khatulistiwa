@@ -44,7 +44,7 @@ export default function TopLoadingBar() {
   return (
     <div className="fixed top-0 left-0 right-0 z-[200] h-[2.5px] bg-transparent pointer-events-none">
       <div
-        className="h-full bg-blueprint transition-all duration-200 ease-out shadow-[0_0_8px_rgba(0,119,182,0.6)]"
+        className="h-full bg-air loading-bar-glow transition-all duration-200 ease-out"
         style={{ width: `${progress}%` }}
       />
     </div>

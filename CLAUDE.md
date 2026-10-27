@@ -411,7 +411,7 @@ tampilan dengan data hanya bisa diperiksa di produksi, atau lewat salinan sheet 
 - Halaman: `/` **Hari Ini** (beranda: hal yang perlu ditindak lintas project, pengadaan, tindak lanjut rapat, dokumen; filter per divisi; logika di `lib/today.js`, pemetaan stage → divisi pemegang di `STAGE_OWNER`, ubah di sana kalau pembagian kerja berbeda), `/dashboard` grafik & tabel project, `/board` kanban, `/projects` (+ `/new`, `/[id]`), `/engineering-docs`,
   `/procurement`, `/documents` (+ `commissioning/new`, `handover/new`, `meetings` + `new`/`[id]`),
   `/arsip` (+ `/new`, `/[id]`; arsip project selesai, bisa ditambah/diubah dari web dan dari spreadsheet), `/activity`, `/login`.
-- Shell: `pages/_app.js` + `components/Sidebar.jsx` (menu `NAV_GROUPS` dikelompokkan Harian / Project / Dokumen & Arsip; tambah halaman baru di sana). `pages/login.js` memakai panel merek dua kolom.
+- Shell: `pages/_app.js` + `components/Sidebar.jsx` (menu `NAV_GROUPS` dikelompokkan Harian / Project / Dokumen & Arsip; tambah halaman baru di sana). `pages/login.js` memakai panel merek dua kolom (foto WTP + diagram hub; lihat "Desain UI").
 - Papan Kanban (`pages/board.js` + `components/KanbanBoard.jsx`): dikelompokkan per **fase** (`STAGE_PHASES` di
   `lib/stagePhases.js`, juga dipakai `StagePipeline`): 4 kolom di layar ≥1340px, 2 kolom di tablet, daftar bertingkat
   yang bisa dilipat di HP. Tahap kosong hanya setipis satu baris tapi tetap bisa jadi tujuan seret. Saat kartu
@@ -607,11 +607,22 @@ tampilan dengan data hanya bisa diperiksa di produksi, atau lewat salinan sheet 
 
 ## Desain UI
 
+- **Arah desain dan bahasa ada di `DESIGN.md`** (27 Okt 2026: "jernih, presisi, mengalir"): palet dan perannya, huruf,
+  gerak, komponen merek, serta panduan bahasa (sapaan Anda, tanpa kiasan/bahasa santai, daftar istilah). Baca sebelum
+  membuat halaman atau menulis teks UI baru.
 - Token warna di `styles/globals.css` sebagai triplet RGB (`--color-*`), dipetakan di `tailwind.config.js`.
   Mode gelap = kelas `dark` di `<html>`. Pakai kelas token (`bg-panel`, `text-ink`, `text-inkmute`,
-  `text-onaccent` di atas isian aksen, `text-amberink` untuk teks amber), **bukan** hex atau `text-white`.
-- Tombol: `.btn` + `.btn-primary|secondary|ghost|danger`. Font: Inter (teks), Space Grotesk (judul),
-  IBM Plex Mono (data), dimuat lewat `<link>` di `pages/_document.js`.
+  `text-onaccent` di atas isian aksen, `text-amberink` untuk teks amber, `brand`/`deep`/`air` untuk merek dan gerak
+  air), **bukan** hex atau `text-white` (kecuali teks di atas permukaan `deep`, yang selalu putih).
+- Tombol: `.btn` + `.btn-primary|secondary|ghost|danger`. Font: **Plus Jakarta Sans** (teks dan judul) dan IBM Plex
+  Mono (kode/data), dimuat lewat `<link>` di `pages/_document.js`. Tidak ada label huruf kapital semua.
+- Logo = komponen, bukan gambar: `components/brand/BeningLogo.jsx` (tetes SVG + wordmark vektor per huruf di
+  `components/brand/wordmarkPaths.js`, hasil vectorize Adobe dari logo asli). Prop `intro` = motion graphic saat logo
+  pertama tampil (login, sidebar, header HP), `ambient` = air terus bergelombang pelan (login), `busy` = tetes surut
+  selama pindah halaman (`lib/useRouteBusy.js`). File PNG logo lama tetap dipakai untuk ikon PWA dan favicon.
+  Halaman login: foto WTP (`public/wastewater-treatment-upd.webp`, diminta pemilik tetap ada) + lapisan navy +
+  `HubDiagram` (tetes mengalirkan air ke enam modul = "Super App"), panel masuk berisi logo, satu baris
+  "Super App PT Bening Khatulistiwa", dan tombol Google.
 - Target kontras minimal 4,5:1 di kedua tema; hormati `prefers-reduced-motion`.
 - Di HP (lebar < 768px): teks informasi minimal 12px (`text-xs`; jangan `text-[10px]`/`text-[11px]`, kecuali
   glyph dekoratif, petunjuk `kbd`, dan lencana angka), tombol minimal 40px (`h-9 max-md:h-10`), kolom isian

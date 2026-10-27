@@ -30,7 +30,7 @@ export default function NextActionCard({ project, writable, update }) {
   return (
     <section aria-labelledby={`${uid}-title`} className="bg-panel border border-line border-l-4 border-l-blueprint rounded-lg px-4 py-3 shadow-sm flex flex-col gap-3">
       <div className="flex items-center justify-between gap-3">
-        <h2 id={`${uid}-title`} className="text-xs font-semibold uppercase tracking-wide text-inkmute">Langkah berikutnya</h2>
+        <h2 id={`${uid}-title`} className="text-xs font-semibold text-inkmute">Langkah berikutnya</h2>
         {writable && (hasNext || editing || project.blocker) && (
           <button
             type="button"
@@ -45,7 +45,7 @@ export default function NextActionCard({ project, writable, update }) {
 
       {!editing && hasNext && (
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-          <span className="text-sm font-medium text-ink break-words min-w-0">{project.nextAction || '(tanpa judul)'}</span>
+          <span className="text-sm font-medium text-ink break-words min-w-0">{project.nextAction || 'Tanpa judul'}</span>
           {project.nextActionOwner && <span className="text-sm text-inkmute">PIC {project.nextActionOwner}</span>}
           {project.nextActionDue && (
             <Pill tone={dueTone}>{fmtShort(project.nextActionDue)} · {dueText(dueDays).toLowerCase()}</Pill>
@@ -86,17 +86,17 @@ export default function NextActionCard({ project, writable, update }) {
               />
             </div>
             <div className={field}>
-              <label htmlFor={`${uid}-owner`} className={labelCls}>PIC (siapa)</label>
+              <label htmlFor={`${uid}-owner`} className={labelCls}>PIC</label>
               <PicInput id={`${uid}-owner`} value={project.nextActionOwner} onChange={(v) => update('nextActionOwner', v)} showDivision />
             </div>
             <div className={field}>
-              <label htmlFor={`${uid}-due`} className={labelCls}>Target tanggal</label>
+              <label htmlFor={`${uid}-due`} className={labelCls}>Tenggat</label>
               <input id={`${uid}-due`} type="date" className="input" value={project.nextActionDue || ''} onChange={(e) => update('nextActionDue', e.target.value)} />
             </div>
           </div>
 
           <div className={field}>
-            <label htmlFor={`${uid}-blocker`} className={labelCls}>Hambatan (kosongkan kalau tidak ada)</label>
+            <label htmlFor={`${uid}-blocker`} className={labelCls}>Hambatan (opsional)</label>
             <input
               id={`${uid}-blocker`}
               className="input"
@@ -112,7 +112,7 @@ export default function NextActionCard({ project, writable, update }) {
 
           {hasNext && (
             <div>
-              <button type="button" onClick={finishStep} className="btn btn-secondary text-teal">Langkah ini selesai</button>
+              <button type="button" onClick={finishStep} className="btn btn-secondary text-teal">Tandai selesai</button>
             </div>
           )}
         </div>

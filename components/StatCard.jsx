@@ -17,7 +17,7 @@ export default function StatCard({ label, value, accent = 'rgb(var(--color-ink))
 
   const content = (
     <>
-      <span className="text-xs uppercase tracking-wide text-inkmute font-medium">{label}</span>
+      <span className="text-xs text-inkmute font-medium">{label}</span>
       <span className="text-3xl font-display font-semibold" style={{ color: accent }}>
         {value}
       </span>

@@ -4,56 +4,90 @@
 
 
 /* ---- Palet warna: light (default) ----
-   Semua warna teks (ink, inkmute, blueprint, teal, rust, amberink) lolos kontras WCAG AA (>= 4,5:1)
-   di atas panel, canvas, dan tint 10% dirinya sendiri. Warna isian (bar, titik) tetap memakai amber asli. */
+   Arah desain "jernih, presisi, mengalir" (lihat DESIGN.md). Semua warna teks (ink, inkmute, blueprint, teal, rust,
+   amberink) lolos kontras WCAG AA (>= 4,5:1) di atas panel dan canvas (dicek 27 Okt 2026). brand dan air bukan warna
+   teks biasa: brand = biru logo untuk wordmark dan permukaan merek, air = isian air pada gerak logo dan loading. */
 :root {
   color-scheme: light;
-  --color-canvas: 232 243 247;      /* #E8F3F7 */
-  --color-panel: 255 255 255;       /* #FFFFFF */
-  --color-line: 198 221 230;        /* #C6DDE6 */
-  --color-ink: 12 45 72;            /* #0C2D48 */
-  --color-inkmute: 67 103 131;      /* #436783 (dulu #4A7291, 4,5:1 -> 5,6:1 di canvas) */
-  --color-blueprint: 0 104 160;     /* #0068A0 (dulu #0077B6, teks di canvas 4,3:1 -> 5,7:1) */
-  --color-blueprintdark: 0 79 124;  /* #004F7C hover */
-  --color-teal: 0 112 102;          /* #007066 (dulu #009688, teks 3,7:1 -> 5,9:1) */
+  --color-canvas: 243 246 249;      /* #F3F6F9 latar aplikasi, putih kebiruan yang jernih */
+  --color-panel: 255 255 255;       /* #FFFFFF kartu, panel, sidebar */
+  --color-line: 220 228 235;        /* #DCE4EB garis rambut dan border */
+  --color-ink: 11 39 65;            /* #0B2741 teks utama (14:1 di canvas) */
+  --color-inkmute: 79 101 122;      /* #4F657A teks kedua (5,6:1 di canvas) */
+  --color-blueprint: 11 79 148;     /* #0B4F94 aksi utama dan tautan (7,6:1 di canvas; putih di atasnya 8,2:1) */
+  --color-blueprintdark: 6 62 117;  /* #063E75 hover = biru merek */
+  --color-brand: 6 62 117;          /* #063E75 biru logo: wordmark, tetes, panel merek login */
+  --color-air: 32 164 216;          /* #20A4D8 air: isian gerak logo, loading bar (bukan untuk teks) */
+  --color-deep: 6 62 117;           /* #063E75 permukaan merek (panel login); teks di atasnya selalu putih */
+  --color-teal: 0 112 102;          /* #007066 selesai / berhasil */
   --color-amber: 217 138 0;         /* #D98A00 untuk isian: bar, titik, garis */
-  --color-amberink: 139 89 0;       /* #8B5900 untuk TEKS amber (dulu 2,8:1 -> 6,2:1) */
-  --color-rust: 188 39 39;          /* #BC2727 (dulu #D94848, teks 4,2:1 -> 5,9:1) */
+  --color-amberink: 139 89 0;       /* #8B5900 untuk TEKS amber (5,5:1) */
+  --color-rust: 188 39 39;          /* #BC2727 terlambat / bahaya (5,6:1) */
   --color-rustdark: 143 29 29;      /* #8F1D1D hover */
   --color-onaccent: 255 255 255;    /* teks di atas isian blueprint/rust/teal */
+
+  /* Bayangan dingin bernada navy, bukan abu-abu netral */
+  --shadow-soft: 0 1px 2px rgb(11 39 65 / 0.05), 0 1px 1px rgb(11 39 65 / 0.03);
+  --shadow-lift: 0 10px 30px -12px rgb(11 39 65 / 0.22), 0 2px 6px -2px rgb(11 39 65 / 0.08);
+
+  /* Token gerak (DESIGN.md): masuk melambat, keluar mempercepat, satu kurva standar */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-enter: cubic-bezier(0, 0, 0.2, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+  --dur-fast: 120ms;
+  --dur-normal: 200ms;
+  --dur-slow: 320ms;
 }
 
-/* ---- Palet warna: dark mode ---- */
+/* ---- Palet warna: dark mode ("air dalam") ---- */
 .dark {
   color-scheme: dark;
-  --color-canvas: 13 22 30;         /* navy sangat gelap */
-  --color-panel: 22 34 45;          /* sedikit lebih terang dari canvas, buat card */
-  --color-line: 42 60 74;
-  --color-ink: 230 240 246;         /* teks terang */
-  --color-inkmute: 146 172 188;
-  --color-blueprint: 62 165 224;    /* dicerahkan biar kontras di latar gelap */
-  --color-blueprintdark: 92 183 232;/* hover jadi LEBIH terang, bukan lebih gelap, di dark mode */
+  --color-canvas: 7 21 33;          /* #071521 */
+  --color-panel: 12 30 45;          /* #0C1E2D sedikit lebih terang dari canvas, buat card */
+  --color-line: 28 51 70;           /* #1C3346 */
+  --color-ink: 228 237 245;         /* #E4EDF5 */
+  --color-inkmute: 147 168 186;     /* #93A8BA (6,9:1 di panel) */
+  --color-blueprint: 92 170 242;    /* #5CAAF2 dicerahkan supaya kontras di latar gelap */
+  --color-blueprintdark: 132 192 246;/* hover jadi LEBIH terang, bukan lebih gelap, di dark mode */
+  --color-brand: 214 230 245;       /* wordmark dan tetes jadi terang di latar gelap */
+  --color-air: 60 195 238;          /* #3CC3EE */
+  --color-deep: 5 36 66;            /* #052442 panel merek lebih dalam supaya tidak menyilaukan di mode gelap */
   --color-teal: 43 199 176;
   --color-amber: 235 168 68;
   --color-amberink: 235 168 68;     /* di dark mode amber sudah cukup terang untuk teks */
   --color-rust: 236 111 111;
   --color-rustdark: 242 139 139;    /* hover juga LEBIH terang */
-  --color-onaccent: 13 22 30;       /* teks gelap di atas isian terang (dulu putih: 2,7:1 -> 6,6:1) */
+  --color-onaccent: 7 21 33;        /* teks gelap di atas isian terang (7,5:1) */
+
+  --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.35);
+  --shadow-lift: 0 12px 32px -12px rgb(0 0 0 / 0.6), 0 2px 6px -2px rgb(0 0 0 / 0.4);
 }
 
 html, body {
   background: rgb(var(--color-canvas));
   color: rgb(var(--color-ink));
-  font-family: 'Inter', sans-serif;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 
+/* Satu keluarga huruf (Plus Jakarta Sans, buatan Tokotype untuk Jakarta) untuk teks dan judul.
+   Judul dibedakan lewat ukuran, ketebalan, dan spasi huruf yang sedikit dirapatkan. */
 h1, h2, h3, .font-display {
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  letter-spacing: -0.015em;
 }
 
 .font-data {
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  letter-spacing: 0;
+}
+
+::selection {
+  background: rgb(var(--color-blueprint) / 0.18);
+  color: rgb(var(--color-ink));
 }
 
 /* Dipakai bersama di form-form (Project Baru, Detail Project) */
@@ -156,6 +190,183 @@ summary:focus-visible {
   }
 }
 
+/* ---- Logo bergerak (components/brand/BeningMark.jsx) ----
+   Air naik/turun lewat transform; gelombang bergeser satu periode (70 satuan SVG) lalu berulang mulus. */
+.bm-water {
+  transition: transform 900ms var(--ease-standard);
+}
+.bm-slow .bm-water {
+  transition-duration: 1400ms;
+  transition-delay: 150ms;
+}
+.bm-wave-front,
+.bm-wave-back {
+  animation: bm-wave 2.6s linear infinite;
+  animation-play-state: paused;
+}
+.bm-wave-back {
+  animation-name: bm-wave-rev;
+  animation-duration: 3.4s;
+}
+.bm[data-live='true'] .bm-wave-front,
+.bm[data-live='true'] .bm-wave-back {
+  animation-play-state: running;
+}
+@keyframes bm-wave {
+  from { transform: translateX(0); }
+  to { transform: translateX(-70px); }
+}
+@keyframes bm-wave-rev {
+  from { transform: translateX(-70px); }
+  to { transform: translateX(0); }
+}
+
+/* ---- Intro logo (components/brand/BeningLogo.jsx, prop intro) ----
+   Satu urutan sekitar 1,4 detik: tetes jatuh (gravitasi, 0-420 ms) -> mendarat dan sedikit memipih -> dua riak air
+   menyebar -> air mengisi tetes -> huruf BENING HUB muncul satu per satu dari bawah garis air -> "Super App". */
+.bl-mark { transform-origin: 50% 100%; }
+.bl-intro .bm-root {
+  transform-origin: 50% 100%;
+  animation: bl-fall 420ms cubic-bezier(0.55, 0, 1, 0.45) both, bl-land 300ms var(--ease-standard) 420ms both;
+}
+@keyframes bl-fall {
+  from { transform: translateY(-60%); opacity: 0; }
+  35% { opacity: 1; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@keyframes bl-land {
+  0% { transform: scale(1, 1); }
+  35% { transform: scale(1.07, 0.9); }
+  100% { transform: scale(1, 1); }
+}
+.bl-intro .bm-water {
+  transition-duration: 1100ms;
+  transition-delay: 380ms;
+}
+.bl-ripple {
+  position: absolute;
+  left: 50%;
+  bottom: -3px;
+  width: 170%;
+  height: 22%;
+  margin-left: -85%;
+  border: 1.5px solid rgb(var(--color-air));
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+  animation: bl-ripple 760ms var(--ease-enter) 420ms both;
+}
+.bl-ripple-2 { animation-delay: 560ms; }
+@keyframes bl-ripple {
+  0% { opacity: 0.9; transform: scale(0.25); }
+  100% { opacity: 0; transform: scale(1.35); }
+}
+.bl-intro .wm-letter {
+  animation: wm-rise 560ms var(--ease-enter) both;
+  animation-delay: calc(380ms + var(--i) * 48ms);
+}
+@keyframes wm-rise {
+  from { transform: translateY(260px); }
+  to { transform: translateY(0); }
+}
+.bl-intro .bl-tagline {
+  animation: hub-fade 400ms var(--ease-enter) 1100ms both;
+  opacity: 0;
+}
+/* Gerak dikurangi: logo langsung utuh, tanpa jeda dan tanpa riak */
+@media (prefers-reduced-motion: reduce) {
+  .bl-intro .bm-root,
+  .bl-intro .wm-letter,
+  .bl-intro .bl-tagline { animation: none; opacity: 1; transform: none; }
+  .bl-ripple { display: none; }
+}
+
+/* ---- Diagram hub di halaman login (components/brand/HubDiagram.jsx) ----
+   Selalu di atas permukaan "deep" (navy), jadi garis dan teksnya putih di kedua tema.
+   --d = waktu mulai tiap bagian; urutannya: tetes terisi -> header -> cabang -> modul -> denyut air. */
+.hub { --flow-cycle: 2.8s; overflow: visible; }
+.hub-pipe {
+  fill: none;
+  stroke: rgb(255 255 255 / 0.42);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: hub-draw 0.55s var(--ease-standard) var(--d, 0s) forwards;
+}
+@keyframes hub-draw { to { stroke-dashoffset: 0; } }
+.hub-fade {
+  opacity: 0;
+  animation: hub-fade 0.4s var(--ease-enter) var(--d, 0s) forwards;
+}
+@keyframes hub-fade { to { opacity: 1; } }
+.hub-symbol { fill: none; stroke: rgb(255 255 255 / 0.75); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.hub-arrow { fill: rgb(var(--color-air)); }
+.hub-tee { fill: rgb(255 255 255 / 0.85); }
+.hub-node {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: hub-node 0.45s var(--ease-enter) var(--d, 0s) forwards;
+}
+@keyframes hub-node {
+  from { opacity: 0; transform: scale(0.88); }
+  to { opacity: 1; transform: scale(1); }
+}
+.hub-node-ring { fill: rgb(var(--color-deep) / 0.7); stroke: rgb(255 255 255 / 0.6); stroke-width: 1.5; }
+.hub-icon { fill: none; stroke: #fff; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.hub-label { fill: rgb(255 255 255 / 0.86); font-size: 15px; font-weight: 600; }
+.hub-drop { color: rgb(var(--color-air)); }
+.hub-flow {
+  fill: none;
+  stroke: rgb(var(--color-air));
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-dasharray: 0.07 1;
+  stroke-dashoffset: 0.07;
+  animation: hub-flow var(--flow-cycle) linear var(--d, 0s) infinite;
+}
+.hub-flow-branch {
+  stroke-dasharray: 0.33 1;
+  stroke-dashoffset: 0.33;
+  animation-name: hub-flow-branch;
+}
+@keyframes hub-flow { to { stroke-dashoffset: -1; } }
+@keyframes hub-flow-branch {
+  0% { stroke-dashoffset: 0.33; }
+  22%, 100% { stroke-dashoffset: -1; }
+}
+/* Di layar kecil label terlalu kecil untuk dibaca: diagram jadi ikon saja */
+@media (max-width: 639px) {
+  .hub-label { display: none; }
+}
+/* Gerak dikurangi: langsung tampil utuh, tanpa denyut */
+@media (prefers-reduced-motion: reduce) {
+  .hub-pipe { stroke-dashoffset: 0; animation: none; }
+  .hub-fade, .hub-node { opacity: 1; animation: none; }
+  .hub-flow { display: none; }
+}
+
+/* Cahaya lembut di belakang tetes (seperti cahaya menembus air), satu-satunya gradien di aplikasi */
+.glow-air {
+  background: radial-gradient(55% 60% at 20% 50%, rgb(var(--color-air) / 0.2), transparent 70%);
+}
+
+/* Lapisan navy di atas foto WTP panel login: foto tetap terlihat, diagram dan garisnya tetap terbaca.
+   Kiri (tempat tetes) lebih pekat, kanan sedikit lebih terbuka. */
+.photo-veil {
+  background: linear-gradient(100deg, rgb(var(--color-deep) / 0.93) 0%, rgb(var(--color-deep) / 0.84) 55%, rgb(var(--color-deep) / 0.74) 100%);
+}
+
+/* Kertas milimeter untuk permukaan "deep" (panel merek login) */
+.grid-deep {
+  background-image:
+    linear-gradient(rgb(255 255 255 / 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(255 255 255 / 0.05) 1px, transparent 1px);
+  background-size: 28px 28px;
+  background-position: -1px -1px;
+}
+
 /* Toast notification entrance */
 @keyframes toast-in {
   from { opacity: 0; transform: translateY(-8px) scale(0.98); }
@@ -208,9 +419,13 @@ summary:focus-visible {
 /* Tombol seragam. Tinggi minimum 38px (sama dengan .input) supaya mudah disentuh. */
 @layer components {
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold;
     min-height: 38px;
+    transition: background-color var(--dur-fast) var(--ease-standard), border-color var(--dur-fast) var(--ease-standard),
+      color var(--dur-fast) var(--ease-standard), transform var(--dur-fast) var(--ease-standard);
   }
+  /* Umpan balik tekan: turun 1px, bukan memantul */
+  .btn:active:not(:disabled) { transform: translateY(1px); }
   .btn:disabled { @apply cursor-not-allowed opacity-50; }
   .btn-primary { @apply bg-blueprint text-onaccent hover:bg-blueprintdark; }
   .btn-secondary { @apply border border-line bg-panel text-ink hover:bg-canvas; }
@@ -233,3 +448,8 @@ summary:focus-visible {
   transition: top 0.15s ease;
 }
 .skip-link:focus { top: 8px; }
+
+/* Cahaya air di ujung loading bar pindah halaman (components/TopLoadingBar.jsx) */
+.loading-bar-glow {
+  box-shadow: 0 0 8px rgb(var(--color-air) / 0.6);
+}

@@ -81,8 +81,8 @@ export default function BoardPage() {
         <div>
           <h1 className="font-display text-2xl font-semibold text-ink">Papan Kanban</h1>
           <p className="text-sm text-inkmute mt-1">
-            <span className="hidden md:inline">Seret kartu ke tahap baru, atau pakai menu tahap di kartu. </span>
-            <span className="md:hidden">Ubah tahap lewat menu di tiap kartu. </span>
+            <span className="hidden md:inline">Seret kartu ke tahap tujuan, atau gunakan menu tahap pada kartu. </span>
+            <span className="md:hidden">Ubah tahap melalui menu pada setiap kartu. </span>
             Perubahan langsung tersimpan ke spreadsheet dan tercatat di Aktivitas.
           </p>
         </div>

@@ -72,7 +72,7 @@ function Card({ p, busy, dragging, onDragStart, onDragEnd, onMove }) {
 
       <div className="flex flex-col gap-1">
         <div className="flex items-center justify-between text-xs text-inkmute">
-          <span>Dok Engineering</span>
+          <span>Dokumen engineering</span>
           <span className="font-semibold text-ink">{doc}%</span>
         </div>
         <div className="h-1.5 rounded-full bg-line overflow-hidden">
@@ -189,7 +189,7 @@ export default function KanbanBoard({ projects, busy, onMove }) {
             <div className="min-w-0">
               <h2 className="text-sm font-semibold text-ink">Stage lain / kosong</h2>
               <p className="text-xs text-inkmute mt-0.5">
-                Stage project ini tidak cocok dengan 12 stage baku (mungkin salah ketik di spreadsheet). Pilih stage yang benar lewat menu di kartu.
+                Stage project ini tidak cocok dengan 12 stage baku (mungkin salah ketik di spreadsheet). Pilih stage yang benar melalui menu pada kartu.
               </p>
             </div>
             <CountPill n={orphans.length} />

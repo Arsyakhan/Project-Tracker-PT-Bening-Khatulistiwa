@@ -54,7 +54,7 @@ export default function AddEquipment({
           <p className="text-xs text-inkmute">{hint}</p>
           {groups.map((g) => (
             <div key={g.key} className="flex flex-col gap-1.5">
-              <p className="text-xs font-semibold uppercase tracking-wider text-inkmute">{g.label}</p>
+              <p className="text-xs font-semibold text-inkmute">{g.label}</p>
               <div className="flex flex-wrap gap-2">
                 {g.items.map((s) => (
                   <button

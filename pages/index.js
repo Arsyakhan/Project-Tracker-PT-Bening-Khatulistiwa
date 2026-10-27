@@ -64,20 +64,21 @@ function FeedGroup({ group }) {
         <span className="font-data tnum text-xs text-inkmute bg-inkmute/10 rounded-full px-2 leading-5">{group.items.length}</span>
         <span className="hidden sm:inline text-xs text-inkmute">{group.hint}</span>
       </div>
-      <ul className="flex flex-col gap-2">
+      {/* Satu panel per kelompok, baris dipisah garis rambut (bukan kartu terpisah per item) */}
+      <ul className="bg-panel border border-line rounded-xl shadow-sm divide-y divide-line overflow-hidden">
         {visible.map((it) => (
           <li key={it.id}>
             <Link
               href={it.href}
-              className="group flex items-center gap-3 bg-panel border border-line rounded-xl px-3.5 py-3 shadow-sm hover:border-blueprint hover:shadow-md transition-all"
+              className="group flex items-center gap-3 px-4 py-3 hover:bg-canvas focus-visible:bg-canvas transition-colors"
             >
               <span className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${tone.tile}`}>
                 <KindIcon kind={it.kind} />
               </span>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold uppercase tracking-wide text-inkmute">{KIND_LABEL[it.kind]}</span>
-                  {it.priority === 'High' && it.kind === 'project' && <span className="text-xs font-semibold uppercase tracking-wide text-rust">Prioritas tinggi</span>}
+                  <span className="text-xs font-semibold text-inkmute">{KIND_LABEL[it.kind]}</span>
+                  {it.priority === 'High' && it.kind === 'project' && <span className="text-xs font-semibold text-rust">Prioritas tinggi</span>}
                 </div>
                 <p className="text-sm font-medium text-ink truncate group-hover:text-blueprint">{it.title}</p>
                 <p className="text-xs text-inkmute mt-0.5 truncate">{it.detail}</p>
@@ -103,15 +104,18 @@ function Kpis({ items, running }) {
     { label: 'Terlambat', value: n.late, text: 'text-rust', bar: 'bg-rust' },
     { label: 'Segera jatuh tempo', value: n.soon, text: 'text-amberink', bar: 'bg-amber' },
     { label: 'Perlu dilengkapi', value: n.todo, text: 'text-ink', bar: 'bg-inkmute' },
-    { label: 'Project berjalan', value: running, text: 'text-blueprint', bar: 'bg-blueprint' },
+    { label: 'Project aktif', value: running, text: 'text-blueprint', bar: 'bg-blueprint' },
   ];
   return (
-    <dl className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+    // Satu panel ukur seperti layar panel kontrol: empat angka dipisah garis rambut, warna hanya pada titik status.
+    <dl className="grid grid-cols-2 lg:grid-cols-4 bg-panel border border-line rounded-xl shadow-sm overflow-hidden divide-line max-lg:[&>*:nth-child(-n+2)]:border-b lg:divide-x max-lg:[&>*:nth-child(odd)]:border-r">
       {tiles.map((t) => (
-        <div key={t.label} className="relative overflow-hidden bg-panel border border-line rounded-xl px-4 py-3.5 shadow-sm">
-          <span className={`absolute inset-x-0 top-0 h-1 ${t.bar} ${t.value === 0 && t.label !== 'Project berjalan' ? 'opacity-30' : ''}`} aria-hidden="true" />
-          <dt className="text-xs font-medium text-inkmute">{t.label}</dt>
-          <dd className={`font-display text-3xl font-semibold tnum mt-1 ${t.text}`}>{t.value}</dd>
+        <div key={t.label} className="px-5 py-4 border-line">
+          <dt className="flex items-center gap-2 text-xs font-medium text-inkmute">
+            <span className={`w-2 h-2 rounded-full ${t.bar} ${t.value === 0 && t.label !== 'Project aktif' ? 'opacity-30' : ''}`} aria-hidden="true" />
+            {t.label}
+          </dt>
+          <dd className={`font-display text-3xl font-semibold tnum mt-1.5 ${t.text}`}>{t.value}</dd>
         </div>
       ))}
     </dl>
@@ -152,9 +156,9 @@ function Workload({ projects, value, onPick }) {
   const map = useMemo(() => workloadByDivision(projects), [projects]);
   const max = Math.max(1, ...DIVISIONS.map((d) => map[d].length));
   return (
-    <section className="bg-panel border border-line rounded-xl p-4 shadow-sm" aria-labelledby="bola-title">
-      <h2 id="bola-title" className="font-display text-base font-semibold text-ink">Bola ada di siapa</h2>
-      <p className="text-xs text-inkmute mt-0.5 mb-3">Project yang masih berjalan, menurut divisi yang memegang stage-nya sekarang.</p>
+    <section className="bg-panel border border-line rounded-xl p-4 shadow-sm" aria-labelledby="workload-title">
+      <h2 id="workload-title" className="font-display text-base font-semibold text-ink">Beban kerja per divisi</h2>
+      <p className="text-xs text-inkmute mt-0.5 mb-3">Project aktif menurut divisi yang menangani tahapnya saat ini.</p>
       <ul className="flex flex-col gap-1">
         {DIVISIONS.map((d) => {
           const list = map[d];
@@ -197,7 +201,7 @@ function NextMeeting({ meetings, error }) {
   if (error && !meetings) return null;
   if (!meetings) return <div className="skeleton-shimmer rounded-lg h-28" />;
   return (
-    <section className="bg-panel border border-line border-l-4 border-l-blueprint rounded-xl p-4 shadow-sm">
+    <section className="bg-panel border border-line rounded-xl p-4 shadow-sm">
       <h2 className="flex items-center gap-2 text-sm font-semibold text-ink"><span className="text-blueprint"><KindIcon kind="meeting" className="w-4 h-4" /></span>Rapat berikutnya</h2>
       {next ? (
         <>
@@ -209,7 +213,7 @@ function NextMeeting({ meetings, error }) {
       ) : (
         <>
           <p className="text-sm text-inkmute mt-1">Belum ada rapat terjadwal.</p>
-          <Link href="/documents/meetings/new?mode=schedule" className="inline-block text-sm font-medium text-blueprint hover:underline mt-2">Jadwalkan sekarang</Link>
+          <Link href="/documents/meetings/new?mode=schedule" className="inline-block text-sm font-medium text-blueprint hover:underline mt-2">Jadwalkan rapat</Link>
         </>
       )}
     </section>
@@ -231,7 +235,7 @@ export default function TodayPage() {
 
   const today = todayIso();
   const counts = useMemo(() => countsByDivision(all), [all]);
-  // Project berjalan: semua, atau hanya yang stage-nya dipegang divisi terpilih (sama dengan "Bola ada di siapa").
+  // Project berjalan: semua, atau hanya yang stage-nya dipegang divisi terpilih (sama dengan "Beban kerja per divisi").
   const running = useMemo(() => {
     const byDivision = workloadByDivision(projects);
     return division ? byDivision[division].length : DIVISIONS.reduce((n, d) => n + byDivision[d].length, 0);
@@ -251,10 +255,9 @@ export default function TodayPage() {
 
       <header className="relative overflow-hidden bg-panel border border-line rounded-2xl shadow-sm">
         <div className="absolute inset-0 bp-grid opacity-70 pointer-events-none" aria-hidden="true" />
-        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blueprint via-teal to-amber" aria-hidden="true" />
-        <div className="relative flex flex-col lg:flex-row lg:items-end justify-between gap-5 px-5 py-6 sm:px-7">
+                <div className="relative flex flex-col lg:flex-row lg:items-end justify-between gap-5 px-5 py-6 sm:px-7">
           <div className="min-w-0">
-            <p className="font-data text-xs uppercase tracking-wider text-inkmute">{fmtLong(today)}</p>
+            <p className="text-sm font-medium text-inkmute">{fmtLong(today)}</p>
             <h1 className="font-display text-2xl sm:text-3xl font-semibold text-ink mt-1.5">
               {hello}{firstName ? `, ${firstName}` : ''}
             </h1>
@@ -262,7 +265,7 @@ export default function TodayPage() {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <RefreshStatus refreshing={refreshing} staleError={staleError} />
-            <Link href="/procurement" className="btn btn-secondary flex-1 sm:flex-none">+ Barang / Pengadaan</Link>
+            <Link href="/procurement" className="btn btn-secondary flex-1 sm:flex-none">+ Pengadaan</Link>
             <Link href="/projects/new" className="btn btn-primary flex-1 sm:flex-none">+ Project Baru</Link>
           </div>
         </div>
@@ -292,7 +295,7 @@ export default function TodayPage() {
           <div className="lg:col-span-2 flex flex-col gap-6">
             {groups.length === 0 ? (
               <div className="bg-panel border border-dashed border-line rounded-xl p-10 text-center">
-                <p className="text-sm font-semibold text-ink">{division ? `Tidak ada yang perlu ditindak untuk ${division}` : 'Tidak ada yang perlu ditindak'}</p>
+                <p className="text-sm font-semibold text-ink">{division ? `Tidak ada item untuk divisi ${division}` : 'Tidak ada item yang perlu ditindaklanjuti'}</p>
                 <p className="text-xs text-inkmute mt-1">Tidak ada project, pengadaan, atau tindak lanjut rapat yang terlambat atau mendekati tenggat.</p>
               </div>
             ) : (
@@ -300,7 +303,7 @@ export default function TodayPage() {
             )}
             {division && counts[''].total > shown.length && (
               <p className="text-xs text-inkmute">
-                Ada {counts[''].total - shown.length} hal lain di divisi lain atau tanpa divisi.{' '}
+                {counts[''].total - shown.length} item lain berada di divisi lain atau belum memiliki divisi.{' '}
                 <button type="button" onClick={() => setDivision('')} className="text-blueprint font-medium hover:underline">Lihat semua</button>
               </p>
             )}
@@ -309,7 +312,7 @@ export default function TodayPage() {
           <aside className="flex flex-col gap-4">
             <NextMeeting meetings={meetings} error={meetingError} />
             <Workload projects={projects} value={division} onPick={setDivision} />
-            <Link href="/dashboard" className="text-sm font-medium text-blueprint hover:underline">Buka Dashboard lengkap (grafik &amp; tabel project)</Link>
+            <Link href="/dashboard" className="text-sm font-medium text-blueprint hover:underline">Buka Dashboard</Link>
           </aside>
         </div>
       )}

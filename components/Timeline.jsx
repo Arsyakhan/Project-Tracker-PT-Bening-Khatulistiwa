@@ -25,7 +25,7 @@ export default function Timeline({ projects }) {
 
   return (
     <div className="bg-panel border border-line rounded-lg p-6 h-full flex flex-col shadow-sm">
-      <h3 className="text-xs font-semibold text-inkmute mb-5 uppercase tracking-wider">
+      <h3 className="text-xs font-semibold text-inkmute mb-5">
         Timeline & delivery terdekat
       </h3>
       <div className="flex-1 overflow-y-auto pr-2 max-h-[300px]">

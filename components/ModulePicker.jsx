@@ -41,7 +41,7 @@ export default function ModulePicker({ schema, value, onChange, detailMax = 4000
     <div className="flex flex-col gap-4">
       {groups.map((g) => (
         <fieldset key={g.key} disabled={disabled} className="bg-panel border border-line rounded-lg p-4 sm:p-5 shadow-sm">
-          <legend className="px-1 text-xs font-semibold uppercase tracking-wider text-inkmute">{g.label}</legend>
+          <legend className="px-1 text-xs font-semibold text-inkmute">{g.label}</legend>
           <div className="flex flex-col gap-3">
             {g.items.map((s) => {
               const on = !!byKey[s.key];
@@ -109,7 +109,7 @@ function SpecHint({ module, onTemplate, disabled }) {
     <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
       <span className={`text-xs ${found === 0 ? 'text-amberink' : 'text-inkmute'}`}>
         {found === null
-          ? 'Tulis "Label : isi" per baris (Model, Capacity, Power, Qty, ...), atau pakai template.'
+          ? 'Tulis "Label : isi" per baris (Model, Capacity, Power, Qty, ...), atau gunakan template.'
           : found > 0
             ? `Terbaca ${found} kolom untuk Spesifikasi Peralatan.`
             : 'Belum ada nilai yang terbaca. Isi di belakang titik dua (Label : isi), satu peralatan per judul.'}

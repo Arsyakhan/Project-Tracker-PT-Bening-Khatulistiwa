@@ -326,7 +326,7 @@ export default function NewHandoverReport() {
         <span>/</span>
         <span className="text-ink font-medium">Handover Report</span>
       </div>
-      <h1 className="font-display text-2xl font-bold text-ink">Handover Report</h1>
+      <h1 className="font-display text-2xl font-semibold text-ink">Handover Report</h1>
 
       {!initialized ? (
         <p className="text-sm text-inkmute">Memuat data project...</p>
@@ -355,7 +355,7 @@ export default function NewHandoverReport() {
             <p className="text-sm text-inkmute">
               {result.checklistUpdated
                 ? <>Link & status checklist "Handover Report" pada project <b className="text-ink">{linkedProject.projectName}</b> sudah diperbarui otomatis (jadi "Under Review").</>
-                : <>Dokumen berhasil dibuat, tapi update otomatis ke checklist project gagal -- tempel link di atas secara manual ke tab Checklist Engineering.</>}
+                : <>Dokumen berhasil dibuat, tetapi checklist project gagal diperbarui otomatis. Tempel tautan di atas ke tab Checklist Engineering.</>}
             </p>
           )}
           <div className="flex gap-3 pt-2 border-t border-line mt-1">
@@ -449,7 +449,7 @@ export default function NewHandoverReport() {
               />
               <fieldset className="flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-line pt-3">
                 <legend className="sr-only">Opsi dokumen</legend>
-                <span className="text-xs font-semibold uppercase tracking-wider text-inkmute">Opsi dokumen</span>
+                <span className="text-xs font-semibold text-inkmute">Opsi dokumen</span>
                 {DOC_OPTIONS.map((o) => (
                   <label key={o.key} className="flex items-center gap-2 text-sm text-ink cursor-pointer tap">
                     <input
@@ -468,7 +468,7 @@ export default function NewHandoverReport() {
               <div className="bg-panel border border-line rounded-lg p-5 text-sm text-inkmute" data-testid="ho-empty">
                 {linkedProject
                   ? 'Teknologi project ini belum dicentang. Isi di tab Teknologi detail project, atau tambah peralatan di atas.'
-                  : 'Belum ada peralatan. Tambahkan lewat "+ Tambah peralatan" di atas.'}
+                  : 'Belum ada peralatan. Tambahkan melalui "+ Tambah peralatan" di atas.'}
               </div>
             ) : (
               <EquipmentSections

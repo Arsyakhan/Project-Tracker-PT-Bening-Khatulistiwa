@@ -135,7 +135,7 @@ export default function ProjectsPage() {
           </svg>
           <div>
             <p className="text-ink font-medium">Belum ada project</p>
-            <p className="text-inkmute text-sm mt-1">Mulai lacak project pertama kamu di sini.</p>
+            <p className="text-inkmute text-sm mt-1">Tambahkan project pertama untuk mulai memantau progresnya.</p>
           </div>
           <Link
             href="/projects/new"
@@ -150,7 +150,7 @@ export default function ProjectsPage() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
           <p className="text-ink font-medium">Tidak ada project yang cocok</p>
-          <p className="text-inkmute text-sm">Longgarkan pencarian atau kurangi filter yang aktif.</p>
+          <p className="text-inkmute text-sm">Ubah kata kunci atau kurangi filter yang aktif.</p>
           <button onClick={resetAll} className="tap mt-1 text-blueprint text-sm font-medium hover:underline">
             Reset pencarian & filter
           </button>

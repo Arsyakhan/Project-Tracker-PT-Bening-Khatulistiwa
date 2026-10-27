@@ -4,9 +4,8 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Image from 'next/image';
 import { clearAllCache } from '../lib/persistedCache';
-import { STAGES } from '../lib/stages';
-
-const DIVISIONS = ['Marketing & Direksi', 'Engineering', 'Warehouse & Purchasing', 'Technician'];
+import BeningLogo from '../components/brand/BeningLogo';
+import HubDiagram from '../components/brand/HubDiagram';
 
 function GoogleMark() {
   return (
@@ -19,21 +18,8 @@ function GoogleMark() {
   );
 }
 
-// Jalur 12 tahap project, dari PO sampai Hand Over. Murni hiasan: menggambarkan apa yang dilacak aplikasi.
-function StageTrack() {
-  return (
-    <ol className="flex items-center gap-1.5" aria-label="Alur project dari PO sampai Hand Over">
-      {STAGES.map((s, i) => (
-        <li
-          key={s}
-          title={s}
-          className={`h-1.5 flex-1 rounded-full ${i < 7 ? 'bg-white' : 'bg-white/30'}`}
-        />
-      ))}
-    </ol>
-  );
-}
-
+// Halaman masuk: sesedikit mungkin tulisan. Panel merek menggambarkan Bening Hub sebagai super app (satu sumber
+// air mengalir ke semua modul); panel masuk hanya berisi logo, satu baris "Super App", dan tombol Google.
 export default function Login() {
   const router = useRouter();
   const { error } = router.query;
@@ -47,9 +33,9 @@ export default function Login() {
 
   const errorMessage =
     error === 'AccessDenied'
-      ? 'Email Google kamu belum terdaftar untuk mengakses Bening Hub ini. Hubungi admin untuk didaftarkan.'
+      ? 'Email ini belum terdaftar di Bening Hub. Hubungi admin untuk didaftarkan.'
       : error
-      ? 'Gagal login. Silakan coba lagi.'
+      ? 'Gagal masuk. Silakan coba lagi.'
       : '';
 
   function handleSignIn() {
@@ -60,95 +46,57 @@ export default function Login() {
   return (
     <>
       <Head>
-        <title>Login - Bening Hub</title>
+        <title>Masuk - Bening Hub</title>
       </Head>
-      <div className="min-h-screen flex bg-canvas">
-        {/* Panel merek. Latarnya selalu biru tua (foto + lapisan), jadi teksnya putih tetap di kedua tema. */}
-        <div className="hidden lg:flex lg:w-[55%] relative overflow-hidden bg-[#0C2D48]">
+      <div className="min-h-screen flex flex-col lg:flex-row bg-canvas">
+        {/* Panel merek: foto instalasi WTP + lapisan navy ("deep") di kedua tema, isinya ilustrasi saja. */}
+        <section aria-hidden="true" className="relative overflow-hidden bg-deep lg:w-[56%] flex items-center justify-center px-6 pt-8 pb-6 sm:px-10 lg:p-14">
           <Image
             src="/wastewater-treatment-upd.webp"
             alt=""
             fill
-            sizes="55vw"
+            sizes="(min-width: 1024px) 56vw, 100vw"
             style={{ objectFit: 'cover', objectPosition: 'center' }}
             priority
             quality={70}
           />
-          <div className="absolute inset-0 bg-gradient-to-br from-[#0C2D48]/95 via-[#0C2D48]/75 to-[#0C2D48]/95" />
-          <div className="absolute inset-0 bp-grid opacity-40" aria-hidden="true" />
-
-          <div className="relative z-10 flex flex-col justify-between h-full w-full p-12 xl:p-16 text-white">
-            <img src="/logo-bening-hub-compact.png" alt="Bening Hub" className="h-10 w-auto self-start object-contain brightness-0 invert" />
-
-            <div className="max-w-lg">
-              <p className="font-data text-xs uppercase tracking-[0.2em] text-white/80 mb-4">PT Bening Khatulistiwa</p>
-              <h1 className="font-display text-4xl xl:text-5xl font-bold leading-tight">
-                Satu tempat untuk melihat posisi setiap project.
-              </h1>
-              <p className="text-white/85 text-base xl:text-lg mt-4 leading-relaxed">
-                Dari PO sampai Hand Over: status, tenggat, dan siapa yang memegang bola, tanpa tanya satu per satu.
-              </p>
-
-              <div className="mt-8">
-                <StageTrack />
-                <div className="flex justify-between font-data text-xs text-white/80 mt-2">
-                  <span>PO</span>
-                  <span>Fabrikasi</span>
-                  <span>Hand Over</span>
-                </div>
-              </div>
-            </div>
-
-            <ul className="flex flex-wrap gap-2" aria-label="Divisi pengguna">
-              {DIVISIONS.map((d) => (
-                <li key={d} className="text-xs font-medium rounded-full border border-white/30 bg-white/10 px-3 py-1.5">{d}</li>
-              ))}
-            </ul>
-          </div>
-        </div>
+          <div className="absolute inset-0 photo-veil" />
+          <div className="absolute inset-0 grid-deep" />
+          <div className="absolute inset-0 glow-air" />
+          <HubDiagram className="relative w-full max-w-[640px] h-auto" />
+        </section>
 
         {/* Panel masuk */}
-        <main className="w-full lg:w-[45%] flex items-center justify-center p-6 sm:p-10">
-          <div className="w-full max-w-sm">
-            <img
-              src="/logo-bening-hub-compact.png"
-              alt="Bening Hub"
-              className="h-10 w-auto object-contain mb-10 lg:hidden dark:brightness-0 dark:invert"
-            />
+        <main className="flex-1 flex flex-col px-6 pt-10 pb-8 sm:px-10 lg:px-16 lg:py-10">
+          <div className="flex-1 flex items-start lg:items-center">
+            <div className="w-full max-w-sm mx-auto lg:mx-0">
+              <h1>
+                <BeningLogo height={26} intro ambient />
+              </h1>
+              <p className="mt-5 text-base text-inkmute">Super App PT Bening Khatulistiwa</p>
 
-            <h2 className="font-display text-3xl font-bold text-ink">Selamat datang</h2>
-            <p className="text-inkmute text-sm mt-2">Masuk dengan akun Google kantor yang sudah didaftarkan untuk membuka Bening Hub.</p>
+              {errorMessage && (
+                <div role="alert" className="mt-8 flex items-start gap-2.5 bg-rust/10 border border-rust/30 text-rust text-sm p-3 rounded-lg font-medium">
+                  <svg className="w-5 h-5 flex-shrink-0 mt-px" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                  </svg>
+                  <span>{errorMessage}</span>
+                </div>
+              )}
 
-            {errorMessage && (
-              <div role="alert" className="mt-6 flex items-start gap-2.5 bg-rust/10 border border-rust/30 text-rust text-sm p-3 rounded-lg font-medium">
-                <svg className="w-5 h-5 flex-shrink-0 mt-px" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
-                </svg>
-                <span>{errorMessage}</span>
-              </div>
-            )}
-
-            <button
-              type="button"
-              onClick={handleSignIn}
-              disabled={loading}
-              className="mt-6 w-full flex items-center justify-center gap-3 h-12 rounded-lg border border-line bg-panel hover:border-blueprint hover:shadow-md text-ink text-sm font-semibold transition-all shadow-sm disabled:opacity-60 disabled:cursor-wait"
-            >
-              <GoogleMark />
-              {loading ? 'Mengalihkan ke Google...' : 'Masuk dengan Google'}
-            </button>
-
-            <div className="mt-8 rounded-lg border border-line bg-panel px-4 py-3 flex items-start gap-3">
-              <svg className="w-5 h-5 flex-shrink-0 text-blueprint mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
-              </svg>
-              <p className="text-xs text-inkmute leading-relaxed">
-                Akses dibatasi. Hanya email yang didaftarkan admin yang bisa masuk. Kalau ditolak, hubungi Project Manager.
-              </p>
+              <button
+                type="button"
+                onClick={handleSignIn}
+                disabled={loading}
+                className="mt-8 w-full flex items-center justify-center gap-3 h-12 rounded-xl border border-line bg-panel text-ink text-sm font-semibold shadow-sm transition-[border-color,box-shadow,transform] duration-150 ease-standard hover:border-blueprint/60 hover:shadow-md active:translate-y-px disabled:opacity-60 disabled:cursor-wait"
+              >
+                <GoogleMark />
+                {loading ? 'Mengalihkan ke Google...' : 'Masuk dengan Google'}
+              </button>
+              <p className="mt-3 text-xs text-inkmute">Khusus akun yang sudah didaftarkan admin.</p>
             </div>
-
-            <p className="text-xs text-inkmute mt-8 text-center lg:text-left">© PT Bening Khatulistiwa</p>
           </div>
+          <p className="text-xs text-inkmute text-center lg:text-left">© {new Date().getFullYear()} PT Bening Khatulistiwa</p>
         </main>
       </div>
     </>

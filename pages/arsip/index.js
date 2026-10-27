@@ -105,7 +105,7 @@ export default function ArsipPage() {
           <div className="bg-panel border border-line rounded-lg p-3 sm:p-4 flex flex-col gap-3 shadow-sm">
             <input type="search" className="input" placeholder="Cari nama project, teknologi, atau isi spesifikasi..." value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Cari arsip" />
             <div className="flex flex-col gap-2">
-              <span className="text-xs font-medium text-inkmute">Teknologi (pilih beberapa = harus ada semua)</span>
+              <span className="text-xs font-medium text-inkmute">Teknologi (semua pilihan harus ada)</span>
               <div className="flex flex-wrap gap-2">
                 {filterOptions.map((s) => (
                   <Chip key={s.key} active={techs.includes(s.key)} onClick={() => toggleTech(s.key)} count={techCount[s.key]}>{s.short}</Chip>
@@ -130,8 +130,8 @@ export default function ArsipPage() {
                   <button type="button" onClick={() => { setQuery(''); setYear(''); setTechs([]); }} className="btn btn-ghost">Reset filter</button>
                 )}
                 <select className="input !w-auto !min-h-[36px] max-md:!min-h-[40px] !py-1" aria-label="Urutkan" value={sort} onChange={(e) => setSort(e.target.value)}>
-                  <option value="terbaru">Terbaru dulu</option>
-                  <option value="terlama">Terlama dulu</option>
+                  <option value="terbaru">Terbaru</option>
+                  <option value="terlama">Terlama</option>
                   <option value="nama">Nama A-Z</option>
                 </select>
               </div>

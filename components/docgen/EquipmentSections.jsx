@@ -14,7 +14,7 @@ function TechSource({ mod, projectHref }) {
   return (
     <div className="sm:col-span-2 min-w-0 rounded-md border border-line bg-canvas/60 p-3 text-xs" data-testid="ho-tech">
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <span className="font-semibold uppercase tracking-wider text-inkmute">Isi di Teknologi</span>
+        <span className="font-semibold text-inkmute">Isi di Teknologi</span>
         {cap && <span className="text-ink font-data tnum" data-testid="ho-tech-cap">Kapasitas {cap}</span>}
         {projectHref && (
           <Link href={projectHref} className="text-blueprint hover:underline tap ml-auto">Lengkapi di Teknologi</Link>

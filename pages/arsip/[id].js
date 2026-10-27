@@ -193,7 +193,7 @@ export default function ArsipDetailPage() {
       <ConfirmModal
         open={confirmDelete}
         title="Hapus project arsip ini?"
-        description={project ? `"${project.name}" akan dihapus dari tab [ARSIP] di spreadsheet. Isinya masih tercatat di tab Aktivitas, tapi tidak bisa dipulihkan dari web.` : ''}
+        description={project ? `"${project.name}" akan dihapus dari tab [ARSIP] di spreadsheet. Isinya tetap tercatat di tab Aktivitas, tetapi tidak dapat dipulihkan dari web.` : ''}
         confirmText="Ya, hapus"
         onConfirm={handleDelete}
         onCancel={() => setConfirmDelete(false)}

@@ -10,6 +10,8 @@ import TopLoadingBar from '../components/TopLoadingBar';
 import { setStoredTheme } from '../lib/theme';
 import { getRecentProjects } from '../lib/recentlyViewed';
 import Sidebar from '../components/Sidebar';
+import BeningLogo from '../components/brand/BeningLogo';
+import useRouteBusy from '../lib/useRouteBusy';
 
 function Shell({ Component, pageProps }) {
   const router = useRouter();
@@ -19,6 +21,7 @@ function Shell({ Component, pageProps }) {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [isDark, setIsDark] = useState(false);
   const [recentProjects, setRecentProjects] = useState([]);
+  const routeBusy = useRouteBusy();
 
   useEffect(() => {
     if (isLoginPage) return;
@@ -98,12 +101,12 @@ function Shell({ Component, pageProps }) {
         <link rel="icon" href="/favicon-32.png" />
         <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
         <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#0C2D48" />
+        <meta name="theme-color" content="#063E75" />
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="Bening Hub" />
-        <title>Bening Hub - Bening Khatulistiwa</title>
+        <title>Bening Hub - Super App PT Bening Khatulistiwa</title>
       </Head>
 
       <a href="#konten" className="skip-link">Lompat ke konten</a>
@@ -128,8 +131,8 @@ function Shell({ Component, pageProps }) {
 
           {/* Top bar mobile - cuma logo + tombol hamburger */}
           <header className="md:hidden sticky top-0 z-20 bg-panel border-b border-line flex items-center justify-between px-4 py-3">
-            <Link href="/" className="flex items-center py-1.5 -my-1.5">
-              <img src="/logo-bening-hub-compact.png" alt="Bening Hub" className="h-7 w-auto object-contain dark:brightness-0 dark:invert" />
+            <Link href="/" className="flex items-center py-1.5 -my-1.5" aria-label="Bening Hub, ke beranda">
+              <BeningLogo height={13} busy={routeBusy} intro />
             </Link>
             <button onClick={() => setMobileNavOpen(true)} className="p-2 text-ink" aria-label="Buka menu">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-6 h-6">
@@ -146,7 +149,7 @@ function Shell({ Component, pageProps }) {
                     <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
-                  <span><b>Mode lihat saja.</b> Akun Anda berstatus Viewer, jadi perubahan tidak akan tersimpan. Hubungi admin kalau perlu akses ubah.</span>
+                  <span><b>Akses baca saja.</b> Akun Anda berperan Viewer sehingga perubahan tidak dapat disimpan. Hubungi admin untuk akses ubah.</span>
                 </div>
               )}
               <Component {...pageProps} />

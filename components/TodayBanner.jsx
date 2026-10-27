@@ -18,7 +18,7 @@ export default function TodayBanner({ items, settled, missing = [] }) {
     >
       <div className="min-w-0">
         {calm ? (
-          <p className="font-display text-base font-semibold text-teal">Tidak ada yang terlambat atau mendesak</p>
+          <p className="font-display text-base font-semibold text-teal">Tidak ada item yang terlambat atau mendekati tenggat</p>
         ) : (
           <p className="font-display text-base font-semibold tnum">
             <span className={late > 0 ? 'text-rust' : 'text-inkmute'}>{late} terlambat</span>
@@ -28,7 +28,7 @@ export default function TodayBanner({ items, settled, missing = [] }) {
         )}
         <p className="text-xs text-inkmute mt-0.5">
           {missing.length > 0
-            ? `Belum termasuk ${missing.join(' dan ')} (datanya belum bisa dimuat).`
+            ? `Belum termasuk data ${missing.join(' dan ')} yang gagal dimuat.`
             : 'Semua divisi: project, langkah berikutnya, pengadaan, dan tindak lanjut rapat.'}
         </p>
       </div>

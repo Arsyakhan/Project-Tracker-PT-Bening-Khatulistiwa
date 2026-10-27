@@ -197,7 +197,7 @@ export default function MeetingEditor({ meetingId, schedule = false }) {
       const res = await api.generateMeetingDoc(current.id);
       clearCache('meetings');
       setMeeting((m) => ({ ...m, docUrl: res.documentUrl }));
-      showToast(res.linkSaved ? 'Google Doc notulensi dibuat.' : 'Dokumen dibuat, tapi link belum tersimpan di sheet.', res.linkSaved ? 'success' : 'error');
+      showToast(res.linkSaved ? 'Google Doc notulensi dibuat.' : 'Dokumen dibuat, tetapi tautannya belum tersimpan di spreadsheet.', res.linkSaved ? 'success' : 'error');
     } catch (err) {
       showToast(err.message, 'error');
     } finally {
@@ -220,7 +220,7 @@ export default function MeetingEditor({ meetingId, schedule = false }) {
 
   async function copyWa() {
     const ok = await copyText(waText);
-    showToast(ok ? 'Teks disalin. Tinggal tempel di WhatsApp.' : 'Gagal menyalin. Salin manual dari kotak teks.', ok ? 'success' : 'error');
+    showToast(ok ? 'Teks disalin dan siap ditempel di WhatsApp.' : 'Gagal menyalin. Salin manual dari kotak teks.', ok ? 'success' : 'error');
   }
 
   const presentCount = meeting.attendees.filter((a) => a.status === 'Hadir').length;
@@ -283,7 +283,7 @@ export default function MeetingEditor({ meetingId, schedule = false }) {
       {/* 2. Kehadiran */}
       <Section
         title="Daftar kehadiran"
-        hint="Peserta diambil dari rapat sebelumnya. Tambah tamu kalau perlu."
+        hint="Peserta diambil dari rapat sebelumnya. Tambahkan tamu jika perlu."
         aside={<span className="text-sm font-data tnum text-ink">{presentCount} dari {meeting.attendees.length} hadir</span>}
       >
         <div className="flex flex-col gap-2">
@@ -317,14 +317,14 @@ export default function MeetingEditor({ meetingId, schedule = false }) {
       {openItems.length > 0 && (
         <Section
           title="Tindak lanjut dari rapat sebelumnya"
-          hint="Agenda yang belum selesai. Bawa ke rapat ini supaya dibahas lagi; isi lama tercatat sebagai 'Sebelumnya'."
+          hint="Agenda yang belum selesai. Bawa ke rapat ini agar dibahas kembali; isi lama tercatat sebagai 'Sebelumnya'."
           aside={<button type="button" onClick={carryAll} className="text-sm font-medium text-blueprint hover:underline whitespace-nowrap">Bawa semua ({openItems.length})</button>}
         >
           <ul className="flex flex-col divide-y divide-line border border-line rounded-lg max-h-72 overflow-y-auto">
             {openItems.map((src) => (
               <li key={itemKey(src.meeting.id, src.item.id)} className="flex items-start justify-between gap-3 p-3">
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-ink">{src.item.topic || '(tanpa judul)'}</p>
+                  <p className="text-sm font-medium text-ink">{src.item.topic || 'Tanpa judul'}</p>
                   <p className="text-xs text-inkmute mt-0.5">
                     Rapat {fmtShort(src.meeting.date)}{src.item.pic ? ` · ${src.item.pic}` : ''}{src.item.target ? ` · target ${fmtShort(src.item.target)}` : ''}
                   </p>
@@ -474,7 +474,7 @@ export default function MeetingEditor({ meetingId, schedule = false }) {
       <ConfirmModal
         open={confirmDelete}
         title="Hapus rapat ini?"
-        description={`Notulensi rapat ${fmtShort(meeting.date)} akan dihapus dari spreadsheet. Isinya masih tersimpan di tab Aktivitas, tapi tidak bisa dipulihkan dari web.`}
+        description={`Notulensi rapat ${fmtShort(meeting.date)} akan dihapus dari spreadsheet. Isinya tetap tercatat di tab Aktivitas, tetapi tidak dapat dipulihkan dari web.`}
         confirmText="Ya, hapus"
         onConfirm={handleDelete}
         onCancel={() => setConfirmDelete(false)}

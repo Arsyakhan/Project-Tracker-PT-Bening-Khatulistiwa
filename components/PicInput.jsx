@@ -32,7 +32,7 @@ export default function PicInput({ id, value, onChange, placeholder = 'Nama atau
         <p id={hintId} className={`text-xs ${division ? 'text-inkmute' : 'text-amberink'}`}>
           {division
             ? <>Divisi terbaca: <b className="font-medium text-ink">{division}</b></>
-            : 'Divisi belum terbaca, jadi langkah ini tidak muncul di filter divisi halaman Hari Ini. Pilih dari saran atau tulis nama divisinya.'}
+            : 'Divisi belum dikenali sehingga langkah ini tidak muncul di filter divisi halaman Hari Ini. Pilih dari saran atau tulis nama divisi.'}
         </p>
       )}
     </>

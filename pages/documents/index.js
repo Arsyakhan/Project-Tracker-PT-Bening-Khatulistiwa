@@ -20,7 +20,7 @@ const DOC_TYPES = [
   {
     href: '/documents/handover/new',
     title: 'Handover Report',
-    desc: 'Serah terima unit ke klien: daftar lengkap equipment yang terpasang per modul (RO, UF, Softener, dll).',
+    desc: 'Serah terima unit ke klien: daftar peralatan terpasang per modul, seperti RO, UF, dan softener.',
     cardClass: 'hover:border-teal',
     iconClass: 'bg-teal/10 text-teal',
     linkClass: 'text-teal',
@@ -68,7 +68,7 @@ function DocumentHistory() {
         <div>
           <h2 className="font-display text-lg font-semibold text-ink">Riwayat Dokumen</h2>
           <p className="text-xs text-inkmute mt-0.5">
-            Semua dokumen yang dibuat lewat Generator Dokumen, tercatat di tab "Document Log" pada spreadsheet.
+            Semua dokumen yang dibuat melalui Generator Dokumen, tercatat di tab "Document Log" pada spreadsheet.
           </p>
         </div>
         {docs && docs.length > 0 && (
@@ -156,11 +156,10 @@ export default function DocumentsHome() {
       <PageHead title="Generator Dokumen" />
       <DocsTabs active="generator" />
       <div>
-        <h1 className="font-display text-2xl font-bold text-ink">Generator Dokumen</h1>
+        <h1 className="font-display text-2xl font-semibold text-ink">Generator Dokumen</h1>
         <p className="text-inkmute text-sm mt-1">
-          Buat Commissioning Report atau Handover Report. Pilih project dulu di halaman berikutnya supaya PO
-          Number, Nama Project, dan Client terisi otomatis -- atau lewati kalau dokumennya tidak terkait project
-          yang tercatat di sini.
+          Buat Commissioning Report atau Handover Report. Pilih project di halaman berikutnya agar PO Number,
+          nama project, dan client terisi otomatis, atau lewati jika dokumen tidak terkait project yang tercatat.
         </p>
       </div>
 
