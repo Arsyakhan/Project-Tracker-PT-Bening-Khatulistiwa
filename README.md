@@ -171,11 +171,12 @@ Buka `http://localhost:3000` — kamu akan diarahkan ke halaman login dulu.
 - Menambah project baru lewat web otomatis menambah baris di kedua sheet sekaligus (Project
   Tracker + Engineering Deliverables Checklist) dengan Project ID yang sama, supaya keduanya tetap
   nyambung.
-- Halaman: **`/`** dashboard ringkasan, **`/projects`** daftar semua project, **`/projects/new`**
-  tambah project, **`/projects/[id]`** detail (ringkasan, jadwal, deskripsi teknis, checklist,
-  komentar), **`/engineering-docs`** semua dokumen checklist lintas-project, **`/documents`**
-  Generator Dokumen (Commissioning & Handover), **`/activity`** log aktivitas, **`/login`** halaman
-  masuk.
+- Halaman: **`/`** Hari Ini, **`/dashboard`** analitik, **`/meetings`** rapat dan notulensi,
+  **`/projects`** daftar project (+ **`/projects/kanban`** papan Kanban, **`/projects/new`** tambah
+  project, **`/projects/[id]`** detail), **`/documents`** checklist dokumen engineering lintas-project,
+  **`/documents/generator`** buat dokumen (Commissioning & Handover) dan riwayatnya, **`/procurement`**
+  pengadaan, **`/arsip`** arsip project selesai, **`/activity`** log aktivitas, **`/login`** halaman
+  masuk. Alamat lama `/board`, `/engineering-docs`, dan `/documents/meetings` dialihkan otomatis.
 
 ## Generator Dokumen
 

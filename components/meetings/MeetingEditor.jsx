@@ -6,7 +6,6 @@ import { clearCache } from '../../lib/persistedCache';
 import useProjects from '../../lib/useProjects';
 import PageHead from '../PageHead';
 import ConfirmModal from '../ConfirmModal';
-import DocsTabs from '../DocsTabs';
 import { useToast } from '../Toast';
 import { Pill } from '../Badges';
 import {
@@ -133,7 +132,7 @@ export default function MeetingEditor({ meetingId, schedule = false }) {
         <p className="text-rust text-sm">{loadError}</p>
         <div className="flex gap-4 text-sm">
           <button onClick={load} className="font-medium text-blueprint hover:underline">Coba lagi</button>
-          <Link href="/documents/meetings" className="font-medium text-blueprint hover:underline">Kembali ke daftar rapat</Link>
+          <Link href="/meetings" className="font-medium text-blueprint hover:underline">Kembali ke daftar rapat</Link>
         </div>
       </div>
     );
@@ -173,7 +172,7 @@ export default function MeetingEditor({ meetingId, schedule = false }) {
       setBaseline(JSON.stringify(meetingPayload(saved)));
       setAllMeetings((list) => [saved, ...list.filter((x) => x.id !== saved.id)]);
       if (!silent) showToast('Notulensi tersimpan.', 'success');
-      if (isNew) router.replace(`/documents/meetings/${saved.id}`);
+      if (isNew) router.replace(`/meetings/${saved.id}`);
       return saved;
     } catch (err) {
       setError(err.message);
@@ -212,7 +211,7 @@ export default function MeetingEditor({ meetingId, schedule = false }) {
       clearCache('meetings');
       showToast('Rapat dihapus.', 'success');
       setBaseline(JSON.stringify(meetingPayload(meeting)));
-      router.push('/documents/meetings');
+      router.push('/meetings');
     } catch (err) {
       showToast(err.message, 'error');
     }
@@ -231,12 +230,10 @@ export default function MeetingEditor({ meetingId, schedule = false }) {
   return (
     <div className="flex flex-col gap-5 pb-28">
       <PageHead title={titleText} />
-      <DocsTabs active="meetings" />
-
-      <div className="flex flex-wrap items-start justify-between gap-3 pt-2">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <nav className="text-xs text-inkmute flex items-center gap-1.5 mb-1">
-            <Link href="/documents/meetings" className="hover:text-blueprint">Notulensi Rapat</Link>
+            <Link href="/meetings" className="tap hover:text-blueprint">Rapat</Link>
             <span aria-hidden="true">/</span>
             <span>{isNew ? 'Baru' : fmtShort(meeting.date)}</span>
           </nav>

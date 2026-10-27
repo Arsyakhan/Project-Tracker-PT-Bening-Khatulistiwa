@@ -1,21 +1,20 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { api } from '../../../lib/api';
-import useCachedResource from '../../../lib/useCachedResource';
-import { clearCache } from '../../../lib/persistedCache';
-import PageHead from '../../../components/PageHead';
-import DocsTabs from '../../../components/DocsTabs';
-import RefreshStatus from '../../../components/RefreshStatus';
-import { useToast } from '../../../components/Toast';
-import { Pill } from '../../../components/Badges';
-import PageHeader from '../../../components/ui/PageHeader';
-import StatStrip from '../../../components/ui/StatStrip';
-import Panel from '../../../components/ui/Panel';
-import SearchField from '../../../components/ui/SearchField';
+import { api } from '../../lib/api';
+import useCachedResource from '../../lib/useCachedResource';
+import { clearCache } from '../../lib/persistedCache';
+import PageHead from '../../components/PageHead';
+import RefreshStatus from '../../components/RefreshStatus';
+import { useToast } from '../../components/Toast';
+import { Pill } from '../../components/Badges';
+import PageHeader from '../../components/ui/PageHeader';
+import StatStrip from '../../components/ui/StatStrip';
+import Panel from '../../components/ui/Panel';
+import SearchField from '../../components/ui/SearchField';
 import {
   computeOpenItems, buildWhatsAppText, buildOpenItemsText, buildIcs, downloadText, copyText,
   meetingFileBase, meetingPayload, suggestNextDate, fmtLong, fmtShort, fmtTimeRange, relativeDay, todayIso,
-} from '../../../lib/meetings';
+} from '../../lib/meetings';
 
 
 export default function MeetingsPage() {
@@ -77,16 +76,15 @@ export default function MeetingsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHead title="Notulensi Rapat" />
+      <PageHead title="Rapat" />
       <PageHeader
-        title="Notulensi Rapat"
-        meta="Catat hasil rapat, pantau tindak lanjut, dan kirim rekap ke WhatsApp."
-        nav={<DocsTabs active="meetings" />}
+        title="Rapat"
+        meta="Jadwal rapat, notulensi, dan tindak lanjut beserta PIC dan targetnya. Rekap bisa dikirim ke WhatsApp."
         actions={
           <>
             <RefreshStatus refreshing={refreshing && !!meetings} staleError={staleError} />
-            <Link href="/documents/meetings/new?mode=schedule" className="btn btn-secondary">Jadwalkan rapat</Link>
-            <Link href="/documents/meetings/new" className="btn btn-primary">+ Catat rapat</Link>
+            <Link href="/meetings/new?mode=schedule" className="btn btn-secondary">Jadwalkan rapat</Link>
+            <Link href="/meetings/new" className="btn btn-primary">+ Catat rapat</Link>
           </>
         }
       />
@@ -124,7 +122,7 @@ export default function MeetingsPage() {
                 >
                   Tambah ke kalender
                 </button>
-                <Link href={`/documents/meetings/${nextMeeting.id}`} className="btn btn-primary">Mulai notulensi</Link>
+                <Link href={`/meetings/${nextMeeting.id}`} className="btn btn-primary">Mulai notulensi</Link>
               </div>
             </section>
           ) : (
@@ -133,7 +131,7 @@ export default function MeetingsPage() {
                 <p className="text-sm font-semibold text-ink">Belum ada rapat terjadwal</p>
                 <p className="text-sm text-inkmute mt-0.5">Saran jadwal berikutnya (2 minggu sekali): {fmtLong(suggestNextDate(meetings))}</p>
               </div>
-              <Link href="/documents/meetings/new?mode=schedule" className="btn btn-secondary">Jadwalkan sekarang</Link>
+              <Link href="/meetings/new?mode=schedule" className="btn btn-secondary">Jadwalkan sekarang</Link>
             </section>
           )}
 
@@ -143,7 +141,7 @@ export default function MeetingsPage() {
               {missed.map((m, i) => (
                 <span key={m.id}>
                   {i > 0 && ', '}
-                  <Link href={`/documents/meetings/${m.id}`} className="tap font-medium text-blueprint hover:underline">{fmtShort(m.date)}</Link>
+                  <Link href={`/meetings/${m.id}`} className="tap font-medium text-blueprint hover:underline">{fmtShort(m.date)}</Link>
                 </span>
               ))}
               .
@@ -189,7 +187,7 @@ export default function MeetingsPage() {
                       <li key={m.id} className="px-5 py-4 flex flex-col gap-2.5">
                         <div className="flex flex-wrap items-start justify-between gap-3">
                           <div className="min-w-0">
-                            <Link href={`/documents/meetings/${m.id}`} className="font-display font-semibold text-ink hover:text-blueprint transition-colors">
+                            <Link href={`/meetings/${m.id}`} className="font-display font-semibold text-ink hover:text-blueprint transition-colors">
                               {fmtLong(m.date)}
                             </Link>
                             <p className="text-xs text-inkmute mt-0.5">
@@ -209,7 +207,7 @@ export default function MeetingsPage() {
                         )}
 
                         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-                          <Link href={`/documents/meetings/${m.id}`} className="tap font-medium text-blueprint hover:underline">Buka</Link>
+                          <Link href={`/meetings/${m.id}`} className="tap font-medium text-blueprint hover:underline">Buka</Link>
                           <button type="button" onClick={() => copy(buildWhatsAppText(m), 'Teks WhatsApp disalin.')} className="tap font-medium text-blueprint hover:underline">Salin untuk WhatsApp</button>
                           <button type="button" onClick={() => downloadText(`${meetingFileBase(m)}.txt`, buildWhatsAppText(m))} className="tap font-medium text-blueprint hover:underline">Unduh .txt</button>
                           {m.docUrl ? (
@@ -255,7 +253,7 @@ export default function MeetingsPage() {
                         {src.item.cta && <p className="text-xs text-ink/80">Tindak lanjut: {src.item.cta}</p>}
                         <div className="flex items-center justify-between gap-3">
                           <p className="text-xs text-inkmute min-w-0 truncate">
-                            <Link href={`/documents/meetings/${src.meeting.id}`} className="tap hover:text-blueprint hover:underline">Rapat {fmtShort(src.meeting.date)}</Link>
+                            <Link href={`/meetings/${src.meeting.id}`} className="tap hover:text-blueprint hover:underline">Rapat {fmtShort(src.meeting.date)}</Link>
                             {src.item.pic ? ` · ${src.item.pic}` : ''}
                           </p>
                           <button

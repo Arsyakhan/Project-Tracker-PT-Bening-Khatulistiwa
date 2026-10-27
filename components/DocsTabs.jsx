@@ -1,11 +1,12 @@
 import Segmented from './ui/Segmented';
 
 const TABS = [
-  { key: 'generator', href: '/documents', label: 'Generator dokumen' },
-  { key: 'meetings', href: '/documents/meetings', label: 'Notulensi rapat' },
+  { key: 'checklist', href: '/documents', label: 'Checklist engineering' },
+  { key: 'generator', href: '/documents/generator', label: 'Buat dokumen' },
 ];
 
-// Navigasi bagian Dokumen (di bawah judul halaman).
+// Navigasi bagian Dokumen (di bawah judul halaman): status 7 dokumen engineering lintas project,
+// lalu pembuatan Commissioning dan Hand Over beserta riwayatnya.
 export default function DocsTabs({ active }) {
   return (
     <nav aria-label="Bagian dokumen">

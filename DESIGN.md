@@ -69,7 +69,8 @@ Token: `--ease-standard` `cubic-bezier(0.2,0,0,1)`, `--ease-enter`, `--ease-exit
 Semua halaman kerja memakai susunan yang sama, dari atas ke bawah (komponen di `components/ui/`):
 
 1. `PageHeader`: jejak navigasi (halaman detail), judul, satu baris keterangan, tombol aksi di kanan (di HP turun ke
-   bawah judul), dan navigasi bagian bila ada (mis. tab Dokumen).
+   bawah judul), dan navigasi bagian bila ada (tab Dokumen: Checklist engineering | Buat dokumen; tampilan Project:
+   Daftar | Kanban). Satu menu = satu judul halaman; tab hanya mengganti isi di bawahnya.
 2. `StatStrip`: angka kunci dalam satu panel bergaris pemisah, seperti layar panel kontrol. Titik berwarna hanya bila
    angkanya berarti (terlambat, segera, selesai). Angka yang bisa diklik menyaring daftar di bawahnya.
 3. Baris alat: `SearchField` + filter dalam satu panel. Pilihan pendek memakai `Segmented`.
@@ -79,11 +80,13 @@ Semua halaman kerja memakai susunan yang sama, dari atas ke bawah (komponen di `
 Pola per halaman:
 
 - Dashboard: `StageFlowChart` (jumlah project di 12 tahap, digambar sebagai satu jalur proses per fase; klik tahap
-  membuka Semua Project dengan filter tahap itu), tenggat kirim terdekat, kelengkapan dokumen engineering, lalu daftar.
+  membuka daftar Project dengan filter tahap itu), tenggat kirim terdekat, kelengkapan dokumen engineering, lalu daftar.
 - Detail project: satu "title block" (identitas, alur teknologi, jalur tahapan, enam angka kunci), lalu hal yang perlu
   diperhatikan (hambatan, catatan), langkah berikutnya, tab bersegmen yang menempel di atas, dan kolom samping yang
   ikut menempel di layar lebar.
 - Kanban: garis tepi kiri kartu = prioritas (merah High, kuning Medium, abu Low).
+- Checklist engineering: matriks satu baris per project x tujuh dokumen. `Completed` cukup tanda centang teal (paling
+  banyak, jadi dibuat tenang); status lain ditulis supaya yang tertinggal menonjol. Di HP: deretan label kecil per project.
 - Pengadaan: titik alur per barang (Perlu dibeli, Sudah order, Dalam pengiriman, Diterima).
 - Arsip: filter di kolom kiri yang menempel; detail arsip memakai susunan daftar modul dan panel spesifikasi.
 

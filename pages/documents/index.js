@@ -1,196 +1,337 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { api } from '../../lib/api';
+import useProjects from '../../lib/useProjects';
+import { DOC_GENERATOR_ROUTE } from '../../lib/docgen/schema';
+import { isNum } from '../../lib/projectHelpers';
 import PageHead from '../../components/PageHead';
 import DocsTabs from '../../components/DocsTabs';
 import RefreshStatus from '../../components/RefreshStatus';
-import useCachedResource from '../../lib/useCachedResource';
+import { SkeletonTable } from '../../components/Skeleton';
 import PageHeader from '../../components/ui/PageHeader';
+import StatStrip from '../../components/ui/StatStrip';
 import Panel from '../../components/ui/Panel';
+import Segmented from '../../components/ui/Segmented';
 import SearchField from '../../components/ui/SearchField';
-import { nameFromEmail } from '../../lib/projectHelpers';
+import EmptyState from '../../components/ui/EmptyState';
 
-// Class Tailwind ditulis penuh per kartu (bukan digabung lewat template string)
-// supaya kedeteksi compiler JIT-nya Tailwind saat build.
-const DOC_TYPES = [
-  {
-    key: 'commissioning',
-    href: '/documents/commissioning/new',
-    title: 'Commissioning Report',
-    desc: 'Berita acara commissioning: checklist instalasi, setting P&ID, dan hasil pengujian sistem.',
-    uses: 'PO, client, lokasi plant, kontak owner, dan sistem dari Teknologi',
-    iconClass: 'bg-blueprint/10 text-blueprint',
-  },
-  {
-    key: 'handover',
-    href: '/documents/handover/new',
-    title: 'Handover Report',
-    desc: 'Serah terima unit ke klien: daftar peralatan terpasang per modul, seperti RO, UF, dan softener.',
-    uses: 'Modul yang dicentang di Teknologi dan isi Spesifikasi Peralatan',
-    iconClass: 'bg-teal/10 text-teal',
-  },
+// Urutan dan nama sama dengan CHECKLIST_ITEMS di apps-script/Code.gs. `short` hanya untuk judul kolom.
+const DOCS = [
+  { key: 'BOM (Bill of Materials)', short: 'BOM' },
+  { key: 'P&ID (Drawings)', short: 'P&ID' },
+  { key: 'EWD (Electrical Wiring)', short: 'EWD' },
+  { key: 'GAD (General Arrangement)', short: 'GAD' },
+  { key: 'Commissioning Report', short: 'Commissioning' },
+  { key: 'Manual Book', short: 'Manual Book' },
+  { key: 'Handover Report', short: 'Hand Over' },
 ];
 
-const TYPE_LABEL = {
-  commissioning: { text: 'Commissioning', cls: 'bg-blueprint/10 text-blueprint border border-blueprint/20' },
-  handover: { text: 'Handover', cls: 'bg-teal/10 text-teal border border-teal/20' },
+// Status tersimpan di Sheet apa adanya (bahasa Inggris); warna hanya untuk arti.
+const STATUS = {
+  Completed: { tone: 'teal', dot: 'bg-teal', text: 'text-teal' },
+  'Under Review': { tone: 'amber', dot: 'bg-amber', text: 'text-amberink' },
+  Drafting: { tone: 'blueprint', dot: 'bg-blueprint', text: 'text-blueprint' },
+  'Not Started': { tone: 'muted', dot: 'bg-inkmute/50', text: 'text-inkmute' },
 };
+const COUNTED = ['Completed', 'Under Review', 'Drafting', 'Not Started'];
 
-function fmtDay(ts) {
-  const d = new Date(ts);
-  if (Number.isNaN(d.getTime())) return '';
-  return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
-}
+const SCOPES = [
+  { key: 'active', label: 'Aktif', test: (p) => !(p.stageProgress >= 100) },
+  { key: 'done', label: 'Selesai', test: (p) => p.stageProgress >= 100 },
+  { key: 'all', label: 'Semua', test: () => true },
+];
 
-const HISTORY_PREVIEW = 10;
-
-function formatWhen(ts) {
-  const d = new Date(ts);
-  if (Number.isNaN(d.getTime())) return String(ts || '-');
-  return d.toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
-}
-
-// Riwayat semua dokumen yang pernah dibuat lewat halaman ini (dari tab "Document Log").
-function DocumentHistory({ docs, error }) {
-  const [query, setQuery] = useState('');
-  const [showAll, setShowAll] = useState(false);
-
-  const filtered = useMemo(() => {
-    if (!docs) return [];
-    const q = query.trim().toLowerCase();
-    if (!q) return docs;
-    return docs.filter(
-      (d) =>
-        String(d.projectName || '').toLowerCase().includes(q) ||
-        String(d.poNumber || '').toLowerCase().includes(q) ||
-        String(d.fileName || '').toLowerCase().includes(q) ||
-        String(d.user || '').toLowerCase().includes(q)
-    );
-  }, [docs, query]);
-
-  const visible = showAll || query ? filtered : filtered.slice(0, HISTORY_PREVIEW);
-
+function DocCell({ project, doc, status, link, dim }) {
+  if (status === undefined) return <span className="text-sm text-inkmute" aria-label="Belum ada checklist">-</span>;
+  if (status === 'N/A') {
+    return <span className={`text-xs text-inkmute ${dim ? 'opacity-40' : ''}`} title="Tidak diperlukan untuk project ini">N/A</span>;
+  }
+  const s = STATUS[status] || STATUS['Not Started'];
+  // Completed cukup tanda centang (paling banyak, jadi dibuat tenang); status lain ditulis supaya menonjol.
+  const label = status === 'Completed' ? (
+    <>
+      <svg className="w-4 h-4 text-teal shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
+      </svg>
+      <span className="sr-only">Completed</span>
+    </>
+  ) : (
+    <>
+      <span className={`w-2 h-2 rounded-full shrink-0 ${s.dot}`} aria-hidden="true" />
+      <span className={`${s.text} ${status === 'Not Started' ? '' : 'font-medium'}`}>{status}</span>
+    </>
+  );
+  const gen = DOC_GENERATOR_ROUTE[doc.key];
   return (
-    <Panel
-      title="Riwayat dokumen"
-      hint='Semua dokumen yang dibuat melalui generator, tercatat di tab "Document Log" pada spreadsheet.'
-      aside={docs && docs.length > 0 && (
-        <SearchField className="hidden sm:block w-64" value={query} onChange={setQuery} placeholder="Cari project, PO, atau file..." label="Cari riwayat dokumen" />
-      )}
-      flush
-    >
-      {docs && docs.length > 0 && (
-        <div className="sm:hidden px-5 pt-3">
-          <SearchField value={query} onChange={setQuery} placeholder="Cari project, PO, atau file..." label="Cari riwayat dokumen" />
-        </div>
-      )}
-      {error ? (
-        <p className="px-5 py-6 text-sm text-rust">Gagal memuat riwayat dokumen: {error}</p>
-      ) : !docs ? (
-        <div className="p-5 flex flex-col gap-3">
-          <div className="skeleton-shimmer rounded-md h-4 w-2/3" />
-          <div className="skeleton-shimmer rounded-md h-4 w-1/2" />
-        </div>
-      ) : docs.length === 0 ? (
-        <div className="px-5 py-10 text-center">
-          <p className="text-sm font-semibold text-ink">Belum ada dokumen tercatat</p>
-          <p className="text-sm text-inkmute mt-1">Dokumen yang dibuat mulai sekarang akan muncul di sini. Dokumen lama belum masuk otomatis.</p>
-        </div>
-      ) : visible.length === 0 ? (
-        <p className="text-sm text-inkmute text-center py-8">Tidak ada dokumen yang cocok.</p>
+    <span className={`inline-flex flex-col items-start gap-0.5 ${dim ? 'opacity-40' : ''}`}>
+      {link ? (
+        <a
+          href={link}
+          target="_blank"
+          rel="noopener noreferrer"
+          title={`${status}. Buka ${doc.key}`}
+          className="tap inline-flex items-center gap-1.5 text-xs whitespace-nowrap underline decoration-line underline-offset-4 hover:decoration-current"
+        >
+          {label}
+        </a>
       ) : (
-        <ul className="divide-y divide-line">
-          {visible.map((d, i) => {
-            const t = TYPE_LABEL[d.type] || { text: d.type || '-', cls: 'bg-canvas text-inkmute border border-line' };
-            return (
-              <li key={`${d.timestamp}-${i}`} className="grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[7.5rem_minmax(0,1fr)_10rem_auto] items-center gap-x-4 gap-y-1 px-5 py-3">
-                <span className={`hidden sm:inline-flex w-fit text-xs font-medium rounded-md px-2 leading-5 ${t.cls}`}>{t.text}</span>
-                <span className="min-w-0">
-                  <span className="block text-sm font-medium text-ink truncate">{d.projectName || d.fileName || 'Tanpa nama project'}</span>
-                  <span className="block text-xs text-inkmute truncate mt-0.5">
-                    <span className="sm:hidden">{t.text} · </span>
-                    <span className="font-data">{d.poNumber || 'Tanpa PO'}</span>
-                  </span>
-                </span>
-                <span className="hidden sm:block min-w-0 text-xs text-inkmute" title={formatWhen(d.timestamp)}>
-                  <span className="block text-ink tnum">{fmtDay(d.timestamp)}</span>
-                  <span className="block truncate">{nameFromEmail(d.user)}</span>
-                </span>
-                <a href={d.documentUrl} target="_blank" rel="noopener noreferrer" className="tap text-sm font-medium text-blueprint hover:underline justify-self-end">
-                  Buka
-                </a>
-              </li>
-            );
-          })}
-        </ul>
+        <span title={status} className="inline-flex items-center gap-1.5 text-xs whitespace-nowrap">{label}</span>
       )}
-      {docs && !query && filtered.length > HISTORY_PREVIEW && (
-        <div className="px-5 py-3 border-t border-line">
-          <button onClick={() => setShowAll((v) => !v)} className="tap text-sm font-medium text-blueprint hover:underline">
-            {showAll ? 'Tampilkan lebih sedikit' : `Tampilkan semua (${filtered.length})`}
-          </button>
-        </div>
+      {!link && gen && status !== 'Completed' && (
+        <Link
+          href={`/documents/${gen}/new?projectId=${encodeURIComponent(project.id)}`}
+          className="tap text-xs font-medium text-blueprint hover:underline"
+        >
+          Buat
+        </Link>
       )}
-    </Panel>
+    </span>
   );
 }
 
-export default function DocumentsHome() {
-  // Riwayat terakhir langsung tampil (kalau ada), lalu disegarkan di belakang layar.
-  const { data: docs, error, staleError, refreshing } = useCachedResource('documents', () => api.getDocuments());
-  const stats = useMemo(() => {
-    const out = {};
-    (docs || []).forEach((d) => {
-      const s = out[d.type] || (out[d.type] = { count: 0, last: '' });
-      s.count += 1;
-      if (!s.last || String(d.timestamp) > String(s.last)) s.last = d.timestamp;
+// Versi ringkas untuk HP: nama dokumen + status dalam satu label kecil, berderet.
+function DocChip({ project, doc, status, link, dim }) {
+  const s = STATUS[status];
+  const done = status === 'Completed';
+  const body = (
+    <>
+      <span className={done ? 'text-ink' : 'text-inkmute'}>{doc.short}</span>
+      {done ? (
+        <svg className="w-3.5 h-3.5 text-teal" viewBox="0 0 20 20" fill="currentColor" role="img" aria-label="Completed">
+          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
+        </svg>
+      ) : s ? (
+        <span className={`inline-flex items-center gap-1 ${s.text} font-medium`}>
+          <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} aria-hidden="true" />
+          {status}
+        </span>
+      ) : (
+        <span className="text-inkmute">{status === undefined ? '-' : status}</span>
+      )}
+    </>
+  );
+  const cls = `inline-flex items-center gap-1.5 h-8 px-2.5 rounded-md border text-xs ${
+    done || status === 'N/A' || status === undefined ? 'border-line bg-canvas/60' : 'border-line bg-panel'
+  } ${dim ? 'opacity-40' : ''}`;
+  if (link) {
+    return <a href={link} target="_blank" rel="noopener noreferrer" className={`${cls} hover:border-blueprint`}>{body}</a>;
+  }
+  const gen = DOC_GENERATOR_ROUTE[doc.key];
+  if (gen && s && !done) {
+    return (
+      <Link href={`/documents/${gen}/new?projectId=${encodeURIComponent(project.id)}`} className={`${cls} hover:border-blueprint`} title={`Buat ${doc.key}`}>
+        {body}
+        <span className="text-blueprint font-medium">Buat</span>
+      </Link>
+    );
+  }
+  return <span className={cls}>{body}</span>;
+}
+
+function Progress({ value }) {
+  const v = isNum(value) ? Math.max(0, Math.min(100, value)) : null;
+  return (
+    <span className="flex items-center gap-2 justify-end">
+      <span className="font-data tnum text-sm font-semibold text-ink w-10 text-right">{v === null ? '-' : `${v}%`}</span>
+      <span className="w-14 h-1.5 rounded-full bg-line overflow-hidden" aria-hidden="true">
+        <span className={`block h-full rounded-full ${v === 100 ? 'bg-teal' : 'bg-blueprint'}`} style={{ width: `${v || 0}%` }} />
+      </span>
+    </span>
+  );
+}
+
+// Checklist engineering lintas project: satu baris per project, tujuh dokumen berjajar,
+// supaya terlihat sekaligus dokumen mana yang tertinggal. Status diubah di tab Checklist pada detail project.
+export default function EngineeringChecklist() {
+  const { projects, error, staleError, refreshing } = useProjects();
+  const [scope, setScope] = useState('active');
+  const [query, setQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+
+  const inScope = useMemo(() => {
+    if (!projects) return [];
+    const test = SCOPES.find((s) => s.key === scope).test;
+    return projects.filter(test);
+  }, [projects, scope]);
+
+  // Jumlah dokumen per status, dan berapa project yang punya status itu.
+  const counts = useMemo(() => {
+    const c = Object.fromEntries(COUNTED.map((k) => [k, { docs: 0, projects: 0 }]));
+    inScope.forEach((p) => {
+      const seen = new Set();
+      DOCS.forEach((d) => {
+        const s = p.checklist?.items?.[d.key];
+        if (!c[s]) return;
+        c[s].docs += 1;
+        seen.add(s);
+      });
+      seen.forEach((s) => { c[s].projects += 1; });
     });
-    return out;
-  }, [docs]);
+    return c;
+  }, [inScope]);
+
+  const rows = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return inScope
+      .filter((p) => !q || [p.projectName, p.poNumber, p.client, p.pic].some((v) => String(v || '').toLowerCase().includes(q)))
+      .filter((p) => !statusFilter || DOCS.some((d) => p.checklist?.items?.[d.key] === statusFilter))
+      // Yang paling dekat Hand Over di atas: dokumennya paling mendesak dilengkapi.
+      .sort((a, b) => (b.stageProgress || 0) - (a.stageProgress || 0) || String(a.projectName).localeCompare(String(b.projectName)));
+  }, [inScope, query, statusFilter]);
+
+  const scopeCounts = useMemo(
+    () => Object.fromEntries(SCOPES.map((s) => [s.key, (projects || []).filter(s.test).length])),
+    [projects]
+  );
+
+  const header = (
+    <PageHeader
+      title="Dokumen"
+      meta="Status 7 dokumen engineering tiap project. Klik status untuk membuka dokumennya; ubah status di tab Checklist pada detail project."
+      actions={<RefreshStatus refreshing={refreshing && !!projects} staleError={staleError} />}
+      nav={<DocsTabs active="checklist" />}
+    />
+  );
+
+  if (error && !projects) {
+    return (
+      <div className="flex flex-col gap-6">
+        <PageHead title="Checklist dokumen" />
+        {header}
+        <div className="bg-panel border border-line rounded-xl p-6 text-rust" role="alert">Gagal memuat data: {error}</div>
+      </div>
+    );
+  }
+
+  if (!projects) {
+    return (
+      <div className="flex flex-col gap-6">
+        <PageHead title="Checklist dokumen" />
+        {header}
+        <div className="skeleton-shimmer rounded-xl h-[84px]" />
+        <SkeletonTable rows={6} />
+      </div>
+    );
+  }
+
+  const isDim = (status) => !!statusFilter && status !== statusFilter;
 
   return (
-    <div className="flex flex-col gap-6">
-      <PageHead title="Generator Dokumen" />
-      <PageHeader
-        title="Generator Dokumen"
-        meta="Buat Commissioning Report atau Handover Report dari data project. Pilih project di halaman berikutnya agar isiannya terisi otomatis."
-        actions={<RefreshStatus refreshing={refreshing && !!docs} staleError={staleError} />}
-        nav={<DocsTabs active="generator" />}
+    <div className="flex flex-col gap-5">
+      <PageHead title="Checklist dokumen" />
+      {header}
+
+      <StatStrip
+        label="Jumlah dokumen per status"
+        items={COUNTED.map((k) => ({
+          key: k,
+          label: k,
+          value: counts[k].docs,
+          tone: STATUS[k].tone,
+          hint: statusFilter === k ? 'Klik lagi untuk semua status' : `di ${counts[k].projects} project`,
+          active: statusFilter === k,
+          dim: !!statusFilter && statusFilter !== k,
+          onClick: () => setStatusFilter((v) => (v === k ? '' : k)),
+        }))}
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        {DOC_TYPES.map((d) => {
-          const st = stats[d.key];
-          return (
-            <section key={d.href} className="bg-panel border border-line rounded-xl shadow-sm flex flex-col">
-              <div className="p-5 sm:p-6 flex flex-col gap-3 flex-1">
-                <div className="flex items-start gap-3.5">
-                  <span className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${d.iconClass}`} aria-hidden="true">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-                    </svg>
-                  </span>
-                  <div className="min-w-0">
-                    <h2 className="font-display font-semibold text-lg text-ink leading-tight">{d.title}</h2>
-                    <p className="text-sm text-inkmute leading-relaxed mt-1">{d.desc}</p>
-                  </div>
-                </div>
-                <p className="text-xs text-inkmute border-t border-line pt-3 mt-auto">
-                  <span className="font-medium text-ink">Diisi otomatis dari project:</span> {d.uses}.
-                </p>
-              </div>
-              <div className="flex items-center justify-between gap-3 px-5 sm:px-6 py-3.5 border-t border-line bg-canvas/50 rounded-b-xl">
-                <span className="text-xs text-inkmute tnum">
-                  {st ? `${st.count} dibuat, terakhir ${fmtDay(st.last)}` : docs ? 'Belum pernah dibuat' : ''}
-                </span>
-                <Link href={d.href} className="btn btn-primary">Buat dokumen</Link>
-              </div>
-            </section>
-          );
-        })}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+        <SearchField
+          className="w-full sm:w-80"
+          value={query}
+          onChange={setQuery}
+          placeholder="Cari project, PO, client, PIC..."
+          label="Cari project di checklist"
+        />
+        <Segmented
+          label="Project yang ditampilkan"
+          value={scope}
+          onChange={setScope}
+          options={SCOPES.map((s) => ({ key: s.key, label: s.label, count: scopeCounts[s.key] }))}
+        />
+        {statusFilter && (
+          <button type="button" onClick={() => setStatusFilter('')} className="tap text-sm font-medium text-blueprint hover:underline sm:ml-auto">
+            Hapus filter status
+          </button>
+        )}
       </div>
 
-      <DocumentHistory docs={docs} error={error} />
+      {rows.length === 0 ? (
+        <EmptyState title="Tidak ada project yang cocok">
+          {statusFilter ? `Tidak ada dokumen berstatus ${statusFilter} di project yang ditampilkan.` : 'Ubah pencarian atau pilihan Aktif / Selesai / Semua.'}
+        </EmptyState>
+      ) : (
+        <Panel flush>
+          {/* Layar lebar: matriks project x dokumen */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full text-sm">
+              <caption className="sr-only">Status dokumen engineering per project</caption>
+              <thead>
+                <tr className="border-b border-line text-left text-xs text-inkmute">
+                  <th scope="col" className="px-5 py-3 font-medium min-w-[14rem]">Project</th>
+                  {DOCS.map((d) => (
+                    <th key={d.key} scope="col" title={d.key} className="px-2.5 py-3 font-medium whitespace-nowrap">{d.short}</th>
+                  ))}
+                  <th scope="col" className="px-5 py-3 font-medium text-right">Progres</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-line">
+                {rows.map((p) => (
+                  <tr key={p.id} className="align-top hover:bg-canvas/50 transition-colors">
+                    <td className="px-5 py-3">
+                      <Link href={`/projects/${encodeURIComponent(p.id)}?tab=checklist`} className="font-medium text-ink hover:text-blueprint line-clamp-2">
+                        {p.projectName || p.poNumber}
+                      </Link>
+                      <span className="block text-xs text-inkmute mt-0.5 truncate max-w-[18rem]">
+                        <span className="font-data">{p.poNumber || 'Tanpa PO'}</span>
+                        {p.client ? ` · ${p.client}` : ''}
+                      </span>
+                    </td>
+                    {DOCS.map((d) => {
+                      const status = p.checklist?.items?.[d.key];
+                      return (
+                        <td key={d.key} className="px-2.5 py-3">
+                          <DocCell project={p} doc={d} status={status} link={p.checklist?.links?.[d.key]} dim={isDim(status)} />
+                        </td>
+                      );
+                    })}
+                    <td className="px-5 py-3"><Progress value={p.checklist?.progress ?? p.engineeringDocProgress} /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* HP: satu kartu per project */}
+          <ul className="md:hidden divide-y divide-line">
+            {rows.map((p) => (
+              <li key={p.id} className="px-4 py-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <Link href={`/projects/${encodeURIComponent(p.id)}?tab=checklist`} className="font-medium text-ink hover:text-blueprint">
+                      {p.projectName || p.poNumber}
+                    </Link>
+                    <span className="block text-xs text-inkmute mt-0.5 truncate">
+                      <span className="font-data">{p.poNumber || 'Tanpa PO'}</span>
+                      {p.client ? ` · ${p.client}` : ''}
+                    </span>
+                  </div>
+                  <Progress value={p.checklist?.progress ?? p.engineeringDocProgress} />
+                </div>
+                <ul className="flex flex-wrap gap-1.5 mt-3" aria-label="Status dokumen">
+                  {DOCS.map((d) => {
+                    const status = p.checklist?.items?.[d.key];
+                    return (
+                      <li key={d.key}>
+                        <DocChip project={p} doc={d} status={status} link={p.checklist?.links?.[d.key]} dim={isDim(status)} />
+                      </li>
+                    );
+                  })}
+                </ul>
+              </li>
+            ))}
+          </ul>
+        </Panel>
+      )}
     </div>
   );
 }

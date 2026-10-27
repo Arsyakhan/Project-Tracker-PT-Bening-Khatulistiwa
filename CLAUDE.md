@@ -344,7 +344,7 @@ sungguhan (nomor berlanjut, gaya bullet) tidak bisa diuji dari sandbox; yang ter
 | Nama kolom Project Tracker (header baris 1) | `COL_*`, `TEXT_FIELDS`, `DATE_FIELDS` di `Code.gs` | field hasil `getProjects_`; `EDITABLE_FIELDS` di `pages/projects/[id].js`; `COLUMNS` di `lib/exportCsv.js` |
 | Bobot status dokumen checklist | `CHECKLIST_WEIGHTS` di `Code.gs` | rumus `Progress (%)` di tab Checklist (ada di sheet, bukan di repo) |
 | Allowlist aksi | `doGet`/`doPost` | `pages/api/gas.js` (`GET_ACTIONS`, `POST_ACTIONS`) |
-| Aturan otomatis Status / Prioritas / Stage di detail project (nilai tetap disimpan apa adanya di Sheet) | `STATUSES`, `PRIORITIES`, `STAGE_WEIGHTS`, `CHECKLIST_ITEMS` di `Code.gs` (tidak ada logika aturan di backend) | `lib/projectRules.js` (`FINAL_STAGE`, `DRAWING_ITEMS` = 4 nama item gambar persis seperti `CHECKLIST_ITEMS`, ambang hari dan teks `RULE_SUMMARY`), memakai `STAGES`/`STAGE_WEIGHTS` di `lib/stages.js`; dipakai `pages/projects/[id].js` dan `pages/board.js` |
+| Aturan otomatis Status / Prioritas / Stage di detail project (nilai tetap disimpan apa adanya di Sheet) | `STATUSES`, `PRIORITIES`, `STAGE_WEIGHTS`, `CHECKLIST_ITEMS` di `Code.gs` (tidak ada logika aturan di backend) | `lib/projectRules.js` (`FINAL_STAGE`, `DRAWING_ITEMS` = 4 nama item gambar persis seperti `CHECKLIST_ITEMS`, ambang hari dan teks `RULE_SUMMARY`), memakai `STAGES`/`STAGE_WEIGHTS` di `lib/stages.js`; dipakai `pages/projects/[id].js` dan `pages/projects/kanban.js` |
 | Pilihan PIC project (dropdown) | tidak ada di Code.gs; validasi daftar **tidak ketat** di sheet kolom `PIC` (Engineer, Technician, Warehouse & Purchasing, Marketing & Direksi; ejaan harus sama dengan web) | `lib/pics.js` (`picOptions`, `roleDivision`), `components/PicSelect.jsx`; dipakai `pages/projects/[id].js` dan `pages/projects/new.js` |
 | Normalisasi nomor PO (PO kembar) | `normalizePO_` di `Code.gs` | `normalizePo` di `lib/projectHelpers.js` (hanya untuk peringatan di form Project Baru; yang menolak tetap backend) |
 
@@ -416,10 +416,20 @@ Cloud) bersamaan. Penyebab lain yang belum tertutup: PWA iOS yang membuka login 
 
 ## Peta frontend
 
-- Halaman: `/` **Hari Ini** (beranda: hal yang perlu ditindak lintas project, pengadaan, tindak lanjut rapat, dokumen; filter per divisi; logika di `lib/today.js`, pemetaan stage → divisi pemegang di `STAGE_OWNER`, ubah di sana kalau pembagian kerja berbeda), `/dashboard` analitik (posisi project di alur, tenggat kirim, kelengkapan dokumen, tabel project), `/board` kanban, `/projects` (+ `/new`, `/[id]`), `/engineering-docs`,
-  `/procurement`, `/documents` (+ `commissioning/new`, `handover/new`, `meetings` + `new`/`[id]`),
+- Halaman: `/` **Hari Ini** (beranda: hal yang perlu ditindak lintas project, pengadaan, tindak lanjut rapat, dokumen; filter per divisi; logika di `lib/today.js`, pemetaan stage → divisi pemegang di `STAGE_OWNER`, ubah di sana kalau pembagian kerja berbeda), `/dashboard` analitik (posisi project di alur, tenggat kirim, kelengkapan dokumen, tabel project), `/meetings` rapat
+  (+ `/new`, `/[id]`; notulensi dan tindak lanjut), `/projects` (+ `/kanban`, `/new`, `/[id]`; `?tab=checklist` membuka tab
+  itu langsung), `/procurement`, `/documents` (checklist 7 dokumen engineering lintas project) + `/documents/generator`
+  (buat Commissioning/Hand Over + riwayat; formnya di `commissioning/new`, `handover/new`),
   `/arsip` (+ `/new`, `/[id]`; arsip project selesai, bisa ditambah/diubah dari web dan dari spreadsheet), `/activity`, `/login`.
-- Shell: `pages/_app.js` + `components/Sidebar.jsx` (menu `NAV_GROUPS` dikelompokkan Harian / Project / Dokumen & Arsip; tambah halaman baru di sana). `pages/login.js` = foto WTP layar penuh di balik permukaan air WebGL (`WaterSurface`) + logo + kartu masuk (lihat "Desain UI").
+- **Menu dirapikan (27 Okt 2026)**: Kanban jadi tampilan kedua menu Project (`components/ProjectViews.jsx`: Daftar |
+  Kanban), Engineering Docs jadi tab "Checklist engineering" di menu Dokumen (`components/DocsTabs.jsx`: Checklist
+  engineering | Buat dokumen), Notulensi jadi menu **Rapat** sendiri, Aktivitas pindah ke bawah menu. Alamat lama
+  (`/board`, `/engineering-docs`, `/documents/meetings/...`) dialihkan di `redirects()` `next.config.js`, jadi tautan
+  lama, bookmark, dan PWA tetap jalan. Grup "Material & Gudang" (BOM, Pengadaan, Gudang, Katalog) direncanakan menyusul
+  bersama modul gudang (Supabase).
+- Shell: `pages/_app.js` + `components/Sidebar.jsx` (menu `NAV_GROUPS` dikelompokkan Harian (Hari Ini, Dashboard, Rapat) /
+  Project (Project, Dokumen, Pengadaan) / Referensi (Arsip), dan `NAV_FOOTER` (Aktivitas) di bawah; tambah halaman baru
+  di sana dan di `STATIC_ACTIONS` `components/CommandPalette.jsx`). `pages/login.js` = foto WTP layar penuh di balik permukaan air WebGL (`WaterSurface`) + logo + kartu masuk (lihat "Desain UI").
 - **Tata letak halaman (27 Okt 2026)**: Hari Ini, Dashboard, Semua Project, detail project, Kanban, Pengadaan, Dokumen,
   Notulensi, dan Arsip memakai komponen bersama di `components/ui/` (`PageHeader`, `StatStrip`, `Panel`, `Segmented`,
   `SearchField`, `EmptyState`); polanya ada di DESIGN.md bagian "Tata letak halaman". Halaman baru sebaiknya memakai
@@ -431,7 +441,7 @@ Cloud) bersamaan. Penyebab lain yang belum tertutup: PWA iOS yang membuka login 
   Ringkasan dihapus karena sama dengan alur di kepala halaman. Kanban: menu di kartu selalu tampil "Pindah tahap"
   (nilainya kosong, tahap sekarang tidak bisa dipilih). Pengadaan: angka di `StatStrip` menyaring daftar
   (`etaFilter` '' | 'late' | 'soon' menggantikan kotak "Hanya yang terlambat").
-- Papan Kanban (`pages/board.js` + `components/KanbanBoard.jsx`): dikelompokkan per **fase** (`STAGE_PHASES` di
+- Papan Kanban (`pages/projects/kanban.js` + `components/KanbanBoard.jsx`): dikelompokkan per **fase** (`STAGE_PHASES` di
   `lib/stagePhases.js`, juga dipakai `StagePipeline`): 4 kolom di layar ≥1340px, 2 kolom di tablet, daftar bertingkat
   yang bisa dilipat di HP. Tahap kosong hanya setipis satu baris tapi tetap bisa jadi tujuan seret. Saat kartu
   diseret muncul papan tujuan di bawah layar (`DropTray`), dipasang **sesudah** seretan mulai: kalau dipasang

@@ -322,8 +322,10 @@ export default function NewHandoverReport() {
     <div className="max-w-3xl flex flex-col gap-5 pb-28">
       <PageHead title="Buat Handover Report" />
       <div className="flex items-center gap-2 text-sm text-inkmute">
-        <Link href="/documents" className="hover:text-blueprint hover:underline">Generator Dokumen</Link>
-        <span>/</span>
+        <Link href="/documents" className="tap hover:text-blueprint hover:underline">Dokumen</Link>
+        <span aria-hidden="true">/</span>
+        <Link href="/documents/generator" className="tap hover:text-blueprint hover:underline">Buat dokumen</Link>
+        <span aria-hidden="true">/</span>
         <span className="text-ink font-medium">Handover Report</span>
       </div>
       <h1 className="font-display text-2xl font-semibold text-ink">Handover Report</h1>

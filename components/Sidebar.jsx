@@ -16,12 +16,11 @@ const ICONS = {
   today: 'M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z',
   dashboard: 'M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5M9 11.25v1.5M12 9v3.75m3-6v6',
   projects: 'M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z',
-  board: 'M9 4.5v15m6-15v15m-10.875 0h15.75c.621 0 1.125-.504 1.125-1.125V5.625c0-.621-.504-1.125-1.125-1.125H4.125C3.504 4.5 3 5.004 3 5.625v12.75c0 .621.504 1.125 1.125 1.125z',
-  eng: 'M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z',
+  doc: 'M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z',
   proc: 'M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12',
-  docs: 'M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z',
   archive: 'M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5m6 4.125l2.25 2.25m0 0l2.25-2.25M12 13.875V7.5M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z',
   activity: 'M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z',
+  meeting: 'M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 01-.825-.242m9.345-8.334a2.126 2.126 0 00-.476-.095 48.64 48.64 0 00-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0011.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155',
   search: 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z',
   plus: 'M12 4.5v15m7.5-7.5h-15',
   moon: 'M21.752 15.002A9.72 9.72 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z',
@@ -29,33 +28,32 @@ const ICONS = {
   close: 'M6 18L18 6M6 6l12 12',
 };
 
-// Dikelompokkan menurut cara PM bekerja: harian, mengelola project, lalu dokumen & arsip.
+// Dikelompokkan mengikuti alur kerja: pekerjaan harian, menjalankan project, lalu referensi.
+// Aktivitas (log perubahan, untuk audit) ada di bagian bawah, bukan di daftar utama.
 export const NAV_GROUPS = [
   {
     label: 'Harian',
     items: [
       { href: '/', label: 'Hari Ini', icon: 'today' },
       { href: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
+      { href: '/meetings', label: 'Rapat', icon: 'meeting' },
     ],
   },
   {
     label: 'Project',
     items: [
-      { href: '/projects', label: 'Semua Project', icon: 'projects' },
-      { href: '/board', label: 'Papan Kanban', icon: 'board' },
-      { href: '/engineering-docs', label: 'Engineering Docs', icon: 'eng' },
+      { href: '/projects', label: 'Project', icon: 'projects' },
+      { href: '/documents', label: 'Dokumen', icon: 'doc' },
       { href: '/procurement', label: 'Pengadaan', icon: 'proc' },
     ],
   },
   {
-    label: 'Dokumen & Arsip',
-    items: [
-      { href: '/documents', label: 'Dokumen', icon: 'docs' },
-      { href: '/arsip', label: 'Arsip', icon: 'archive' },
-      { href: '/activity', label: 'Aktivitas', icon: 'activity' },
-    ],
+    label: 'Referensi',
+    items: [{ href: '/arsip', label: 'Arsip', icon: 'archive' }],
   },
 ];
+
+export const NAV_FOOTER = [{ href: '/activity', label: 'Aktivitas', icon: 'activity' }];
 
 // Inisial dua huruf dari email, dipakai kalau akun Google tidak punya foto.
 function initials(email) {
@@ -65,10 +63,29 @@ function initials(email) {
   return (parts.length > 1 ? parts[0][0] + parts[1][0] : name.slice(0, 2)).toUpperCase();
 }
 
-// pathname '/projects/[id]' juga menyalakan menu "Semua Project"; '/' hanya cocok persis.
+// pathname '/projects/[id]' dan '/projects/kanban' juga menyalakan menu "Project"; '/' hanya cocok persis.
 function isCurrent(pathname, href) {
   if (href === '/') return pathname === '/';
   return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function NavItem({ item, active, onNavigate }) {
+  return (
+    <li>
+      <Link
+        href={item.href}
+        onClick={onNavigate}
+        aria-current={active ? 'page' : undefined}
+        className={`relative flex items-center gap-3 px-3 h-10 rounded-lg text-sm transition-colors ${
+          active ? 'bg-blueprint/10 text-blueprint font-semibold' : 'text-inkmute font-medium hover:bg-canvas hover:text-ink'
+        }`}
+      >
+        {active && <span className="absolute -left-3 top-2 bottom-2 w-1 rounded-r-full bg-blueprint" aria-hidden="true" />}
+        <Icon d={ICONS[item.icon]} />
+        {item.label}
+      </Link>
+    </li>
+  );
 }
 
 export default function Sidebar({ pathname, session, recentProjects, isDark, onNavigate, onSearch, onToggleTheme, onLogout, onClose }) {
@@ -116,25 +133,9 @@ export default function Sidebar({ pathname, session, recentProjects, isDark, onN
           <div key={group.label}>
             <span className="px-3 pb-1.5 block text-xs font-semibold text-inkmute">{group.label}</span>
             <ul className="flex flex-col gap-0.5">
-              {group.items.map((item) => {
-                const active = isCurrent(pathname, item.href);
-                return (
-                  <li key={item.href}>
-                    <Link
-                      href={item.href}
-                      onClick={onNavigate}
-                      aria-current={active ? 'page' : undefined}
-                      className={`relative flex items-center gap-3 px-3 h-10 rounded-lg text-sm transition-colors ${
-                        active ? 'bg-blueprint/10 text-blueprint font-semibold' : 'text-inkmute font-medium hover:bg-canvas hover:text-ink'
-                      }`}
-                    >
-                      {active && <span className="absolute -left-3 top-2 bottom-2 w-1 rounded-r-full bg-blueprint" aria-hidden="true" />}
-                      <Icon d={ICONS[item.icon]} />
-                      {item.label}
-                    </Link>
-                  </li>
-                );
-              })}
+              {group.items.map((item) => (
+                <NavItem key={item.href} item={item} active={isCurrent(pathname, item.href)} onNavigate={onNavigate} />
+              ))}
             </ul>
           </div>
         ))}
@@ -165,6 +166,11 @@ export default function Sidebar({ pathname, session, recentProjects, isDark, onN
       </nav>
 
       <div className="px-3 pt-3 pb-4 border-t border-line flex flex-col gap-2">
+        <ul aria-label="Menu lainnya" className="flex flex-col gap-0.5 -mt-1">
+          {NAV_FOOTER.map((item) => (
+            <NavItem key={item.href} item={item} active={isCurrent(pathname, item.href)} onNavigate={onNavigate} />
+          ))}
+        </ul>
         {user?.email && (
           <div className="flex items-center gap-3 px-2.5 py-2 rounded-lg bg-canvas border border-line">
             {user.image ? (
