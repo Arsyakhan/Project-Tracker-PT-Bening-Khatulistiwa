@@ -1,4 +1,6 @@
 /** @type {import('tailwindcss').Config} */
+// Nilai-nilai di sini berasal dari DESIGN.md (arah desain "jernih, presisi, mengalir").
+// Warna selalu lewat variabel CSS di styles/globals.css supaya mode gelap ikut otomatis.
 module.exports = {
   darkMode: 'class',
   content: [
@@ -15,6 +17,9 @@ module.exports = {
         inkmute: 'rgb(var(--color-inkmute) / <alpha-value>)',
         blueprint: 'rgb(var(--color-blueprint) / <alpha-value>)',
         blueprintdark: 'rgb(var(--color-blueprintdark) / <alpha-value>)',
+        brand: 'rgb(var(--color-brand) / <alpha-value>)',
+        air: 'rgb(var(--color-air) / <alpha-value>)',
+        deep: 'rgb(var(--color-deep) / <alpha-value>)',
         teal: 'rgb(var(--color-teal) / <alpha-value>)',
         amber: 'rgb(var(--color-amber) / <alpha-value>)',
         amberink: 'rgb(var(--color-amberink) / <alpha-value>)',
@@ -23,10 +28,17 @@ module.exports = {
         onaccent: 'rgb(var(--color-onaccent) / <alpha-value>)',
       },
       fontFamily: {
-        sans: ['Inter', 'sans-serif'],
-        display: ['Space Grotesk', 'sans-serif'],
-        data: ['IBM Plex Mono', 'monospace'],
-      }
+        sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+        display: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+        data: ['"IBM Plex Mono"', 'ui-monospace', 'monospace'],
+      },
+      boxShadow: {
+        sm: 'var(--shadow-soft)',
+        md: 'var(--shadow-lift)',
+      },
+      transitionTimingFunction: {
+        standard: 'cubic-bezier(0.2, 0, 0, 1)',
+      },
     },
   },
   plugins: [],

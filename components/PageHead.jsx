@@ -6,7 +6,7 @@ import Head from 'next/head';
 export default function PageHead({ title }) {
   return (
     <Head>
-      <title>{title ? `${title} — Bening Hub` : 'Bening Hub - Bening Khatulistiwa'}</title>
+      <title>{title ? `${title} — Bening Hub` : 'Bening Hub - Super App PT Bening Khatulistiwa'}</title>
     </Head>
   );
 }

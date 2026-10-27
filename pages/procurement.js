@@ -29,7 +29,7 @@ function Field({ label, children, className = '' }) {
 
 function EtaPill({ it }) {
   const { state } = etaState(it);
-  if (state === 'none') return <span className="text-xs text-inkmute">ETA belum ada</span>;
+  if (state === 'none') return <span className="text-xs text-inkmute">ETA belum diisi</span>;
   const tone = state === 'late' ? 'rust' : state === 'soon' ? 'amber' : 'neutral';
   return (
     <span className="inline-flex flex-col items-start gap-0.5">
@@ -83,7 +83,7 @@ function ItemModal({ initial, projects, saving, canRemove, onRemove, onSave, onC
               {projects.map((p) => <option key={p.id} value={p.id}>{p.projectName}</option>)}
             </select>
           </Field>
-          <Field label="Untuk (kalau bukan project di Tracker)">
+          <Field label="Untuk (jika bukan project di Tracker)">
             <input className="input" placeholder="ex: Sago, HPCL, Stok gudang" value={it.forLabel} onChange={(e) => set('forLabel', e.target.value)} disabled={!!it.projectId} />
           </Field>
           <Field label="Jumlah (qty)">
@@ -242,7 +242,7 @@ export default function ProcurementPage() {
 
   async function copyRecap() {
     const ok = await copyText(buildProcurementText(filtered, projectsById));
-    showToast(ok ? 'Rekap disalin. Tinggal tempel di WhatsApp.' : 'Gagal menyalin teks.', ok ? 'success' : 'error');
+    showToast(ok ? 'Rekap disalin dan siap ditempel di WhatsApp.' : 'Gagal menyalin teks.', ok ? 'success' : 'error');
   }
 
   const filtersActive = query || statusFilter !== 'open' || projectFilter || onlyLate;
@@ -254,7 +254,7 @@ export default function ProcurementPage() {
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl font-semibold text-ink">Pengadaan Material</h1>
-          <p className="text-sm text-inkmute mt-1">Pantau barang yang dibeli dan ditunggu, per project maupun lintas project.</p>
+          <p className="text-sm text-inkmute mt-1">Pantau pembelian dan kedatangan material untuk setiap project.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <RefreshStatus refreshing={refreshing && !!items} staleError={staleError} />
@@ -329,7 +329,7 @@ export default function ProcurementPage() {
           {all.length === 0 ? (
             <div className="bg-panel border border-dashed border-line rounded-lg p-10 text-center">
               <p className="text-sm font-medium text-ink">Belum ada barang yang dicatat</p>
-              <p className="text-xs text-inkmute mt-1">{writable ? 'Klik "Tambah barang" untuk mulai, mis. membran ROPP atau pompa yang sedang ditunggu.' : 'Admin atau Editor dapat menambahkan barang.'}</p>
+              <p className="text-xs text-inkmute mt-1">{writable ? 'Klik "Tambah barang" untuk mencatat pembelian, misalnya pressure vessel atau pompa yang sedang dipesan.' : 'Admin atau Editor dapat menambahkan barang.'}</p>
             </div>
           ) : groups.length === 0 ? (
             <p className="text-sm text-inkmute text-center py-10">Tidak ada barang yang cocok dengan filter.</p>

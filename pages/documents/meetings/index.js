@@ -114,7 +114,7 @@ export default function MeetingsPage() {
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <Link href={`/documents/meetings/${nextMeeting.id}`} className="bg-blueprint hover:bg-blueprintdark text-onaccent rounded-md px-4 h-9 max-md:h-10 inline-flex items-center text-sm font-medium transition-colors">Mulai catat</Link>
+                <Link href={`/documents/meetings/${nextMeeting.id}`} className="bg-blueprint hover:bg-blueprintdark text-onaccent rounded-md px-4 h-9 max-md:h-10 inline-flex items-center text-sm font-medium transition-colors">Mulai notulensi</Link>
                 <button
                   type="button"
                   onClick={() => downloadText(`${meetingFileBase(nextMeeting)}.ics`, buildIcs(nextMeeting), 'text/calendar;charset=utf-8')}
@@ -136,7 +136,7 @@ export default function MeetingsPage() {
 
           {missed.length > 0 && (
             <div className="bg-amber/10 border border-amber/30 border-l-4 border-l-amber rounded-lg px-4 py-3 text-sm text-ink">
-              Ada rapat terjadwal yang tanggalnya sudah lewat dan belum dicatat:{' '}
+              Rapat terjadwal berikut sudah lewat tanggalnya dan belum dicatat:{' '}
               {missed.map((m, i) => (
                 <span key={m.id}>
                   {i > 0 && ', '}
@@ -168,7 +168,7 @@ export default function MeetingsPage() {
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <h2 className="font-display font-semibold text-ink">Tindak lanjut yang masih terbuka</h2>
-                <p className="text-xs text-inkmute mt-1">Dari semua rapat. Agenda yang sudah dibawa ke rapat lebih baru tidak dihitung lagi di sini.</p>
+                <p className="text-xs text-inkmute mt-1">Dari seluruh rapat. Agenda yang sudah dibawa ke rapat berikutnya tidak dihitung ulang.</p>
               </div>
               {openItems.length > 0 && (
                 <button type="button" onClick={() => copy(buildOpenItemsText(openItems), 'Rekap tindak lanjut disalin.')} className="tap text-sm font-medium text-blueprint hover:underline whitespace-nowrap">
@@ -186,7 +186,7 @@ export default function MeetingsPage() {
                   return (
                     <li key={key} className="flex items-start justify-between gap-3 p-3">
                       <div className="min-w-0">
-                        <p className="text-sm font-medium text-ink">{src.item.topic || '(tanpa judul)'}</p>
+                        <p className="text-sm font-medium text-ink">{src.item.topic || 'Tanpa judul'}</p>
                         <p className="text-xs text-inkmute mt-0.5">
                           <Link href={`/documents/meetings/${src.meeting.id}`} className="tap hover:text-blueprint hover:underline">Rapat {fmtShort(src.meeting.date)}</Link>
                           {src.item.pic ? ` · ${src.item.pic}` : ''}
@@ -267,7 +267,7 @@ export default function MeetingsPage() {
 
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-3 text-sm pt-2 border-t border-line/70">
                         <Link href={`/documents/meetings/${m.id}`} className="tap font-medium text-blueprint hover:underline">Buka</Link>
-                        <button type="button" onClick={() => copy(buildWhatsAppText(m), 'Teks WhatsApp disalin.')} className="tap font-medium text-blueprint hover:underline">Salin untuk WA</button>
+                        <button type="button" onClick={() => copy(buildWhatsAppText(m), 'Teks WhatsApp disalin.')} className="tap font-medium text-blueprint hover:underline">Salin untuk WhatsApp</button>
                         <button type="button" onClick={() => downloadText(`${meetingFileBase(m)}.txt`, buildWhatsAppText(m))} className="tap font-medium text-blueprint hover:underline">Unduh .txt</button>
                         {m.docUrl ? (
                           <a href={m.docUrl} target="_blank" rel="noopener noreferrer" className="tap font-medium text-blueprint hover:underline">Google Doc</a>

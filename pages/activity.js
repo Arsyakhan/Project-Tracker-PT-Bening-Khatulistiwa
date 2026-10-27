@@ -75,7 +75,7 @@ export default function ActivityLogPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
         <div>
           <h1 className="font-display text-2xl font-semibold text-ink">Aktivitas</h1>
-          <p className="text-inkmute text-sm mt-1">Riwayat siapa mengubah apa. Menampilkan 300 aktivitas terakhir.</p>
+          <p className="text-inkmute text-sm mt-1">Riwayat perubahan data oleh setiap pengguna. Menampilkan 300 aktivitas terakhir.</p>
         </div>
         <div className="relative w-full sm:w-72">
           <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-inkmute" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -99,7 +99,7 @@ export default function ActivityLogPage() {
           value={userFilter}
           onChange={(e) => setUserFilter(e.target.value)}
         >
-          <option value="">Semua Pengguna</option>
+          <option value="">Semua pengguna</option>
           {userOptions.map((u) => <option key={u} value={u}>{u}</option>)}
         </select>
 
@@ -109,7 +109,7 @@ export default function ActivityLogPage() {
           value={actionFilter}
           onChange={(e) => setActionFilter(e.target.value)}
         >
-          <option value="">Semua Aksi</option>
+          <option value="">Semua aksi</option>
           {actionOptions.map((a) => <option key={a} value={a}>{a}</option>)}
         </select>
 
@@ -126,7 +126,7 @@ export default function ActivityLogPage() {
 
       <div className="hidden md:block overflow-x-auto bg-panel rounded-xl border border-line shadow-sm">
         <table className="w-full text-sm text-left">
-          <thead className="text-xs text-inkmute uppercase bg-canvas/80 border-b border-line tracking-wider">
+          <thead className="text-xs text-inkmute bg-canvas/80 border-b border-line">
             <tr>
               <th className="px-5 py-3 font-semibold whitespace-nowrap">Waktu</th>
               <th className="px-5 py-3 font-semibold">Pengguna</th>

@@ -1,13 +1,13 @@
 {
-  "name": "Bening Hub - Bening Khatulistiwa",
+  "name": "Bening Hub - Super App PT Bening Khatulistiwa",
   "short_name": "Bening Hub",
-  "description": "Pelacak progress project PT Bening Khatulistiwa",
+  "description": "Super App PT Bening Khatulistiwa: project, dokumen, pengadaan, rapat, dan arsip dalam satu tempat",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "background_color": "#E8F3F7",
-  "theme_color": "#0C2D48",
+  "background_color": "#F3F6F9",
+  "theme_color": "#063E75",
   "icons": [
     {
       "src": "/icons/icon-192.png",

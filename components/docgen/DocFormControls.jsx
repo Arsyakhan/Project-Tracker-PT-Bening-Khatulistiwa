@@ -95,7 +95,7 @@ function TextAreaField({ field, value, onChange }) {
 // Merender satu baris field sesuai tipenya: 'text' | 'measure' | 'group' | 'textarea' | 'subheading'.
 export function FieldRow({ field, values, onChange }) {
   if (field.type === 'subheading') {
-    return <h5 className="text-xs font-bold uppercase tracking-wide text-blueprint border-b border-line pb-1.5 mt-2">{field.label}</h5>;
+    return <h5 className="text-xs font-bold text-blueprint border-b border-line pb-1.5 mt-2">{field.label}</h5>;
   }
   if (field.type === 'measure') {
     return <MeasureField field={field} value={values[field.id]} unitValue={values[field.unitId]} onChange={onChange} />;

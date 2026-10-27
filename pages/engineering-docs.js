@@ -21,7 +21,7 @@ export default function EngineeringDocs() {
   if (error) return <div className="bg-panel border border-rust/30 rounded-xl p-6 text-rust font-medium shadow-sm">{error}</div>;
   if (!projects) return (
     <div className="flex flex-col gap-6">
-      <h1 className="font-display text-2xl font-bold text-ink">Engineering Documents</h1>
+      <h1 className="font-display text-2xl font-semibold text-ink">Engineering Documents</h1>
       <SkeletonTable rows={6} />
     </div>
   );
@@ -60,8 +60,8 @@ export default function EngineeringDocs() {
       {/* Header & Filter Area */}
       <div className="flex flex-col 2xl:flex-row justify-between items-start 2xl:items-end gap-5 bg-panel p-5 rounded-xl border border-line shadow-sm">
         <div>
-          <h1 className="font-display text-2xl font-bold text-ink">Engineering Documents</h1>
-          <p className="text-inkmute text-sm mt-1">Lacak status dan tautan dokumen teknis (P&ID, BOM, EWD, dll).</p>
+          <h1 className="font-display text-2xl font-semibold text-ink">Engineering Documents</h1>
+          <p className="text-inkmute text-sm mt-1">Status dan tautan dokumen teknis setiap project: BOM, P&ID, EWD, GAD, dan lainnya.</p>
         </div>
         
         {/* Area 3 Buah Dropdown Filter */}
@@ -105,7 +105,7 @@ export default function EngineeringDocs() {
       {/* Tabel Utama */}
       <div className="bg-panel border border-line rounded-xl overflow-hidden shadow-sm overflow-x-auto">
         <table className="w-full text-sm text-left whitespace-nowrap">
-          <thead className="text-xs text-inkmute uppercase bg-canvas/80 border-b border-line tracking-wider">
+          <thead className="text-xs text-inkmute bg-canvas/80 border-b border-line">
             <tr>
               <th className="px-5 py-4 font-semibold">PO Number</th>
               <th className="px-5 py-4 font-semibold">Nama Project</th>
@@ -142,7 +142,7 @@ export default function EngineeringDocs() {
                 
                 {/* Status Badges Premium */}
                 <td className="px-5 py-4">
-                  <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold tracking-wide uppercase border ${
+                  <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold border ${
                     doc.status === 'Completed' ? 'bg-teal/10 text-teal border-teal/20' :
                     doc.status === 'Under Review' ? 'bg-amber/10 text-amberink border-amber/20' :
                     doc.status === 'Drafting' ? 'bg-blueprint/10 text-blueprint border-blueprint/20' :

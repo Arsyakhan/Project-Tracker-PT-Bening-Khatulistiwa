@@ -13,7 +13,7 @@ export default function SimilarArchive({ modules }) {
   return (
     <section className="bg-panel border border-line rounded-lg p-4 sm:p-5 shadow-sm" aria-labelledby="mirip-arsip-title">
       <div className="flex items-baseline justify-between gap-2 mb-3">
-        <h2 id="mirip-arsip-title" className="font-display font-semibold text-ink">Pernah dikerjakan: project arsip yang mirip</h2>
+        <h2 id="mirip-arsip-title" className="font-display font-semibold text-ink">Project arsip yang serupa</h2>
         <Link href="/arsip" className="tap text-xs text-blueprint hover:underline whitespace-nowrap">Semua arsip</Link>
       </div>
       <ul className="grid grid-cols-1 sm:grid-cols-3 gap-3">

@@ -35,7 +35,7 @@ export default function Dashboard() {
   if (!projects) {
     return (
       <div className="flex flex-col gap-6">
-        <h1 className="font-display text-2xl font-semibold text-ink">Dashboard Progress</h1>
+        <h1 className="font-display text-2xl font-semibold text-ink">Dashboard</h1>
         <SkeletonStatCards />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <SkeletonPanel />
@@ -69,7 +69,7 @@ export default function Dashboard() {
     <div className="flex flex-col gap-6">
       <PageHead title="Dashboard" />
       <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <h1 className="font-display text-2xl font-semibold text-ink">Dashboard Progress</h1>
+        <h1 className="font-display text-2xl font-semibold text-ink">Dashboard</h1>
         <RefreshStatus refreshing={refreshing} staleError={staleError} />
       </div>
 
@@ -89,7 +89,7 @@ export default function Dashboard() {
           accent="rgb(var(--color-blueprint))"
           onClick={() => showTab('preDelivery')}
           active={activeTab === 'preDelivery'}
-          hint={activeTab === 'preDelivery' ? 'Sedang ditampilkan' : 'Lihat daftar ↓'}
+          hint={activeTab === 'preDelivery' ? 'Ditampilkan' : 'Lihat daftar'}
         />
         <StatCard
           label="Delivered"
@@ -97,7 +97,7 @@ export default function Dashboard() {
           accent="rgb(var(--color-teal))"
           onClick={() => showTab('delivered')}
           active={activeTab === 'delivered'}
-          hint={activeTab === 'delivered' ? 'Sedang ditampilkan' : 'Lihat daftar ↓'}
+          hint={activeTab === 'delivered' ? 'Ditampilkan' : 'Lihat daftar'}
         />
         <StatCard
           label="Completed"
@@ -105,7 +105,7 @@ export default function Dashboard() {
           accent="rgb(var(--color-inkmute))"
           onClick={() => showTab('completed')}
           active={activeTab === 'completed'}
-          hint={activeTab === 'completed' ? 'Sedang ditampilkan' : 'Lihat daftar ↓'}
+          hint={activeTab === 'completed' ? 'Ditampilkan' : 'Lihat daftar'}
         />
       </div>
 

@@ -164,7 +164,7 @@ export default function NewCommissioningReport() {
         <span>/</span>
         <span className="text-ink font-medium">Commissioning Report</span>
       </div>
-      <h1 className="font-display text-2xl font-bold text-ink">Commissioning Report</h1>
+      <h1 className="font-display text-2xl font-semibold text-ink">Commissioning Report</h1>
 
       {!initialized ? (
         <p className="text-sm text-inkmute">Memuat data project...</p>
@@ -181,7 +181,7 @@ export default function NewCommissioningReport() {
             <p className="text-sm text-inkmute">
               {result.checklistUpdated
                 ? <>Link & status checklist "Commissioning Report" pada project <b className="text-ink">{linkedProject.projectName}</b> sudah diperbarui otomatis (jadi "Under Review").</>
-                : <>Dokumen berhasil dibuat, tapi update otomatis ke checklist project gagal -- tempel link di atas secara manual ke tab Checklist Engineering.</>}
+                : <>Dokumen berhasil dibuat, tetapi checklist project gagal diperbarui otomatis. Tempel tautan di atas ke tab Checklist Engineering.</>}
             </p>
           )}
           <div className="flex gap-3 pt-2 border-t border-line mt-1">
@@ -249,7 +249,7 @@ export default function NewCommissioningReport() {
             <section className="bg-panel border border-line rounded-lg p-6 flex flex-col gap-5">
               <div>
                 <h2 className="font-display font-semibold text-ink">3. Setting P&amp;ID</h2>
-                <p className="text-xs text-inkmute mt-1">Sudah diberi nomor otomatis (PI/PS/FI berurutan) -- edit kalau tag sebenarnya beda.</p>
+                <p className="text-xs text-inkmute mt-1">Nomor tag diberikan otomatis (PI/PS/FI berurutan). Ubah jika tag sebenarnya berbeda.</p>
               </div>
               {visibleTagGroups.map(([moduleId, tags]) => (
                 <div key={moduleId} className="grid grid-cols-2 sm:grid-cols-3 gap-4">

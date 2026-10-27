@@ -42,8 +42,8 @@ export default function NewProjectPage() {
   const duplicate = findDuplicatePo(projects, form.poNumber);
   const today = todayISO();
   const dateNotes = [];
-  if (form.tanggalPO && form.deliveryDate && form.deliveryDate < form.tanggalPO) dateNotes.push('Tanggal kirim lebih awal dari Tanggal PO. Cek lagi tahunnya.');
-  else if (form.deliveryDate && form.deliveryDate < today) dateNotes.push('Tanggal kirim sudah lewat, jadi project ini langsung tampil terlambat.');
+  if (form.tanggalPO && form.deliveryDate && form.deliveryDate < form.tanggalPO) dateNotes.push('Tanggal kirim lebih awal dari Tanggal PO. Periksa kembali tahunnya.');
+  else if (form.deliveryDate && form.deliveryDate < today) dateNotes.push('Tanggal kirim sudah terlewati sehingga project ini langsung tercatat terlambat.');
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -78,7 +78,7 @@ export default function NewProjectPage() {
       <PageHead title="Project Baru" />
       <div>
         <h1 className="font-display text-2xl font-semibold text-ink">Project Baru</h1>
-        <p className="text-sm text-inkmute mt-1">Isi PO Number dan nama project dulu. Sisanya bisa dilengkapi nanti di halaman project.</p>
+        <p className="text-sm text-inkmute mt-1">PO Number dan nama project wajib diisi. Data lain dapat dilengkapi di halaman project.</p>
       </div>
 
       <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
@@ -88,7 +88,7 @@ export default function NewProjectPage() {
               hint={duplicate && (
                 <p className="text-xs text-amberink">
                   PO ini sudah dipakai project &ldquo;{duplicate.projectName}&rdquo;.{' '}
-                  <Link href={`/projects/${encodeURIComponent(duplicate.id)}`} className="font-medium underline">Buka project itu</Link>
+                  <Link href={`/projects/${encodeURIComponent(duplicate.id)}`} className="font-medium underline">Buka project tersebut</Link>
                 </p>
               )}>
               <input id={id('po')} className="input" autoComplete="off" aria-required="true" aria-invalid={!!errors.poNumber}
@@ -112,13 +112,13 @@ export default function NewProjectPage() {
             <Field id={id('kirim')} label="Tanggal kirim"
               hint={dateNotes.length > 0
                 ? <p className="text-xs text-amberink">{dateNotes[0]}</p>
-                : <p className="text-xs text-inkmute">Kosong berarti belum dihitung terlambat. Bisa diisi nanti di tab Jadwal.</p>}>
+                : <p className="text-xs text-inkmute">Jika dikosongkan, project tidak dihitung terlambat. Dapat diisi kemudian di tab Jadwal.</p>}>
               <input id={id('kirim')} type="date" className="input" value={form.deliveryDate} onChange={(e) => update('deliveryDate', e.target.value)} />
             </Field>
           </div>
         </Section>
 
-        <Section title="Posisi di alur" hint="Project baru biasanya mulai dari stage PO. Ubah kalau project ini sudah berjalan.">
+        <Section title="Posisi di alur" hint="Project baru umumnya dimulai dari stage PO. Ubah jika project sudah berjalan.">
           <div className="grid grid-cols-1 sm:grid-cols-[2fr_1fr_1fr] gap-4">
             <Field id={id('stage')} label="Stage saat ini">
               <select id={id('stage')} className="input" value={form.currentStage} onChange={(e) => update('currentStage', e.target.value)}>
@@ -182,7 +182,7 @@ export default function NewProjectPage() {
         <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-3">
           <Link href="/projects" className="btn btn-ghost max-md:min-h-[40px]">Batal</Link>
           <button disabled={saving} className="btn btn-primary sm:min-w-[170px] max-md:min-h-[40px]">
-            {saving ? 'Menyimpan...' : 'Simpan Project'}
+            {saving ? 'Menyimpan...' : 'Simpan project'}
           </button>
         </div>
       </form>

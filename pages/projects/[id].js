@@ -505,7 +505,7 @@ export default function ProjectDetailPage() {
             links: { ...p.checklist.links, [item]: prevLink },
           },
         }));
-        showToast(`Gagal update checklist: ${err.message}`, 'error');
+        showToast(`Gagal memperbarui checklist: ${err.message}`, 'error');
       }
     });
   }
@@ -797,7 +797,7 @@ export default function ProjectDetailPage() {
 
           {activeTab === 'ringkasan' && (
             <>
-            <Panel title="Info umum" hint="Perubahan baru tersimpan setelah menekan Simpan perubahan. Status dan Prioritas mengikuti aturan otomatis; ubah langsung kalau perlu.">
+            <Panel title="Info umum" hint="Perubahan baru tersimpan setelah menekan Simpan perubahan. Status dan Prioritas mengikuti aturan otomatis dan tetap dapat diubah manual.">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
                 <FieldBlock id="info-stage" label="Stage saat ini">
                   <select id="info-stage" className="input" value={project.currentStage} onChange={(e) => update('currentStage', e.target.value)}>
@@ -1078,7 +1078,7 @@ export default function ProjectDetailPage() {
                       <ChecklistLinkInput
                         value={savedLink}
                         onCommit={(v) => updateChecklistData(item, status, v)}
-                        onInvalid={() => showToast('Link harus diawali http:// atau https://', 'error')}
+                        onInvalid={() => showToast('Tautan harus diawali http:// atau https://', 'error')}
                       />
                       <div className="flex items-center gap-3 md:justify-end min-h-[20px]">
                         {savedLink && (
@@ -1187,7 +1187,7 @@ export default function ProjectDetailPage() {
                     Kurang: {readiness.commissioning.missing.join(', ')}
                   </button>
                 ) : (
-                  <p className="text-xs text-teal mt-1.5">Data lengkap, siap di-generate</p>
+                  <p className="text-xs text-teal mt-1.5">Data lengkap, dokumen siap dibuat</p>
                 )}
               </div>
               <div>
@@ -1199,7 +1199,7 @@ export default function ProjectDetailPage() {
                   <div className={`h-full rounded-full ${specProgress && specProgress.percent >= 100 ? 'bg-teal' : 'bg-blueprint'}`} style={{ width: `${specProgress && specSections.length > 0 ? specProgress.percent : 0}%` }} />
                 </div>
                 <button onClick={() => setActiveTab(specSections.length > 0 ? 'spesifikasi' : 'teknologi')} className="tap text-xs text-blueprint hover:underline mt-1.5 text-left">
-                  {specSections.length === 0 ? 'Isi teknologi dulu' : specProgress && specProgress.percent >= 100 ? 'Spesifikasi lengkap' : 'Lengkapi spesifikasi peralatan'}
+                  {specSections.length === 0 ? 'Teknologi belum diisi' : specProgress && specProgress.percent >= 100 ? 'Spesifikasi lengkap' : 'Lengkapi spesifikasi peralatan'}
                 </button>
               </div>
             </div>
@@ -1276,7 +1276,7 @@ export default function ProjectDetailPage() {
               </button>
             )}
             {isDirty && (
-              <span className="hidden sm:inline text-xs text-inkmute">Ada perubahan yang belum disimpan · Ctrl+S untuk simpan</span>
+              <span className="hidden sm:inline text-xs text-inkmute">Perubahan belum disimpan · Ctrl+S untuk menyimpan</span>
             )}
             {error && <span role="alert" className="text-rust text-sm min-w-0 line-clamp-2">{error}</span>}
           </div>
@@ -1287,7 +1287,7 @@ export default function ProjectDetailPage() {
         open={confirmDeleteOpen}
         title="Hapus project ini?"
         description={`Tindakan ini tidak bisa dibatalkan. Data project "${project.projectName}" (PO: ${project.poNumber}) akan dihapus permanen dari spreadsheet.`}
-        confirmText={deleting ? 'Menghapus...' : 'Ya, Hapus Permanen'}
+        confirmText={deleting ? 'Menghapus...' : 'Hapus permanen'}
         requireText={project.projectName}
         onConfirm={handleDelete}
         onCancel={() => setConfirmDeleteOpen(false)}
@@ -1296,7 +1296,7 @@ export default function ProjectDetailPage() {
       <ConfirmModal
         open={leaveModalOpen}
         title="Ada perubahan belum disimpan"
-        description={'Kalau kamu pindah halaman sekarang, perubahan yang belum di-"Simpan perubahan" akan hilang.'}
+        description={'Perubahan yang belum disimpan akan hilang jika Anda meninggalkan halaman ini.'}
         confirmText="Ya, Tinggalkan Halaman"
         cancelText="Tetap di Sini"
         danger={true}

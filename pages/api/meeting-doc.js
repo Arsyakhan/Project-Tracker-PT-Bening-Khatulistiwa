@@ -65,7 +65,7 @@ export default async function handler(req, res) {
     console.error('Ambil data rapat gagal:', err);
     return fail(res, 502, 'Tidak bisa menghubungi backend.');
   }
-  if (!meeting) return fail(res, 404, 'Rapat tidak ditemukan. Simpan dulu, lalu coba lagi.');
+  if (!meeting) return fail(res, 404, 'Rapat tidak ditemukan. Simpan rapat terlebih dahulu, lalu coba lagi.');
 
   // 2) Buat dokumen
   let docJson = null;

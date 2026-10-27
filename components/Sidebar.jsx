@@ -1,5 +1,7 @@
 import Link from 'next/link';
 import { roleLabel } from '../lib/roles';
+import BeningLogo from './brand/BeningLogo';
+import useRouteBusy from '../lib/useRouteBusy';
 
 // Ikon garis 24x24 (gaya Heroicons outline). Satu path per ikon supaya daftar menu tetap ringkas.
 function Icon({ d, className = 'w-[18px] h-[18px]', strokeWidth = 1.8 }) {
@@ -72,16 +74,14 @@ function isCurrent(pathname, href) {
 export default function Sidebar({ pathname, session, recentProjects, isDark, onNavigate, onSearch, onToggleTheme, onLogout, onClose }) {
   const user = session?.user;
   const viewer = user?.role === 'viewer';
+  const busy = useRouteBusy();
 
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between px-5 pt-5 pb-4">
-        <Link href="/" onClick={onNavigate} className="flex items-center group" aria-label="Bening Hub, ke beranda">
-          <img
-            src="/logo-bening-hub-compact.png"
-            alt="Bening Hub"
-            className="h-9 w-auto object-contain flex-shrink-0 group-hover:opacity-80 transition-opacity dark:brightness-0 dark:invert"
-          />
+        {/* Logo bergerak: tetesnya surut dan bergelombang selama halaman dimuat (useRouteBusy) */}
+        <Link href="/" onClick={onNavigate} className="flex items-center -m-1 p-1 rounded-lg" aria-label="Bening Hub, ke beranda">
+          <BeningLogo height={15} tagline="Super App" busy={busy} intro />
         </Link>
         {onClose && (
           <button type="button" onClick={onClose} aria-label="Tutup menu" autoFocus className="md:hidden p-2.5 -mr-2.5 rounded-md text-inkmute hover:bg-canvas hover:text-ink">
@@ -114,7 +114,7 @@ export default function Sidebar({ pathname, session, recentProjects, isDark, onN
       <nav aria-label="Menu utama" className="flex-1 overflow-y-auto px-3 pt-4 pb-2 flex flex-col gap-4">
         {NAV_GROUPS.map((group) => (
           <div key={group.label}>
-            <span className="px-3 pb-1.5 block text-xs font-semibold uppercase tracking-wider text-inkmute">{group.label}</span>
+            <span className="px-3 pb-1.5 block text-xs font-semibold text-inkmute">{group.label}</span>
             <ul className="flex flex-col gap-0.5">
               {group.items.map((item) => {
                 const active = isCurrent(pathname, item.href);
@@ -141,7 +141,7 @@ export default function Sidebar({ pathname, session, recentProjects, isDark, onN
 
         {recentProjects.length > 0 && (
           <div>
-            <span className="px-3 pb-1.5 block text-xs font-semibold uppercase tracking-wider text-inkmute">Terakhir dibuka</span>
+            <span className="px-3 pb-1.5 block text-xs font-semibold text-inkmute">Terakhir dibuka</span>
             <ul className="flex flex-col gap-0.5">
               {recentProjects.map((p) => {
                 const href = `/projects/${encodeURIComponent(p.id)}`;

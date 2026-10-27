@@ -34,7 +34,7 @@ export default function StatusPie({ dashboard }) {
 
   return (
     <div className="bg-panel border border-line rounded-lg p-6 h-full flex flex-col shadow-sm">
-      <h3 className="text-xs font-semibold text-inkmute mb-2 uppercase tracking-wider">Distribusi status project</h3>
+      <h3 className="text-xs font-semibold text-inkmute mb-2">Distribusi status project</h3>
 
       <div className="flex-1 flex flex-col items-center justify-center gap-6 min-h-[250px]">
         <div className="w-44 h-44 relative flex items-center justify-center">
