@@ -326,6 +326,7 @@ export default function OpnameDetail() {
           ) : adding ? (
             <BarangBaruForm
               kategori={katalog.data?.kategori}
+              jenis={katalog.data?.jenis}
               katalog={barangList}
               namaAwal={query}
               konteks="opname"

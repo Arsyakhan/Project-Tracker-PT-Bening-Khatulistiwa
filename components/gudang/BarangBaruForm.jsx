@@ -3,10 +3,11 @@ import { gudangApi, SATUAN_UMUM, searchKatalog, barangLabel } from '../../lib/gu
 
 // Form menambah barang yang belum ada di katalog (mis. ditemukan saat stock opname). Sebelum menyimpan, barang yang
 // mirip di katalog ditampilkan supaya tidak terjadi kode ganda; memilih salah satunya memakai kode yang sudah ada.
-export default function BarangBaruForm({ kategori, katalog, namaAwal = '', konteks, onCreated, onPickExisting, onCancel }) {
+export default function BarangBaruForm({ kategori, jenis, katalog, namaAwal = '', konteks, onCreated, onPickExisting, onCancel }) {
   const [form, setForm] = useState({
     nama: namaAwal,
     kategori_kode: '',
+    jenis: '',
     ukuran: '',
     material: '',
     merek: '',
@@ -17,6 +18,7 @@ export default function BarangBaruForm({ kategori, katalog, namaAwal = '', konte
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+  const jenisList = (jenis || []).filter((j) => j.kategori_kode === form.kategori_kode);
 
   const mirip = useMemo(
     () => searchKatalog(katalog, [form.nama, form.ukuran].filter(Boolean).join(' '), 5),
@@ -54,9 +56,16 @@ export default function BarangBaruForm({ kategori, katalog, namaAwal = '', konte
         {field('nama', 'Nama barang', { wide: true, input: { required: true, autoFocus: true, placeholder: 'mis. Ball valve' } })}
         <label className="flex flex-col gap-1.5 text-sm">
           <span className="text-inkmute font-medium">Kategori</span>
-          <select className="input" value={form.kategori_kode} onChange={set('kategori_kode')} required>
+          <select className="input" value={form.kategori_kode} onChange={(e) => setForm((f) => ({ ...f, kategori_kode: e.target.value, jenis: '' }))} required>
             <option value="" disabled>Pilih kategori</option>
             {(kategori || []).map((k) => <option key={k.kode} value={k.kode}>{k.nama}</option>)}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1.5 text-sm">
+          <span className="text-inkmute font-medium">Jenis</span>
+          <select className="input" value={form.jenis} onChange={set('jenis')} required disabled={!form.kategori_kode}>
+            <option value="" disabled>{form.kategori_kode ? 'Pilih jenis' : 'Pilih kategori dulu'}</option>
+            {jenisList.map((j) => <option key={j.nama} value={j.nama}>{j.nama}</option>)}
           </select>
         </label>
         <label className="flex flex-col gap-1.5 text-sm">

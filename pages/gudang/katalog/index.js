@@ -28,7 +28,7 @@ const SCOPES = [
   { key: 'project', label: 'Pernah dipakai project', test: (b) => b.dipakai_project > 0 },
   { key: 'stok', label: 'Ada stok', test: (b) => Number(b.stok) !== 0 },
   { key: 'all', label: 'Semua', test: () => true },
-  { key: 'flag', label: 'Ditandai saat impor', test: (b) => reviewFlags(b).length > 0 },
+  { key: 'flag', label: 'Perlu dicek', test: (b) => reviewFlags(b).length > 0 },
 ];
 
 const TONE_TEXT = { muted: 'text-inkmute', teal: 'text-teal', amber: 'text-amberink', rust: 'text-rust' };
@@ -54,6 +54,14 @@ function detailLine(b) {
   return [b.spesifikasi, b.merek].filter(Boolean).join(' · ');
 }
 
+// Keterangan di bawah nama: kategori › jenis (kalau beda dari nama), spesifikasi/merek, dan nama lama untuk barang yang
+// namanya kini sama dengan jenisnya (tangki/pompa yang dulu dinamai menurut fungsinya, mis. "CIP Tank").
+function subLine(b, katNama) {
+  const kat = [katNama[b.kategori_kode], b.jenis && b.jenis !== b.nama ? b.jenis : null].filter(Boolean).join(' › ');
+  const lama = b.jenis === b.nama && b.nama_lain && b.nama_lain[0] ? `nama lama: ${b.nama_lain[0]}` : null;
+  return [kat, detailLine(b), lama].filter(Boolean).join(' · ');
+}
+
 // Katalog barang (Supabase): daftar induk alat dan material dari semua BOM lama. Dicek W&P/Engineering lewat kolom
 // "Status cek"; kodenya dipakai untuk BOM, stok, dan pengadaan.
 export default function KatalogBarang() {
@@ -64,6 +72,7 @@ export default function KatalogBarang() {
   const [adding, setAdding] = useState(false);
   const [query, setQuery] = useState('');
   const [kategori, setKategori] = useState('');
+  const [jenis, setJenis] = useState('');
   const [scope, setScope] = useState('project');
   const [statusFilter, setStatusFilter] = useState('');
   const [limit, setLimit] = useState(PAGE);
@@ -71,11 +80,14 @@ export default function KatalogBarang() {
   const barang = data?.barang || [];
   const kategoriList = data?.kategori || [];
   const katNama = useMemo(() => Object.fromEntries(kategoriList.map((k) => [k.kode, k.nama])), [kategoriList]);
+  // Jenis = bentuk fisik barang di dalam kategori (mis. Tangki PE, Tangki FRP); urutannya dari tabel jenis_barang.
+  const jenisList = useMemo(() => (data?.jenis || []).filter((j) => j.kategori_kode === kategori), [data, kategori]);
+  const jenisUrut = useMemo(() => Object.fromEntries((data?.jenis || []).map((j) => [`${j.kategori_kode}|${j.nama}`, j.urutan])), [data]);
 
   const inScope = useMemo(() => {
     const t = SCOPES.find((s) => s.key === scope).test;
-    return barang.filter((b) => t(b) && (!kategori || b.kategori_kode === kategori));
-  }, [barang, scope, kategori]);
+    return barang.filter((b) => t(b) && (!kategori || b.kategori_kode === kategori) && (!jenis || (jenis === '__kosong' ? !b.jenis : b.jenis === jenis)));
+  }, [barang, scope, kategori, jenis]);
 
   const counts = useMemo(() => Object.fromEntries(STATUS_FILTERS.map((f) => [f.key, inScope.filter(f.test).length])), [inScope]);
 
@@ -89,9 +101,18 @@ export default function KatalogBarang() {
         const t = barangSearchText(b);
         return words.every((w) => t.includes(w));
       })
-      // Yang paling sering dipakai project di atas: paling penting dicek dan disiapkan stoknya.
-      .sort((a, b) => (b.dipakai_project || 0) - (a.dipakai_project || 0) || a.kode.localeCompare(b.kode));
-  }, [inScope, query, statusFilter]);
+      // Dalam satu kategori: dikelompokkan per jenis. Di dalamnya (dan tanpa kategori) yang paling sering dipakai project
+      // di atas: paling penting dicek dan disiapkan stoknya.
+      .sort((a, b) => (kategori ? (jenisUrut[`${a.kategori_kode}|${a.jenis}`] ?? 99) - (jenisUrut[`${b.kategori_kode}|${b.jenis}`] ?? 99) : 0)
+        || (b.dipakai_project || 0) - (a.dipakai_project || 0) || a.kode.localeCompare(b.kode));
+  }, [inScope, query, statusFilter, kategori, jenisUrut]);
+
+  const jenisCounts = useMemo(() => {
+    const t = SCOPES.find((s) => s.key === scope).test;
+    const c = {};
+    barang.forEach((b) => { if (t(b) && b.kategori_kode === kategori) c[b.jenis || ''] = (c[b.jenis || ''] || 0) + 1; });
+    return c;
+  }, [barang, scope, kategori]);
 
   const kategoriCounts = useMemo(() => {
     const t = SCOPES.find((s) => s.key === scope).test;
@@ -149,6 +170,7 @@ export default function KatalogBarang() {
         <Panel>
           <BarangBaruForm
             kategori={kategoriList}
+            jenis={data?.jenis}
             katalog={barang}
             namaAwal={query}
             onCancel={() => setAdding(false)}
@@ -191,7 +213,7 @@ export default function KatalogBarang() {
           className="input lg:!w-64 !min-h-[36px] max-md:!min-h-[40px] !py-1"
           aria-label="Kategori barang"
           value={kategori}
-          onChange={(e) => resetLimit(setKategori)(e.target.value)}
+          onChange={(e) => { setJenis(''); resetLimit(setKategori)(e.target.value); }}
         >
           <option value="">Semua kategori</option>
           {kategoriList.map((k) => (
@@ -206,6 +228,21 @@ export default function KatalogBarang() {
           options={SCOPES.map((s) => ({ key: s.key, label: s.label }))}
         />
       </div>
+
+      {kategori && jenisList.length > 0 && (
+        <Segmented
+          label="Jenis barang"
+          size="sm"
+          className="flex-wrap self-start"
+          value={jenis}
+          onChange={resetLimit(setJenis)}
+          options={[
+            { key: '', label: 'Semua jenis', count: Object.values(jenisCounts).reduce((a, n) => a + n, 0) },
+            ...jenisList.map((j) => ({ key: j.nama, label: j.nama, count: jenisCounts[j.nama] || 0 })),
+            ...(jenisCounts[''] ? [{ key: '__kosong', label: 'Belum dipilih', count: jenisCounts[''] }] : []),
+          ]}
+        />
+      )}
 
       {rows.length === 0 ? (
         <EmptyState title="Tidak ada barang yang cocok">
@@ -237,7 +274,7 @@ export default function KatalogBarang() {
                         {b.nama}
                       </Link>
                       <span className="block text-xs text-inkmute mt-0.5 line-clamp-1 max-w-[28rem]">
-                        {katNama[b.kategori_kode]}{detailLine(b) ? ` · ${detailLine(b)}` : ''}
+                        {subLine(b, katNama)}
                       </span>
                     </td>
                     <td className="px-3 py-3 whitespace-nowrap">{b.ukuran || <span className="text-inkmute">-</span>}</td>
@@ -264,7 +301,7 @@ export default function KatalogBarang() {
                     <span className="min-w-0">
                       <span className="block font-medium text-ink">{b.nama}</span>
                       <span className="block text-xs text-inkmute mt-0.5">
-                        <span className="font-data">{b.kode}</span>
+                        <span className="font-data">{b.kode}</span>{b.jenis ? ` · ${b.jenis}` : ''}
                         {[b.ukuran, b.material, b.model].filter(Boolean).length ? ` · ${[b.ukuran, b.material, b.model].filter(Boolean).join(' · ')}` : ''}
                       </span>
                     </span>
