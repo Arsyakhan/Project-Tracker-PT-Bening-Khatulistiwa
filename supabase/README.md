@@ -21,7 +21,11 @@ Data project tetap di Google Sheet; penghubungnya Project ID `prj_xxxx`.
 | `bom` | BOM per project (`project_id` = `prj_xxxx` di Sheet): judul, revisi, `revisi_dari`, status `draf` / `final` / `diganti`, asal isi awal, siapa yang membuat dan menerbitkan |
 | `bom_baris` | Baris BOM: kode barang katalog, jumlah (boleh kosong selama draf), satuan, bagian, catatan, urutan |
 | `file_bom_lembar` (view) | Lembar per file BOM lama beserta jumlah barisnya (untuk memilih lembar yang disalin) |
-| `pengguna` | Email dan divisi (PM, Engineering, Direksi, Warehouse & Purchasing, Technician) untuk hak akses modul gudang |
+| `pengguna` | Email dan divisi (PM, Engineering, Direksi, Warehouse & Purchasing, Technician) untuk hak akses modul gudang. Divisi `Direksi` / `Marketing & Direksi` yang aktif = yang boleh memutuskan usulan pembelian |
+| `penyisihan_stok` | Stok yang disisihkan untuk satu BOM final (satu baris per kode barang). Bukan transaksi stok: hanya mengurangi stok yang tersedia untuk BOM lain |
+| `stok_tersedia` (view) | Per barang: stok fisik semua lokasi, jumlah yang disisihkan BOM **final**, dan sisanya (`tersedia`). Penyisihan BOM yang sudah `diganti` tidak dihitung |
+| `usulan_pembelian` | Usulan pembelian per BOM: status `draf` / `diajukan` / `disetujui` / `ditolak`, siapa dan kapan diajukan dan diputuskan, catatan keputusan. Nomor tampil `UP-0001` = id. Satu BOM hanya punya satu usulan berjalan (unique index parsial) |
+| `usulan_pembelian_baris` | Barang yang diusulkan: kebutuhan BOM, jumlah yang sudah disisihkan, jumlah beli, satuan, estimasi harga satuan (Rupiah), catatan |
 
 ## Fungsi dan trigger
 
@@ -46,6 +50,26 @@ Data project tetap di Google Sheet; penghubungnya Project ID `prj_xxxx`.
   arsipnya; semua lembar = 254), terbit ditolak karena jumlah kosong, terbit, kunci sesudah terbit, revisi (ganda
   ditolak, revisi dari draf ditolak), terbit revisi menjadikan Rev. 0 `diganti`, salin BOM lain, BOM kosong ditolak
   saat terbit, hapus draf; tidak ada data uji yang tersisa. Ketiga fungsi hanya bisa dipanggil `service_role`.
+- `sisihkan_dan_usulkan(p_bom_id, p_email)` (31 Okt 2026): untuk BOM final, menghapus penyisihan lama BOM itu, menyisihkan
+  `min(kebutuhan, stok tersedia)` per kode barang, lalu membuat draf usulan untuk kekurangannya (tanpa kekurangan = hanya
+  penyisihan, `usulan_id` null). Ditolak kalau BOM bukan final atau masih ada usulan draf/diajukan/disetujui. Memakai
+  `pg_advisory_xact_lock` supaya dua penyisihan tidak berjalan bersamaan. Kebutuhan per kode dari `kebutuhan_bom(p_bom_id)`.
+- `ajukan_usulan(p_id, p_email)`: draf → diajukan; ditolak kalau usulan kosong atau BOM-nya sudah diganti revisi baru.
+- `putuskan_usulan(p_id, p_email, p_setuju, p_catatan)`: diajukan → disetujui / ditolak; penolakan wajib beralasan,
+  persetujuan ditolak kalau BOM-nya sudah diganti. Hak memutuskan dicek di route server, bukan di database.
+- Trigger `usulan_pembelian_baris_kunci` (`cek_usulan_draf`): baris usulan hanya bisa diubah selama usulannya draf.
+- Diuji 31 Okt 2026 di database asli dalam transaksi yang dibatalkan: penyisihan dan kekurangan benar (stok 10 untuk
+  kebutuhan 6 dari dua baris = disisihkan 6; stok 3 untuk kebutuhan 5 = disisihkan 3, beli 2), usulan ganda ditolak, BOM
+  kedua hanya mendapat sisa stok, kunci baris sesudah diajukan, tolak tanpa alasan ditolak, usulan ulang sesudah ditolak
+  menghitung ulang penyisihan, setujui draf dan putus ulang ditolak, penyisihan BOM yang diganti tidak dihitung lagi,
+  ajukan dan sisihkan dari BOM yang diganti ditolak, ajukan usulan kosong ditolak; tidak ada data uji yang tersisa (nomor
+  usulan di-restart ke 1). Keempat fungsi hanya bisa dipanggil `service_role`.
+- Revisi BOM (migrasi `20261031000200`): `disetujui_revisi_lama(p_bom_id)` menjumlahkan jumlah beli usulan `disetujui` di
+  semua revisi sebelumnya. `sisihkan_dan_usulkan` menganggap jumlah itu akan datang: sisihkan = min(kebutuhan - sudah
+  disetujui, stok tersedia), beli = sisanya (kolom `qty_disetujui_sebelumnya`), jadi revisi tidak memicu pembelian ganda.
+- **Uji otomatis**: `tests/usulan_pembelian.sql` (9 skenario termasuk revisi). Blok `do` yang selalu diakhiri galat:
+  "LULUS: ..." berarti semua lulus, galat lain menyebut skenario yang gagal. Tidak ada data yang tersisa, tetapi nomor
+  urut BOM/usulan yang terpakai tidak kembali.
 
 ## Keamanan
 

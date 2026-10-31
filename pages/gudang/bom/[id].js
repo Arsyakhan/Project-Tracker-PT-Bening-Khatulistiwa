@@ -4,7 +4,9 @@ import { useRouter } from 'next/router';
 import { useSession } from 'next-auth/react';
 import useCachedResource from '../../../lib/useCachedResource';
 import { canWrite, MSG_VIEWER } from '../../../lib/roles';
-import { gudangApi, BOM_STATUS, SATUAN_UMUM, searchKatalog, barangLabel, fmtQty, fmtWaktu, addToKatalogCache } from '../../../lib/gudang';
+import {
+  gudangApi, BOM_STATUS, USULAN_STATUS, USULAN_BERJALAN, SATUAN_UMUM, nomorUsulan, searchKatalog, barangLabel, fmtQty, fmtWaktu, addToKatalogCache,
+} from '../../../lib/gudang';
 import { clearCache } from '../../../lib/persistedCache';
 import { downloadCsv } from '../../../lib/exportCsv';
 import PageHead from '../../../components/PageHead';
@@ -25,8 +27,12 @@ const VIEWS = [
   { key: 'stok', label: 'Cek stok' },
 ];
 
-// Kebutuhan per barang (jumlah semua baris dengan kode yang sama) dibandingkan dengan stok gudang (semua lokasi).
-function stockCheck(lines, stokOf) {
+const r3 = (n) => Math.round(n * 1000) / 1000;
+
+// Kebutuhan per barang (jumlah semua baris dengan kode yang sama) dibandingkan dengan stok tersedia = stok gudang semua
+// lokasi dikurangi yang sudah disisihkan untuk BOM lain. ownCounted: penyisihan BOM ini ikut terhitung di `disisihkan`
+// (view stok_tersedia hanya menghitung BOM final), jadi dikurangkan kembali supaya tidak terhitung dua kali.
+function stockCheck(lines, stokOf, ownOf, ownCounted) {
   const m = new Map();
   lines.forEach((l) => {
     const cur = m.get(l.barang_kode) || { kode: l.barang_kode, barang: l.barang, satuan: l.satuan, butuh: 0, kosong: 0, baris: 0 };
@@ -36,16 +42,20 @@ function stockCheck(lines, stokOf) {
     m.set(l.barang_kode, cur);
   });
   return Array.from(m.values()).map((r) => {
-    const stok = stokOf[r.kode] || 0;
-    const kurang = Math.max(0, Math.round((r.butuh - stok) * 1000) / 1000);
-    return { ...r, stok, kurang, cukup: kurang === 0 };
+    const s = stokOf[r.kode] || { stok: 0, disisihkan: 0 };
+    const sisih = ownOf[r.kode] || 0;
+    const lain = Math.max(0, r3(s.disisihkan - (ownCounted ? sisih : 0)));
+    const tersedia = Math.max(0, r3(s.stok - lain));
+    const kurang = Math.max(0, r3(r.butuh - tersedia));
+    return { ...r, stok: s.stok, lain, tersedia, sisih, kurang, cukup: kurang === 0 };
   });
 }
 
 function StockBadge({ s }) {
   if (!s) return null;
-  if (s.cukup) return <span className="text-xs text-teal whitespace-nowrap">Stok {fmtQty(s.stok)}</span>;
-  return <span className="text-xs text-rust whitespace-nowrap">Kurang {fmtQty(s.kurang)}{s.stok ? ` (stok ${fmtQty(s.stok)})` : ''}</span>;
+  if (s.sisih > 0 && s.sisih >= s.butuh) return <span className="text-xs text-teal whitespace-nowrap">Disisihkan {fmtQty(s.sisih)}</span>;
+  if (s.cukup) return <span className="text-xs text-teal whitespace-nowrap">Tersedia {fmtQty(s.tersedia)}</span>;
+  return <span className="text-xs text-rust whitespace-nowrap">Kurang {fmtQty(s.kurang)}{s.tersedia ? ` (tersedia ${fmtQty(s.tersedia)})` : ''}</span>;
 }
 
 // Form satu baris BOM: jumlah, satuan, bagian, catatan.
@@ -139,8 +149,13 @@ export default function BomDetail() {
   const barangList = katalog.data?.barang || [];
   const byKode = useMemo(() => Object.fromEntries(barangList.map((b) => [b.kode, b])), [barangList]);
   const lines = data?.baris || [];
-  const stokOf = useMemo(() => Object.fromEntries((data?.stok || []).map((s) => [s.kode, s.stok])), [data]);
-  const check = useMemo(() => stockCheck(lines, stokOf), [lines, stokOf]);
+  const stokOf = useMemo(() => Object.fromEntries((data?.stok || []).map((s) => [s.kode, s])), [data]);
+  // Penyisihan BOM yang sudah diganti revisi baru tidak berlaku lagi (lihat view stok_tersedia).
+  const ownOf = useMemo(
+    () => Object.fromEntries((data?.bom?.status === 'final' ? data.penyisihan || [] : []).map((p) => [p.barang_kode, p.qty])),
+    [data]
+  );
+  const check = useMemo(() => stockCheck(lines, stokOf, ownOf, data?.bom?.status === 'final'), [lines, stokOf, ownOf, data]);
   const checkOf = useMemo(() => Object.fromEntries(check.map((c) => [c.kode, c])), [check]);
   const bagianList = useMemo(() => Array.from(new Set(lines.map((l) => l.bagian).filter(Boolean))), [lines]);
   const results = useMemo(() => (editing || adding ? [] : searchKatalog(barangList, query, 8)), [barangList, query, editing, adding]);
@@ -166,6 +181,7 @@ export default function BomDetail() {
   const nKosong = lines.filter((l) => l.qty === null || l.qty === undefined).length;
   const nKurang = check.filter((c) => !c.cukup && c.butuh > 0).length;
   const nCukup = check.filter((c) => c.cukup && c.butuh > 0).length;
+  const nAda = check.filter((c) => c.butuh > 0 && c.tersedia > 0).length;
 
   function startAdd(b) {
     if (b.status_cek === 'Gabung' && b.gabung_ke && byKode[b.gabung_ke]) {
@@ -243,6 +259,16 @@ export default function BomDetail() {
         clearCache('gudang-bom');
         showToast(`BOM Rev. ${data.bom.revisi} diterbitkan`);
         await load();
+      } else if (c.kind === 'sisihkan') {
+        const r = await gudangApi.buatUsulan({ bom_id: data.bom.id });
+        clearCache('gudang-usulan');
+        if (r.usulan_id) {
+          showToast(`Stok disisihkan; ${nomorUsulan(r.usulan_id)} dibuat untuk ${r.kurang} kode barang yang kurang`);
+          router.push(`/gudang/usulan/${r.usulan_id}`);
+          return;
+        }
+        showToast(r.kode ? 'Semua kebutuhan tersedia di gudang dan sudah disisihkan untuk project ini' : 'Tidak ada kebutuhan yang perlu disisihkan');
+        await load();
       } else if (c.kind === 'revisi') {
         const r = await gudangApi.revisiBom({ id: data.bom.id });
         clearCache('gudang-bom');
@@ -276,6 +302,8 @@ export default function BomDetail() {
       ['Satuan', (l) => l.satuan],
       ['Catatan', (l) => l.catatan],
       ['Stok gudang (semua baris kode ini)', (l) => checkOf[l.barang_kode]?.stok ?? 0],
+      ['Disisihkan BOM lain', (l) => checkOf[l.barang_kode]?.lain ?? 0],
+      ['Disisihkan BOM ini', (l) => checkOf[l.barang_kode]?.sisih ?? 0],
       ['Kurang (semua baris kode ini)', (l) => checkOf[l.barang_kode]?.kurang ?? 0],
     ], lines.map((l, i) => ({ ...l, _no: i + 1 })));
   }
@@ -317,6 +345,10 @@ export default function BomDetail() {
   const newer = (terkait || []).filter((t) => t.revisi > bom.revisi);
   const older = (terkait || []).filter((t) => t.revisi < bom.revisi);
   const draftRevision = newer.find((t) => t.status === 'draf');
+  const usulanList = data.usulan || [];
+  const usulanBerjalan = usulanList.find((u) => USULAN_BERJALAN.includes(u.status));
+  const penyisihan = bom.status === 'final' ? data.penyisihan || [] : [];
+  const terakhirDisisihkan = penyisihan.reduce((a, p) => (p.dibuat_pada > (a?.dibuat_pada || '') ? p : a), null);
 
   return (
     <div className="flex flex-col gap-5">
@@ -344,6 +376,17 @@ export default function BomDetail() {
                 <button type="button" onClick={() => setConfirm({ kind: 'terbit' })} className="btn btn-primary" disabled={!lines.length}>Terbitkan</button>
               </>
             )}
+            {bom.status === 'final' && (
+              usulanBerjalan ? (
+                <Link href={`/gudang/usulan/${usulanBerjalan.id}`} className="btn btn-secondary">
+                  {nomorUsulan(usulanBerjalan.id)} · {USULAN_STATUS[usulanBerjalan.status]?.label}
+                </Link>
+              ) : (
+                writable && (
+                  <button type="button" onClick={() => setConfirm({ kind: 'sisihkan' })} className="btn btn-primary">Sisihkan stok & usulkan pembelian</button>
+                )
+              )
+            )}
             {writable && bom.status === 'final' && (
               draftRevision ? (
                 <Link href={`/gudang/bom/${draftRevision.id}`} className="btn btn-secondary">Lanjutkan draf Rev. {draftRevision.revisi}</Link>
@@ -368,13 +411,25 @@ export default function BomDetail() {
       {bom.status === 'diganti' && (
         <p className="text-sm text-amberink -mt-2">Revisi ini sudah diganti revisi yang lebih baru. Pakai revisi terbaru untuk cek stok dan pengadaan.</p>
       )}
+      {bom.status === 'final' && (
+        <p className="text-sm text-inkmute -mt-2">
+          {terakhirDisisihkan
+            ? `Stok disisihkan untuk BOM ini: ${penyisihan.length} kode barang (${fmtWaktu(terakhirDisisihkan.dibuat_pada)} oleh ${terakhirDisisihkan.dibuat_oleh}).`
+            : usulanBerjalan
+              ? 'Belum ada stok gudang yang bisa disisihkan untuk BOM ini; semua kebutuhan masuk usulan pembelian.'
+              : 'Langkah berikutnya: sisihkan stok gudang yang tersedia untuk project ini. Kekurangannya menjadi usulan pembelian yang disetujui Direksi.'}
+          {usulanList.filter((u) => u !== usulanBerjalan).map((u) => (
+            <span key={u.id}> · <Link href={`/gudang/usulan/${u.id}`} className="text-blueprint hover:underline">{nomorUsulan(u.id)} ({USULAN_STATUS[u.status]?.label})</Link></span>
+          ))}
+        </p>
+      )}
 
       <StatStrip
         label="Ringkasan BOM"
         items={[
           { key: 'n', label: 'Baris', value: lines.length, tone: 'ink', hint: `${check.length} kode barang` },
           { key: 'kosong', label: 'Jumlah belum diisi', value: nKosong, tone: 'amber', dim: nKosong === 0, hint: draf ? 'Wajib sebelum terbit' : 'Semua terisi' },
-          { key: 'cukup', label: 'Stok cukup', value: nCukup, tone: 'teal', dim: nCukup === 0, hint: 'Kode barang', onClick: () => setView('stok') },
+          { key: 'cukup', label: 'Stok cukup', value: nCukup, tone: 'teal', dim: nCukup === 0, hint: penyisihan.length ? `${penyisihan.length} kode disisihkan` : 'Kode barang', onClick: () => setView('stok') },
           { key: 'kurang', label: 'Stok kurang', value: nKurang, tone: 'rust', dim: nKurang === 0, hint: 'Lihat Cek stok', onClick: () => setView('stok') },
         ]}
       />
@@ -527,17 +582,18 @@ export default function BomDetail() {
       ) : (
         <Panel
           title="Cek stok"
-          hint="Kebutuhan dijumlahkan per kode barang lalu dibandingkan dengan stok gudang di semua lokasi. Stok belum disisihkan per project, jadi satu stok bisa terhitung di beberapa BOM."
+          hint="Kebutuhan dijumlahkan per kode barang lalu dibandingkan dengan stok tersedia: stok gudang di semua lokasi dikurangi yang sudah disisihkan untuk BOM project lain."
           flush
         >
           <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm">
-              <caption className="sr-only">Kebutuhan BOM dibandingkan stok gudang</caption>
+              <caption className="sr-only">Kebutuhan BOM dibandingkan stok tersedia</caption>
               <thead>
                 <tr className="border-b border-line text-left text-xs text-inkmute">
                   <th scope="col" className="px-5 py-3 font-medium">Barang</th>
                   <th scope="col" className="px-3 py-3 font-medium text-right">Kebutuhan</th>
-                  <th scope="col" className="px-3 py-3 font-medium text-right">Stok gudang</th>
+                  <th scope="col" className="px-3 py-3 font-medium text-right">Tersedia</th>
+                  {penyisihan.length > 0 && <th scope="col" className="px-3 py-3 font-medium text-right">Disisihkan</th>}
                   <th scope="col" className="px-5 py-3 font-medium text-right">Kurang</th>
                 </tr>
               </thead>
@@ -552,7 +608,11 @@ export default function BomDetail() {
                       {fmtQty(c.butuh)} {c.satuan}
                       {c.kosong > 0 && <span className="block text-xs text-amberink">{c.kosong} baris belum diisi</span>}
                     </td>
-                    <td className="px-3 py-3 text-right tnum whitespace-nowrap">{fmtQty(c.stok)}</td>
+                    <td className="px-3 py-3 text-right tnum whitespace-nowrap">
+                      {fmtQty(c.tersedia)}
+                      {c.lain > 0 && <span className="block text-xs text-inkmute">stok {fmtQty(c.stok)}, BOM lain {fmtQty(c.lain)}</span>}
+                    </td>
+                    {penyisihan.length > 0 && <td className="px-3 py-3 text-right tnum whitespace-nowrap">{c.sisih ? fmtQty(c.sisih) : '-'}</td>}
                     <td className={`px-5 py-3 text-right tnum whitespace-nowrap font-medium ${c.kurang > 0 ? 'text-rust' : 'text-teal'}`}>
                       {c.kurang > 0 ? fmtQty(c.kurang) : 'Cukup'}
                     </td>
@@ -566,7 +626,10 @@ export default function BomDetail() {
               <li key={c.kode} className="px-4 py-3">
                 <span className="block text-ink">{barangLabel(c.barang || { nama: c.kode })}</span>
                 <span className="flex items-center justify-between gap-3 mt-1 text-xs">
-                  <span className="text-inkmute"><span className="font-data">{c.kode}</span> · butuh {fmtQty(c.butuh)} {c.satuan} · stok {fmtQty(c.stok)}</span>
+                  <span className="text-inkmute">
+                    <span className="font-data">{c.kode}</span> · butuh {fmtQty(c.butuh)} {c.satuan} · tersedia {fmtQty(c.tersedia)}
+                    {c.sisih ? ` · disisihkan ${fmtQty(c.sisih)}` : ''}
+                  </span>
                   <span className={`font-medium ${c.kurang > 0 ? 'text-rust' : 'text-teal'}`}>{c.kurang > 0 ? `Kurang ${fmtQty(c.kurang)}` : 'Cukup'}</span>
                 </span>
               </li>
@@ -612,6 +675,15 @@ export default function BomDetail() {
         title={`Terbitkan BOM Rev. ${bom.revisi}?`}
         description={`${lines.length} baris, ${check.length} kode barang. Sesudah diterbitkan, baris BOM terkunci; perubahan berikutnya lewat revisi baru.${bom.revisi_dari ? ' Revisi sebelumnya akan ditandai diganti.' : ''}${nKosong ? ` ${nKosong} baris belum punya jumlah, jadi penerbitan akan ditolak.` : ''}`}
         confirmText={acting ? 'Menerbitkan...' : 'Terbitkan'}
+        danger={false}
+        onConfirm={runConfirm}
+        onCancel={() => !acting && setConfirm(null)}
+      />
+      <ConfirmModal
+        open={confirm?.kind === 'sisihkan'}
+        title="Sisihkan stok dan buat usulan pembelian?"
+        description={`${nAda ? `Stok gudang yang tersedia untuk ${nAda} kode barang disisihkan untuk ${bom.project_nama}, sehingga tidak terpakai BOM lain.` : 'Belum ada stok gudang yang tersedia untuk barang di BOM ini.'} ${nKurang ? `${nKurang} kode barang masih kurang (seluruhnya atau sebagian) dan masuk draf usulan pembelian; jumlah dan estimasi harganya bisa disesuaikan sebelum diajukan ke Direksi.` : 'Tidak ada yang kurang, jadi tidak ada usulan pembelian.'}${penyisihan.length ? ' Penyisihan sebelumnya untuk BOM ini dihitung ulang dari stok saat ini.' : ''}`}
+        confirmText={acting ? 'Memproses...' : 'Sisihkan dan buat usulan'}
         danger={false}
         onConfirm={runConfirm}
         onCancel={() => !acting && setConfirm(null)}

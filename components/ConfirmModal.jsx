@@ -10,6 +10,8 @@ export default function ConfirmModal({
   onConfirm,
   onCancel,
   danger = true,
+  confirmDisabled = false,
+  children,
 }) {
   const [typed, setTyped] = useState('');
 
@@ -27,7 +29,7 @@ export default function ConfirmModal({
 
   if (!open) return null;
 
-  const canConfirm = !requireText || typed === requireText;
+  const canConfirm = (!requireText || typed === requireText) && !confirmDisabled;
 
   return (
     <div
@@ -60,6 +62,8 @@ export default function ConfirmModal({
             />
           </div>
         )}
+
+        {children /* isian tambahan, mis. alasan penolakan */}
 
         <div className="flex gap-3 justify-end mt-2">
           <button type="button" onClick={onCancel} className="btn btn-ghost">
