@@ -67,7 +67,10 @@ Data project tetap di Google Sheet; penghubungnya Project ID `prj_xxxx`.
 - Revisi BOM (migrasi `20261031000200`): `disetujui_revisi_lama(p_bom_id)` menjumlahkan jumlah beli usulan `disetujui` di
   semua revisi sebelumnya. `sisihkan_dan_usulkan` menganggap jumlah itu akan datang: sisihkan = min(kebutuhan - sudah
   disetujui, stok tersedia), beli = sisanya (kolom `qty_disetujui_sebelumnya`), jadi revisi tidak memicu pembelian ganda.
-- **Uji otomatis**: `tests/usulan_pembelian.sql` (9 skenario termasuk revisi). Blok `do` yang selalu diakhiri galat:
+- `kembalikan_usulan(p_id, p_email, p_catatan)` (migrasi `20261031000300`): diajukan → draf dengan catatan apa yang perlu
+  dilengkapi (wajib); disimpan di `dikembalikan_oleh`, `dikembalikan_pada`, `catatan_dikembalikan`. Kolom baru
+  `usulan_pembelian.vendor` dan `tautan_penawaran` (harus `https://`, dicek database) untuk dilihat Direksi.
+- **Uji otomatis**: `tests/usulan_pembelian.sql` (10 skenario termasuk revisi dan pengembalian). Blok `do` yang selalu diakhiri galat:
   "LULUS: ..." berarti semua lulus, galat lain menyebut skenario yang gagal. Tidak ada data yang tersisa, tetapi nomor
   urut BOM/usulan yang terpakai tidak kembali.
 

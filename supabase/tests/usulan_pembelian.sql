@@ -1,4 +1,4 @@
--- Uji penyisihan stok dan usulan pembelian. Jalankan lewat SQL editor Supabase atau MCP execute_sql.
+-- Uji penyisihan stok dan usulan pembelian (10 skenario). Jalankan lewat SQL editor Supabase atau MCP execute_sql.
 -- Semua perubahan SELALU dibatalkan: blok ini diakhiri RAISE, jadi tidak ada data uji yang tersisa.
 --   Hasil lulus  : galat "LULUS: ..." (memang galat, supaya transaksinya dibatalkan)
 --   Hasil gagal  : galat "assertion failed" / "GAGAL ..." dengan nama skenario yang gagal
@@ -112,5 +112,26 @@ begin
   assert (select qty_disetujui_sebelumnya || '/' || qty_beli from public.usulan_pembelian_baris
            where usulan_id = (r->>'usulan_id')::bigint and barang_kode = c) = '1/3', '9: Rev. 2 C ' || r::text;
 
-  raise exception 'LULUS: 9 skenario usulan pembelian (semua perubahan dibatalkan)';
+  -- 10. Kembalikan untuk dilengkapi: hanya dari diajukan, alasan wajib; sesudahnya bisa diubah dan diajukan lagi.
+  --     Tautan penawaran harus https.
+  u1 := (r->>'usulan_id')::bigint;  -- usulan Rev. 2 (draf) dari skenario 9
+  begin perform public.kembalikan_usulan(u1, 'dir', 'x'); ditolak := false;
+  exception when others then ditolak := true; end;
+  assert ditolak, '10: draf tidak boleh dikembalikan';
+  perform public.ajukan_usulan(u1, 'uji');
+  begin perform public.kembalikan_usulan(u1, 'dir', ' '); ditolak := false;
+  exception when others then ditolak := true; end;
+  assert ditolak, '10: kembalikan tanpa catatan harus ditolak';
+  perform public.kembalikan_usulan(u1, 'dir', 'Lampirkan penawaran vendor');
+  assert (select status || '|' || catatan_dikembalikan || '|' || dikembalikan_oleh from public.usulan_pembelian where id = u1)
+       = 'draf|Lampirkan penawaran vendor|dir', '10: status dan catatan pengembalian';
+  update public.usulan_pembelian_baris set qty_beli = 4 where usulan_id = u1 and barang_kode = c;
+  begin update public.usulan_pembelian set tautan_penawaran = 'http://contoh' where id = u1; ditolak := false;
+  exception when others then ditolak := true; end;
+  assert ditolak, '10: tautan penawaran tanpa https harus ditolak';
+  update public.usulan_pembelian set vendor = 'PT Contoh', tautan_penawaran = 'https://drive.google.com/x' where id = u1;
+  perform public.ajukan_usulan(u1, 'uji');
+  assert (select status from public.usulan_pembelian where id = u1) = 'diajukan', '10: diajukan ulang';
+
+  raise exception 'LULUS: 10 skenario usulan pembelian (semua perubahan dibatalkan)';
 end $$;

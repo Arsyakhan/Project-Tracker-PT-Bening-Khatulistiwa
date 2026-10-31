@@ -123,6 +123,16 @@ h1, h2, h3, .font-display {
   font-variant-numeric: tabular-nums;
 }
 
+/* Bayangan tipis di tepi atas/bawah daftar yang bisa di-scroll (menu samping di layar pendek). Hanya tampak kalau
+   memang ada isi yang tersembunyi: lapisan "local" ikut bergulir dan menutupi bayangan saat sudah di ujung. */
+.scroll-shadow {
+  background:
+    linear-gradient(rgb(var(--color-panel)) 30%, rgb(var(--color-panel) / 0)) center top / 100% 32px no-repeat local,
+    linear-gradient(rgb(var(--color-panel) / 0), rgb(var(--color-panel)) 70%) center bottom / 100% 32px no-repeat local,
+    radial-gradient(farthest-side at 50% 0, rgb(var(--color-ink) / 0.16), transparent) center top / 100% 10px no-repeat scroll,
+    radial-gradient(farthest-side at 50% 100%, rgb(var(--color-ink) / 0.16), transparent) center bottom / 100% 10px no-repeat scroll;
+}
+
 /* Tautan/tombol teks kecil: area sentuh dilebarkan sampai 44px di HP dan layar sentuh tanpa
    mengubah tata letak. Jangan dipakai pada elemen overflow:hidden (mis. line-clamp). */
 .tap {

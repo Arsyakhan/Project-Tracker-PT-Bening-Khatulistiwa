@@ -38,7 +38,9 @@ export default function StagePipeline({ current, weights = {}, onSelect }) {
                       title={`${stage}${weight != null ? ` (${weight}%)` : ''}`}
                       aria-label={`Tahap ${idx + 1}: ${stage}`}
                       aria-current={active ? 'step' : undefined}
-                      className={`shrink-0 p-1.5 -m-1.5 rounded-full ${interactive ? 'cursor-pointer' : 'cursor-default'}`}
+                      // Di HP titiknya 26 px dan berdempetan: salah sentuh bisa mengganti tahap. Di sana tahap diganti lewat
+                      // pilihan "Stage saat ini" di tab Ringkasan, jadi titik hanya tampilan.
+                      className={`shrink-0 p-1.5 -m-1.5 rounded-full ${interactive ? 'md:cursor-pointer max-md:pointer-events-none' : 'cursor-default'}`}
                     >
                       <span
                         className={`block rounded-full border-2 transition-all ${
@@ -71,7 +73,7 @@ export default function StagePipeline({ current, weights = {}, onSelect }) {
         ) : (
           'Tahap belum diatur'
         )}
-        {interactive && <span className="hidden sm:inline text-xs ml-3 text-inkmute">Klik titik untuk mengganti tahap</span>}
+        {interactive && <span className="hidden md:inline text-xs ml-3 text-inkmute">Klik titik untuk mengganti tahap</span>}
       </p>
     </div>
   );

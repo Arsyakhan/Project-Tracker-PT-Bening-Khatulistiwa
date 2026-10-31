@@ -89,7 +89,7 @@ function NavItem({ item, active, onNavigate }) {
         href={item.href}
         onClick={onNavigate}
         aria-current={active ? 'page' : undefined}
-        className={`relative flex items-center gap-3 px-3 h-10 rounded-lg text-sm transition-colors ${
+        className={`relative flex items-center gap-3 px-3 h-9 max-lg:h-10 rounded-lg text-sm transition-colors ${
           active ? 'bg-blueprint/10 text-blueprint font-semibold' : 'text-inkmute font-medium hover:bg-canvas hover:text-ink'
         }`}
       >
@@ -108,43 +108,45 @@ export default function Sidebar({ pathname, session, recentProjects, isDark, onN
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-5 pt-5 pb-4">
+      <div className="flex items-center justify-between px-5 pt-5 pb-3">
         {/* Logo bergerak: tetesnya surut dan bergelombang selama halaman dimuat (useRouteBusy) */}
         <Link href="/" onClick={onNavigate} className="flex items-center -m-1 p-1 rounded-lg" aria-label="Bening Hub, ke beranda">
           <BeningLogo height={15} tagline="Super App" busy={busy} intro />
         </Link>
         {onClose && (
-          <button type="button" onClick={onClose} aria-label="Tutup menu" autoFocus className="md:hidden p-2.5 -mr-2.5 rounded-md text-inkmute hover:bg-canvas hover:text-ink">
+          <button type="button" onClick={onClose} aria-label="Tutup menu" autoFocus className="lg:hidden p-2.5 -mr-2.5 rounded-md text-inkmute hover:bg-canvas hover:text-ink">
             <Icon d={ICONS.close} className="w-5 h-5" />
           </button>
         )}
       </div>
 
-      <div className="px-3 flex flex-col gap-2">
+      {/* Cari + Project baru dalam satu baris, supaya menu muat di layar laptop 768 px (tombol besar "Project baru" ada di
+          kepala halaman Hari Ini dan Project). */}
+      <div className="px-3 flex gap-2">
         <button
           type="button"
           onClick={onSearch}
-          className="w-full flex items-center gap-2.5 px-3 h-10 rounded-lg border border-line bg-canvas hover:border-blueprint/50 text-inkmute text-sm transition-colors"
+          className="flex-1 min-w-0 flex items-center gap-2 px-2.5 h-9 max-lg:h-10 rounded-lg border border-line bg-canvas hover:border-blueprint/50 text-inkmute text-[13px] transition-colors"
         >
           <Icon d={ICONS.search} className="w-4 h-4 flex-shrink-0" strokeWidth={2} />
-          <span className="flex-1 text-left">Cari project...</span>
-          <kbd className="hidden md:inline text-[10px] font-data border border-line rounded px-1.5 py-0.5 bg-panel">Ctrl K</kbd>
+          <span className="flex-1 text-left truncate">Cari project</span>
+          <kbd className="hidden lg:inline text-[10px] font-data border border-line rounded px-1.5 py-0.5 bg-panel">Ctrl K</kbd>
         </button>
-
         <Link
           href="/projects/new"
           onClick={onNavigate}
-          className="flex items-center justify-center gap-2 h-10 bg-blueprint hover:bg-blueprintdark text-onaccent font-medium text-sm rounded-lg shadow-sm transition-colors"
+          aria-label="Project baru"
+          title="Project baru"
+          className="flex-shrink-0 flex items-center justify-center w-9 h-9 max-lg:w-10 max-lg:h-10 bg-blueprint hover:bg-blueprintdark text-onaccent rounded-lg shadow-sm transition-colors"
         >
           <Icon d={ICONS.plus} className="w-4 h-4" strokeWidth={2.5} />
-          Project Baru
         </Link>
       </div>
 
-      <nav aria-label="Menu utama" className="flex-1 overflow-y-auto px-3 pt-4 pb-2 flex flex-col gap-4">
+      <nav aria-label="Menu utama" className="scroll-shadow flex-1 overflow-y-auto px-3 pt-3 pb-2 flex flex-col gap-3">
         {NAV_GROUPS.map((group) => (
           <div key={group.label}>
-            <span className="px-3 pb-1.5 block text-xs font-semibold text-inkmute">{group.label}</span>
+            <span className="px-3 pb-1 block text-xs font-semibold text-inkmute">{group.label}</span>
             <ul className="flex flex-col gap-0.5">
               {group.items.map((item) => (
                 <NavItem key={item.href} item={item} active={isCurrent(pathname, item.href)} onNavigate={onNavigate} />
@@ -155,7 +157,7 @@ export default function Sidebar({ pathname, session, recentProjects, isDark, onN
 
         {recentProjects.length > 0 && (
           <div>
-            <span className="px-3 pb-1.5 block text-xs font-semibold text-inkmute">Terakhir dibuka</span>
+            <span className="px-3 pb-1 block text-xs font-semibold text-inkmute">Terakhir dibuka</span>
             <ul className="flex flex-col gap-0.5">
               {recentProjects.map((p) => {
                 const href = `/projects/${encodeURIComponent(p.id)}`;
@@ -165,7 +167,7 @@ export default function Sidebar({ pathname, session, recentProjects, isDark, onN
                       href={href}
                       onClick={onNavigate}
                       title={p.projectName}
-                      className="flex items-center gap-2.5 px-3 h-8 max-md:h-10 rounded-md text-xs max-md:text-sm text-inkmute hover:bg-canvas hover:text-ink transition-colors"
+                      className="flex items-center gap-2.5 px-3 h-8 max-lg:h-10 rounded-md text-xs max-lg:text-sm text-inkmute hover:bg-canvas hover:text-ink transition-colors"
                     >
                       <span className="w-1.5 h-1.5 rounded-full bg-blueprint/60 flex-shrink-0" aria-hidden="true" />
                       <span className="truncate">{p.projectName || p.poNumber}</span>
@@ -178,49 +180,47 @@ export default function Sidebar({ pathname, session, recentProjects, isDark, onN
         )}
       </nav>
 
-      <div className="px-3 pt-3 pb-4 border-t border-line flex flex-col gap-2">
-        <ul aria-label="Menu lainnya" className="flex flex-col gap-0.5 -mt-1">
+      {/* Akun, tema, dan keluar dalam satu baris (hemat tinggi supaya semua menu muat di layar laptop). */}
+      <div className="px-3 pt-2 pb-3 border-t border-line flex flex-col gap-2">
+        <ul aria-label="Menu lainnya" className="flex flex-col gap-0.5">
           {NAV_FOOTER.map((item) => (
             <NavItem key={item.href} item={item} active={isCurrent(pathname, item.href)} onNavigate={onNavigate} />
           ))}
         </ul>
-        {user?.email && (
-          <div className="flex items-center gap-3 px-2.5 py-2 rounded-lg bg-canvas border border-line">
-            {user.image ? (
-              <img src={user.image} alt="" className="w-9 h-9 rounded-full flex-shrink-0 ring-2 ring-panel" />
-            ) : (
-              <span className="w-9 h-9 rounded-full flex-shrink-0 bg-blueprint text-onaccent text-xs font-semibold flex items-center justify-center" aria-hidden="true">
-                {initials(user.email)}
+        <div className="flex items-center gap-2 pl-2 pr-1 py-1.5 rounded-lg bg-canvas border border-line">
+          {user?.image ? (
+            <img src={user.image} alt="" className="w-8 h-8 rounded-full flex-shrink-0 ring-2 ring-panel" />
+          ) : (
+            <span className="w-8 h-8 rounded-full flex-shrink-0 bg-blueprint text-onaccent text-xs font-semibold flex items-center justify-center" aria-hidden="true">
+              {initials(user?.email)}
+            </span>
+          )}
+          <div className="min-w-0 flex-1">
+            <span className="block text-xs text-ink font-medium truncate" title={user?.email}>{user?.email || 'Belum masuk'}</span>
+            {user?.role && (
+              <span className={`inline-block mt-0.5 text-xs leading-4 px-1.5 rounded ${viewer ? 'bg-amber/15 text-amberink font-semibold' : 'bg-blueprint/10 text-blueprint font-medium'}`}>
+                {roleLabel(user.role)}
               </span>
             )}
-            <div className="min-w-0">
-              <span className="block text-xs text-ink font-medium truncate" title={user.email}>{user.email}</span>
-              {user.role && (
-                <span className={`inline-block mt-0.5 text-xs leading-4 px-1.5 rounded ${viewer ? 'bg-amber/15 text-amberink font-semibold' : 'bg-blueprint/10 text-blueprint font-medium'}`}>
-                  {roleLabel(user.role)}
-                </span>
-              )}
-            </div>
           </div>
-        )}
-
-        <div className="grid grid-cols-2 gap-2">
           <button
             type="button"
             onClick={onToggleTheme}
             aria-pressed={isDark}
-            className="flex items-center justify-center gap-2 h-9 max-md:h-10 rounded-lg border border-line text-inkmute hover:bg-canvas hover:text-ink text-xs font-medium transition-colors"
+            aria-label={isDark ? 'Pakai tema terang' : 'Pakai tema gelap'}
+            title={isDark ? 'Tema terang' : 'Tema gelap'}
+            className="flex-shrink-0 flex items-center justify-center w-9 h-9 max-lg:w-10 max-lg:h-10 rounded-md text-inkmute hover:bg-panel hover:text-ink transition-colors"
           >
             <Icon d={isDark ? ICONS.today : ICONS.moon} className="w-4 h-4" />
-            {isDark ? 'Terang' : 'Gelap'}
           </button>
           <button
             type="button"
             onClick={onLogout}
-            className="flex items-center justify-center gap-2 h-9 max-md:h-10 rounded-lg border border-line text-rust hover:bg-rust/10 hover:border-rust/30 text-xs font-medium transition-colors"
+            aria-label="Keluar"
+            title="Keluar"
+            className="flex-shrink-0 flex items-center justify-center w-9 h-9 max-lg:w-10 max-lg:h-10 rounded-md text-rust hover:bg-rust/10 transition-colors"
           >
             <Icon d={ICONS.logout} className="w-4 h-4" />
-            Keluar
           </button>
         </div>
       </div>

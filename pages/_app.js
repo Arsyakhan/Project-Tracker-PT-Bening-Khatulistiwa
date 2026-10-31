@@ -116,21 +116,21 @@ function Shell({ Component, pageProps }) {
       {isLoginPage ? (
         <Component {...pageProps} />
       ) : (
-        <div className="min-h-screen bg-canvas md:flex">
-          {/* Sidebar - desktop: selalu tampil & fixed; mobile: panel geser dari kiri */}
-          <aside className="hidden md:flex md:flex-col md:w-64 md:flex-shrink-0 md:fixed md:inset-y-0 md:left-0 bg-panel border-r border-line z-30">
+        <div className="min-h-screen bg-canvas lg:flex">
+          {/* Sidebar - layar >= 1024 px: selalu tampil & fixed; HP dan tablet: panel geser dari kiri (di tablet sidebar tetap menyisakan isi terlalu sempit) */}
+          <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:flex-shrink-0 lg:fixed lg:inset-y-0 lg:left-0 bg-panel border-r border-line z-30">
             {sidebarContent()}
           </aside>
 
           {mobileNavOpen && (
-            <div role="dialog" aria-modal="true" aria-label="Menu navigasi" className="md:hidden fixed inset-0 z-40 flex">
+            <div role="dialog" aria-modal="true" aria-label="Menu navigasi" className="lg:hidden fixed inset-0 z-40 flex">
               <div className="w-72 max-w-[85vw] bg-panel border-r border-line shadow-xl">{sidebarContent(closeNav)}</div>
               <div className="flex-1 bg-black/50 backdrop-blur-sm" onClick={() => setMobileNavOpen(false)} />
             </div>
           )}
 
           {/* Top bar mobile - cuma logo + tombol hamburger */}
-          <header className="md:hidden sticky top-0 z-20 bg-panel border-b border-line flex items-center justify-between px-4 py-3">
+          <header className="lg:hidden sticky top-0 z-20 bg-panel border-b border-line flex items-center justify-between px-4 py-3">
             <Link href="/" className="flex items-center py-1.5 -my-1.5" aria-label="Bening Hub, ke beranda">
               <BeningLogo height={13} busy={routeBusy} intro />
             </Link>
@@ -141,7 +141,7 @@ function Shell({ Component, pageProps }) {
             </button>
           </header>
 
-          <main id="konten" tabIndex={-1} className="flex-1 md:pl-64 min-w-0 outline-none">
+          <main id="konten" tabIndex={-1} className="flex-1 lg:pl-64 min-w-0 outline-none">
             <div className="max-w-6xl mx-auto px-5 py-6 md:px-10 md:py-10">
               {session?.user?.role === 'viewer' && (
                 <div role="status" className="mb-6 flex items-start gap-3 bg-amber/10 border border-amber/30 border-l-4 border-l-amber rounded-lg px-4 py-3 text-sm text-ink">

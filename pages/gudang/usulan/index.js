@@ -120,7 +120,13 @@ export default function UsulanList() {
                     </span>
                     <span className="block text-xs text-inkmute mt-0.5 truncate">
                       {u.bom ? `${u.bom.judul} Rev. ${u.bom.revisi}` : 'BOM'} · {u.jumlah_barang} barang ·{' '}
-                      {u.status === 'diajukan' ? `diajukan ${fmtWaktu(u.diajukan_pada)}` : u.diputuskan_pada ? `diputuskan ${fmtWaktu(u.diputuskan_pada)}` : `diubah ${fmtWaktu(u.diubah_pada)}`}
+                      {u.status === 'diajukan'
+                        ? `diajukan ${fmtWaktu(u.diajukan_pada)}`
+                        : u.diputuskan_pada
+                          ? `diputuskan ${fmtWaktu(u.diputuskan_pada)}`
+                          : u.dikembalikan_pada
+                            ? <span className="text-amberink">dikembalikan untuk dilengkapi {fmtWaktu(u.dikembalikan_pada)}</span>
+                            : `diubah ${fmtWaktu(u.diubah_pada)}`}
                     </span>
                   </span>
                   <span className="flex items-center justify-between sm:justify-end gap-6">

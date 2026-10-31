@@ -54,7 +54,10 @@ Semua pasangan teks lolos WCAG AA (>= 4,5:1) di `canvas` dan `panel`, di kedua t
 
 ## Ruang, bentuk, bayangan
 
-- Spasi berbasis 4 px (skala Tailwind). Konten maksimal `max-w-6xl`, sidebar 256 px.
+- Spasi berbasis 4 px (skala Tailwind). Konten maksimal `max-w-6xl`, sidebar 256 px yang tetap tampil mulai 1024 px
+  (di bawahnya menu geser dari header). Semua menu sidebar harus muat di laptop 1366×768 tanpa digulir.
+- Tabel lebar berganti kartu di layar yang tidak muat (tabel project: mulai 1280 px); jangan menyembunyikan kolom
+  penting di balik gulir mendatar.
 - Radius: kontrol 8 px (`rounded-lg`), panel 12 px (`rounded-xl`), pil `rounded-full`.
 - Bayangan bernada navy: `shadow-sm` (`--shadow-soft`) untuk panel, `shadow-md` (`--shadow-lift`) untuk hover dan menu.
 

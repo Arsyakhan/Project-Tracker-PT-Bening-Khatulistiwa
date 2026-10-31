@@ -13,7 +13,7 @@ import {
   listOpname, getOpname, createOpname, deleteOpname, saveOpnameLine, deleteOpnameLine, postOpname,
   listBom, getBom, getBomSumber, createBom, revisiBom, updateBom, deleteBom, saveBomLine, deleteBomLine, terbitkanBom,
   bisaMemutuskan, listUsulan, getUsulan, buatUsulan, updateUsulan, deleteUsulan, saveUsulanLine, deleteUsulanLine,
-  ajukanUsulan, putuskanUsulan,
+  ajukanUsulan, putuskanUsulan, kembalikanUsulan,
 } from '../../lib/gudangServer';
 
 const MSG_BUKAN_DIREKSI = 'Usulan pembelian hanya bisa diputuskan oleh Direksi (atau Admin selama belum ada Direksi yang terdaftar).';
@@ -43,7 +43,8 @@ const POST_ACTIONS = {
   saveUsulanLine,
   deleteUsulanLine,
   ajukanUsulan,
-  putuskanUsulan, // juga wajib lolos bisaMemutuskan (lihat handler)
+  putuskanUsulan, // putuskan dan kembalikan juga wajib lolos bisaMemutuskan (lihat handler)
+  kembalikanUsulan,
 };
 
 function fail(res, status, message, code) {
@@ -109,7 +110,7 @@ export default async function handler(req, res) {
       if (!fn) return fail(res, 400, 'Action tidak dikenal.');
       const role = getRoleForEmail(email);
       if (!canWrite(role)) return fail(res, 403, MSG_VIEWER);
-      if (body.action === 'putuskanUsulan' && !(await bisaMemutuskan(email, role))) return fail(res, 403, MSG_BUKAN_DIREKSI);
+      if (['putuskanUsulan', 'kembalikanUsulan'].includes(body.action) && !(await bisaMemutuskan(email, role))) return fail(res, 403, MSG_BUKAN_DIREKSI);
       return res.status(200).json({ ok: true, data: await fn(body.payload || {}, email) });
     }
 
