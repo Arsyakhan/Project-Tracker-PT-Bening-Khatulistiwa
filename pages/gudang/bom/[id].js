@@ -32,7 +32,7 @@ const r3 = (n) => Math.round(n * 1000) / 1000;
 // Kebutuhan per barang (jumlah semua baris dengan kode yang sama) dibandingkan dengan stok tersedia = stok gudang semua
 // lokasi dikurangi yang sudah disisihkan untuk BOM lain. ownCounted: penyisihan BOM ini ikut terhitung di `disisihkan`
 // (view stok_tersedia hanya menghitung BOM final), jadi dikurangkan kembali supaya tidak terhitung dua kali.
-function stockCheck(lines, stokOf, ownOf, ownCounted) {
+function stockCheck(lines, stokOf, ownOf, ownCounted, diserahkanOf = {}) {
   const m = new Map();
   lines.forEach((l) => {
     const cur = m.get(l.barang_kode) || { kode: l.barang_kode, barang: l.barang, satuan: l.satuan, butuh: 0, kosong: 0, baris: 0 };
@@ -46,14 +46,17 @@ function stockCheck(lines, stokOf, ownOf, ownCounted) {
     const sisih = ownOf[r.kode] || 0;
     const lain = Math.max(0, r3(s.disisihkan - (ownCounted ? sisih : 0)));
     const tersedia = Math.max(0, r3(s.stok - lain));
-    const kurang = Math.max(0, r3(r.butuh - tersedia));
-    return { ...r, stok: s.stok, lain, tersedia, sisih, kurang, cukup: kurang === 0 };
+    // Yang sudah diserahkan ke teknisi tidak dibutuhkan lagi dari gudang.
+    const diserahkan = diserahkanOf[r.kode] || 0;
+    const kurang = Math.max(0, r3(r.butuh - diserahkan - tersedia));
+    return { ...r, stok: s.stok, lain, tersedia, sisih, diserahkan, kurang, cukup: kurang === 0 };
   });
 }
 
 function StockBadge({ s }) {
   if (!s) return null;
-  if (s.sisih > 0 && s.sisih >= s.butuh) return <span className="text-xs text-teal whitespace-nowrap">Disisihkan {fmtQty(s.sisih)}</span>;
+  if (s.diserahkan > 0 && s.diserahkan >= s.butuh) return <span className="text-xs text-teal whitespace-nowrap">Diserahkan {fmtQty(s.diserahkan)}</span>;
+  if (s.sisih > 0 && s.sisih + s.diserahkan >= s.butuh) return <span className="text-xs text-teal whitespace-nowrap">Disisihkan {fmtQty(s.sisih)}{s.diserahkan ? `, diserahkan ${fmtQty(s.diserahkan)}` : ''}</span>;
   if (s.cukup) return <span className="text-xs text-teal whitespace-nowrap">Tersedia {fmtQty(s.tersedia)}</span>;
   return <span className="text-xs text-rust whitespace-nowrap">Kurang {fmtQty(s.kurang)}{s.tersedia ? ` (tersedia ${fmtQty(s.tersedia)})` : ''}</span>;
 }
@@ -155,7 +158,8 @@ export default function BomDetail() {
     () => Object.fromEntries((data?.bom?.status === 'final' ? data.penyisihan || [] : []).map((p) => [p.barang_kode, p.qty])),
     [data]
   );
-  const check = useMemo(() => stockCheck(lines, stokOf, ownOf, data?.bom?.status === 'final'), [lines, stokOf, ownOf, data]);
+  const diserahkanOf = useMemo(() => Object.fromEntries((data?.diserahkan || []).map((d) => [d.kode, d.qty])), [data]);
+  const check = useMemo(() => stockCheck(lines, stokOf, ownOf, data?.bom?.status === 'final', diserahkanOf), [lines, stokOf, ownOf, data, diserahkanOf]);
   const checkOf = useMemo(() => Object.fromEntries(check.map((c) => [c.kode, c])), [check]);
   const bagianList = useMemo(() => Array.from(new Set(lines.map((l) => l.bagian).filter(Boolean))), [lines]);
   const results = useMemo(() => (editing || adding ? [] : searchKatalog(barangList, query, 8)), [barangList, query, editing, adding]);
@@ -613,7 +617,12 @@ export default function BomDetail() {
                       {fmtQty(c.tersedia)}
                       {c.lain > 0 && <span className="block text-xs text-inkmute">stok {fmtQty(c.stok)}, BOM lain {fmtQty(c.lain)}</span>}
                     </td>
-                    {penyisihan.length > 0 && <td className="px-3 py-3 text-right tnum whitespace-nowrap">{c.sisih ? fmtQty(c.sisih) : '-'}</td>}
+                    {penyisihan.length > 0 && (
+                      <td className="px-3 py-3 text-right tnum whitespace-nowrap">
+                        {c.sisih ? fmtQty(c.sisih) : '-'}
+                        {c.diserahkan > 0 && <span className="block text-xs text-teal">diserahkan {fmtQty(c.diserahkan)}</span>}
+                      </td>
+                    )}
                     <td className={`px-5 py-3 text-right tnum whitespace-nowrap font-medium ${c.kurang > 0 ? 'text-rust' : 'text-teal'}`}>
                       {c.kurang > 0 ? fmtQty(c.kurang) : 'Cukup'}
                     </td>

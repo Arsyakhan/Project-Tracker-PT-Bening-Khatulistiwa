@@ -57,7 +57,8 @@ export const NAV_GROUPS = [
       { href: '/gudang/usulan', label: 'Usulan Pembelian', icon: 'usulan' },
       { href: '/procurement', label: 'Pengadaan', icon: 'proc' },
       { href: '/gudang/katalog', label: 'Katalog Barang', icon: 'katalog' },
-      { href: '/gudang/opname', label: 'Stock Opname', icon: 'opname' },
+      // Stok Gudang = Stock opname + Serah terima (tab di halamannya)
+      { href: '/gudang/opname', label: 'Stok Gudang', icon: 'opname', match: ['/gudang/serah-terima'] },
     ],
   },
   {
@@ -149,7 +150,7 @@ export default function Sidebar({ pathname, session, recentProjects, isDark, onN
             <span className="px-3 pb-1 block text-xs font-semibold text-inkmute">{group.label}</span>
             <ul className="flex flex-col gap-0.5">
               {group.items.map((item) => (
-                <NavItem key={item.href} item={item} active={isCurrent(pathname, item.href)} onNavigate={onNavigate} />
+                <NavItem key={item.href} item={item} active={isCurrent(pathname, item.href) || (item.match || []).some((h) => isCurrent(pathname, h))} onNavigate={onNavigate} />
               ))}
             </ul>
           </div>
@@ -184,7 +185,7 @@ export default function Sidebar({ pathname, session, recentProjects, isDark, onN
       <div className="px-3 pt-2 pb-3 border-t border-line flex flex-col gap-2">
         <ul aria-label="Menu lainnya" className="flex flex-col gap-0.5">
           {NAV_FOOTER.map((item) => (
-            <NavItem key={item.href} item={item} active={isCurrent(pathname, item.href)} onNavigate={onNavigate} />
+            <NavItem key={item.href} item={item} active={isCurrent(pathname, item.href) || (item.match || []).some((h) => isCurrent(pathname, h))} onNavigate={onNavigate} />
           ))}
         </ul>
         <div className="flex items-center gap-2 pl-2 pr-1 py-1.5 rounded-lg bg-canvas border border-line">

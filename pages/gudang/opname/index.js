@@ -11,6 +11,7 @@ import RefreshStatus from '../../../components/RefreshStatus';
 import { SkeletonTable } from '../../../components/Skeleton';
 import { useToast } from '../../../components/Toast';
 import PageHeader from '../../../components/ui/PageHeader';
+import StokTabs from '../../../components/gudang/StokTabs';
 import Panel from '../../../components/ui/Panel';
 import EmptyState from '../../../components/ui/EmptyState';
 import OpnameStatus from '../../../components/gudang/OpnameStatus';
@@ -103,8 +104,9 @@ export default function StockOpname() {
 
   const header = (
     <PageHeader
-      title="Stock Opname"
+      title="Stok Gudang"
       meta="Hitung barang di gudang, lalu posting hasilnya sebagai stok. Barang yang tidak dihitung tidak berubah stoknya."
+      nav={<StokTabs active="opname" />}
       actions={
         <>
           <RefreshStatus refreshing={refreshing && !!data} staleError={staleError} />

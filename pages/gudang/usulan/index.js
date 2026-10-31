@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import useCachedResource from '../../../lib/useCachedResource';
-import { gudangApi, USULAN_STATUS, nomorUsulan, fmtRupiah, fmtWaktu } from '../../../lib/gudang';
+import { gudangApi, USULAN_STATUS, nomorUsulan, fmtRupiah, fmtWaktu, tahapPengadaan } from '../../../lib/gudang';
 import PageHead from '../../../components/PageHead';
 import RefreshStatus from '../../../components/RefreshStatus';
 import { SkeletonTable } from '../../../components/Skeleton';
@@ -134,7 +134,11 @@ export default function UsulanList() {
                       {u.estimasi > 0 ? <span className="text-ink">{fmtRupiah(u.estimasi)}</span> : <span className="text-inkmute">Belum ada harga</span>}
                       {u.estimasi > 0 && u.tanpa_harga > 0 && <span className="block text-xs text-amberink">{u.tanpa_harga} barang tanpa harga</span>}
                     </span>
-                    <span className="sm:w-44"><StatusDot status={USULAN_STATUS[u.status]} /></span>
+                    <span className="sm:w-48 flex flex-col items-end sm:items-start gap-0.5">
+                      <StatusDot status={USULAN_STATUS[u.status]} />
+                      {/* Usulan yang disetujui: tahap pemesanan dan penerimaan barang */}
+                      {tahapPengadaan(u, u) && <StatusDot status={tahapPengadaan(u, u)} />}
+                    </span>
                   </span>
                 </Link>
               </li>

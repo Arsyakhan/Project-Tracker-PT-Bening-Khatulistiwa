@@ -397,9 +397,31 @@ di `dikembalikan_oleh/_pada`, `catatan_dikembalikan` dan tampil sebagai catatan 
 **Revisi BOM tidak mengulang pembelian**: per kode barang, jumlah beli yang sudah `disetujui` di usulan revisi-revisi
 sebelumnya (rantai `revisi_dari`, fungsi `disetujui_revisi_lama`) dianggap akan datang untuk project ini: sisihkan =
 min(kebutuhan - sudah disetujui, stok tersedia), beli = sisanya; dicatat di `qty_disetujui_sebelumnya`. Uji otomatis:
-`supabase/tests/usulan_pembelian.sql` (10 skenario, selalu dibatalkan; jalankan lagi sesudah mengubah fungsi-fungsi ini). **Belum
-dibuat**: pemesanan oleh W&P, barang masuk (yang seharusnya menambah penyisihan project pemesan), serah terima ke teknisi
-(yang seharusnya mengurangi penyisihan), dan pemberitahuan usulan yang menunggu di halaman Hari Ini.
+`supabase/tests/usulan_pembelian.sql` (10 skenario, selalu dibatalkan; jalankan lagi sesudah mengubah fungsi-fungsi ini).
+
+**Pemesanan, penerimaan, dan serah terima (1 Nov 2026, migrasi `20261101000100` + `0200`):** melengkapi alur di atas
+sampai barang di tangan teknisi.
+
+1. **Pemesanan (W&P):** usulan `disetujui` diberi nomor PO, tanggal pesan, dan ETA (`catatPesanan`; salah satu dari
+   nomor PO atau tanggal pesan wajib).
+2. **Barang diterima:** `terima_barang` (atomik). Per baris usulan, jumlah yang datang ke satu lokasi gudang (bisa
+   bertahap, tidak boleh melebihi sisa jumlah beli) menjadi transaksi `masuk` (`usulan_baris_id`), menambah
+   `qty_diterima`, dan **langsung menambah penyisihan BOM pemesan**.
+3. **Serah terima ke teknisi:** `serahkan_barang` (atomik, advisory lock yang sama dengan penyisihan). Barang yang
+   disisihkan untuk BOM final project itu diserahkan dari satu lokasi: dokumen `serah_terima` (`ST-0001`), transaksi
+   `keluar` (`serah_terima_id`, `bom_id`), penyisihan berkurang. Bisa bertahap; ditolak kalau melebihi penyisihan atau
+   stok di lokasi itu.
+4. **Revisi BOM tetap tidak menggandakan:** kebutuhan efektif = kebutuhan BOM dikurangi yang sudah diserahkan untuk BOM
+   itu dan revisi sebelumnya (`diserahkan_bom`); pembelian revisi lama dihitung sebanyak yang **belum datang**
+   (`qty_beli - qty_diterima`; yang sudah datang sudah jadi stok dan penyisihan).
+
+Usulan `disetujui` tetap terkunci, kecuali kolom `qty_diterima` (diubah `terima_barang`). Aksi `/api/gudang`: GET
+`serahTerimaList`, `serahTerima&id=`, `serahTerimaSumber` (`project=` opsional: tanpa project = daftar project yang
+punya penyisihan, dengan project = barang yang disisihkan + stok per lokasi); POST `catatPesanan`, `terimaBarang`,
+`buatSerahTerima` (editor dan admin). GET `usulan&id=` kini membawa `lokasi` dan `penerimaan`; GET `bom&id=` membawa
+`diserahkan`. Tahap pengadaan satu usulan (Belum dipesan / Dipesan, menunggu barang / lewat ETA / Diterima X dari Y /
+Diterima lengkap) dihitung `tahapPengadaan` di `lib/gudang.js`. Uji otomatis: `supabase/tests/penerimaan_serah_terima.sql`
+(8 skenario). **Belum dibuat**: pengembalian barang dari teknisi (`kembali`) dan stok minimum.
 
 ## Kontrak yang harus sinkron (sumber bug paling umum)
 
@@ -503,14 +525,27 @@ Cloud) bersamaan. Penyebab lain yang belum tertutup: PWA iOS yang membuka login 
   engineering | Buat dokumen), Notulensi jadi menu **Rapat** sendiri, Aktivitas pindah ke bawah menu. Alamat lama
   (`/board`, `/engineering-docs`, `/documents/meetings/...`) dialihkan di `redirects()` `next.config.js`, jadi tautan
   lama, bookmark, dan PWA tetap jalan. Grup **Material & Gudang** berisi BOM Project, Usulan Pembelian, Pengadaan, Katalog
-  Barang, dan Stock Opname; barang masuk/keluar dan serah terima menyusul di grup yang sama.
+  Barang, dan **Stok Gudang** (1 Nov 2026: tab Stock opname | Serah terima, `components/gudang/StokTabs.jsx`; item menu
+  ikut aktif di `/gudang/serah-terima` lewat `match` di `NAV_GROUPS`).
 - **Usulan Pembelian** (`/gudang/usulan` + `/gudang/usulan/[id]`, 31 Okt 2026): dibuat dari halaman BOM final lewat tombol
   "Sisihkan stok & usulkan pembelian" (sesudah ada usulan berjalan, tombol itu menjadi tautan ke usulannya). Daftar: angka
   per status di `StatStrip` sekaligus filter, urutan Menunggu persetujuan → Draf → Disetujui → Ditolak. Detail: tabel
   kebutuhan / disisihkan / beli / harga / subtotal (kartu di HP), ubah baris di tempat, catatan usulan, riwayat (dibuat,
   diajukan, diputuskan, usulan lain dari BOM yang sama), Unduh CSV, Ajukan ke Direksi, serta Setujui / Tolak (alasan
   wajib; `ConfirmModal` kini menerima `children` dan `confirmDisabled`). Cek stok di halaman BOM memakai stok tersedia
-  (`stockCheck`: stok dikurangi penyisihan BOM lain; kolom Disisihkan tampil kalau BOM ini sudah punya penyisihan).
+  (`stockCheck`: stok dikurangi penyisihan BOM lain; kolom Disisihkan tampil kalau BOM ini sudah punya penyisihan;
+  sejak 1 Nov 2026 barang yang sudah diserahkan ke teknisi ikut dikurangi dari kekurangan dan tampil "diserahkan X").
+  Usulan `disetujui` punya panel **Pemesanan dan penerimaan** (`components/gudang/PengadaanPanel.jsx`): catat nomor PO,
+  tanggal pesan, ETA; "Catat barang diterima" (lokasi, tanggal, surat jalan, jumlah per barang yang belum lengkap); riwayat
+  penerimaan. Tahapnya juga tampil di daftar usulan.
+- **Serah terima** (`/gudang/serah-terima` + `/gudang/serah-terima/[id]`, 1 Nov 2026, tab kedua Stok Gudang): daftar dan
+  form (`components/gudang/SerahTerimaForm.jsx`: pilih project, lokasi asal, tanggal, teknisi penerima, catatan; jumlah
+  per barang yang disisihkan dengan stok di lokasi itu; "Isi semua yang tersedia"). `?baru=1&project=prj_xxx` membuka
+  form. Halaman dokumen bisa dicetak (tombol Cetak; kolom tanda tangan hanya tampil saat cetak, sidebar dan header HP
+  disembunyikan lewat varian `print:` di `pages/_app.js`).
+- **Panel "Usulan pembelian" di Hari Ini** (`GudangPanel` di `pages/index.js`, 1 Nov 2026): jumlah usulan yang menunggu
+  keputusan (teksnya "menunggu keputusan Anda" untuk yang `bisaMemutuskan`), dikembalikan, disetujui belum dipesan, dan
+  pesanan lewat ETA; tautan ke daftar usulan. Tidak tampil kalau semuanya nol.
 - **BOM Project** (`/gudang/bom` + `/gudang/bom/[id]`, 27 Okt 2026): daftar BOM dikelompokkan per project (pilihan Aktif /
   Draf / Diterbitkan / Semua revisi; `?project=prj_xxx` menyaring, `?baru=1` membuka form). Form "Buat BOM"
   (`components/gudang/BomCreateForm.jsx`): project dari Sheet (berjalan dan selesai), judul, isi awal = kosong, salinan BOM
@@ -545,7 +580,7 @@ Cloud) bersamaan. Penyebab lain yang belum tertutup: PWA iOS yang membuka login 
   `effectOf`). Beberapa orang boleh menghitung di sesi yang sama ("Muat ulang" untuk melihat hitungan mereka).
   "Posting ke stok" meminta konfirmasi dengan ringkasan; sesudahnya sesi hanya bisa dilihat.
 - Shell: `pages/_app.js` + `components/Sidebar.jsx` (menu `NAV_GROUPS` dikelompokkan Harian (Hari Ini, Dashboard, Rapat) /
-  Project (Project, Dokumen) / Material & Gudang (BOM Project, Usulan Pembelian, Pengadaan, Katalog Barang, Stock Opname) / Referensi (Arsip), dan `NAV_FOOTER` (Aktivitas) di bawah; tambah halaman baru
+  Project (Project, Dokumen) / Material & Gudang (BOM Project, Usulan Pembelian, Pengadaan, Katalog Barang, Stok Gudang) / Referensi (Arsip), dan `NAV_FOOTER` (Aktivitas) di bawah; tambah halaman baru
   di sana dan di `STATIC_ACTIONS` `components/CommandPalette.jsx`). `pages/login.js` = foto WTP layar penuh di balik permukaan air WebGL (`WaterSurface`) + logo + kartu masuk (lihat "Desain UI").
 - **Tata letak halaman (27 Okt 2026)**: Hari Ini, Dashboard, Semua Project, detail project, Kanban, Pengadaan, Dokumen,
   Notulensi, dan Arsip memakai komponen bersama di `components/ui/` (`PageHeader`, `StatStrip`, `Panel`, `Segmented`,

@@ -14,6 +14,7 @@ import {
   listBom, getBom, getBomSumber, createBom, revisiBom, updateBom, deleteBom, saveBomLine, deleteBomLine, terbitkanBom,
   bisaMemutuskan, listUsulan, getUsulan, buatUsulan, updateUsulan, deleteUsulan, saveUsulanLine, deleteUsulanLine,
   ajukanUsulan, putuskanUsulan, kembalikanUsulan,
+  catatPesanan, terimaBarang, listSerahTerima, getSerahTerima, getSerahTerimaSumber, buatSerahTerima,
 } from '../../lib/gudangServer';
 
 const MSG_BUKAN_DIREKSI = 'Usulan pembelian hanya bisa diputuskan oleh Direksi (atau Admin selama belum ada Direksi yang terdaftar).';
@@ -45,6 +46,9 @@ const POST_ACTIONS = {
   ajukanUsulan,
   putuskanUsulan, // putuskan dan kembalikan juga wajib lolos bisaMemutuskan (lihat handler)
   kembalikanUsulan,
+  catatPesanan,
+  terimaBarang,
+  buatSerahTerima,
 };
 
 function fail(res, status, message, code) {
@@ -85,6 +89,13 @@ async function handleGet(req, res, email) {
     return res.status(200).json({ ok: true, data });
   }
   if (action === 'bomSumber') return res.status(200).json({ ok: true, data: await getBomSumber() });
+  if (action === 'serahTerimaList') return res.status(200).json({ ok: true, data: await listSerahTerima({ project: req.query.project }) });
+  if (action === 'serahTerima') {
+    const data = await getSerahTerima(req.query.id);
+    if (!data) return fail(res, 404, 'Serah terima tidak ditemukan.');
+    return res.status(200).json({ ok: true, data });
+  }
+  if (action === 'serahTerimaSumber') return res.status(200).json({ ok: true, data: await getSerahTerimaSumber({ project: req.query.project }) });
   return fail(res, 400, 'Action tidak dikenal.');
 }
 
