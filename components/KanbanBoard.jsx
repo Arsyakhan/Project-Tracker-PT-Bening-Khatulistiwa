@@ -213,7 +213,7 @@ function DropTray({ current, dnd }) {
   return (
     <div
       aria-hidden="true"
-      className="hidden md:block fixed inset-x-0 bottom-0 md:left-64 z-30 border-t border-line bg-panel shadow-lg"
+      className="hidden md:block fixed inset-x-0 bottom-0 lg:left-64 z-30 border-t border-line bg-panel shadow-lg"
     >
       <div className="max-w-6xl mx-auto px-10 py-3">
         <p className="text-xs font-medium text-inkmute mb-2">Lepas kartu di salah satu tahap untuk memindahkannya</p>

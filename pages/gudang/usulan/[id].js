@@ -74,8 +74,16 @@ function StatusNote({ u, bomBerlaku, canEdit, bisaMemutuskan }) {
       </p>
     );
   }
+  if (u.status === 'draf' && u.dikembalikan_pada) {
+    return (
+      <p className="text-sm text-amberink">
+        Dikembalikan {fmtWaktu(u.dikembalikan_pada)} oleh {u.dikembalikan_oleh} untuk dilengkapi: {u.catatan_dikembalikan}
+        {canEdit ? ' Lengkapi, lalu ajukan lagi.' : ''}
+      </p>
+    );
+  }
   if (u.status === 'draf') {
-    return <p className="text-sm text-inkmute">{canEdit ? 'Periksa jumlah beli dan isi estimasi harga, lalu ajukan ke Direksi.' : 'Draf ini belum diajukan ke Direksi.'}</p>;
+    return <p className="text-sm text-inkmute">{canEdit ? 'Periksa jumlah beli, isi estimasi harga dan vendor, lalu ajukan ke Direksi.' : 'Draf ini belum diajukan ke Direksi.'}</p>;
   }
   if (u.status === 'diajukan') {
     return (
@@ -112,10 +120,10 @@ export default function UsulanDetail() {
   const [editing, setEditing] = useState(null); // id baris yang sedang diubah
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(null);
-  const [confirm, setConfirm] = useState(null); // { kind: 'ajukan' | 'hapus' | 'line' | 'setujui' | 'tolak', line }
+  const [confirm, setConfirm] = useState(null); // { kind: 'ajukan' | 'hapus' | 'line' | 'setujui' | 'tolak' | 'kembalikan', line }
   const [acting, setActing] = useState(false);
   const [keputusan, setKeputusan] = useState('');
-  const [info, setInfo] = useState(null); // catatan usulan saat diubah
+  const [info, setInfo] = useState(null); // { vendor, tautan_penawaran, catatan } saat diubah
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -154,11 +162,11 @@ export default function UsulanDetail() {
     if (acting) return;
     setActing(true);
     try {
-      const usulan = await gudangApi.updateUsulan({ id: data.usulan.id, catatan: info });
+      const usulan = await gudangApi.updateUsulan({ id: data.usulan.id, ...info });
       setData((d) => ({ ...d, usulan: { ...d.usulan, ...usulan } }));
       setInfo(null);
       clearCache('gudang-usulan');
-      showToast('Catatan usulan disimpan');
+      showToast('Vendor dan catatan disimpan');
     } catch (err) {
       showToast(err.message, 'error');
     } finally {
@@ -185,6 +193,11 @@ export default function UsulanDetail() {
       } else if (c.kind === 'ajukan') {
         await gudangApi.ajukanUsulan({ id: data.usulan.id });
         showToast(`${nomor} diajukan ke Direksi`);
+        await load();
+      } else if (c.kind === 'kembalikan') {
+        await gudangApi.kembalikanUsulan({ id: data.usulan.id, catatan: keputusan });
+        showToast(`${nomor} dikembalikan untuk dilengkapi`);
+        setKeputusan('');
         await load();
       } else if (c.kind === 'setujui' || c.kind === 'tolak') {
         await gudangApi.putuskanUsulan({ id: data.usulan.id, setuju: c.kind === 'setujui', catatan: keputusan });
@@ -301,7 +314,8 @@ export default function UsulanDetail() {
             )}
             {bisaPutus && (
               <>
-                <button type="button" onClick={() => { setKeputusan(''); setConfirm({ kind: 'tolak' }); }} className="btn btn-secondary">Tolak</button>
+                <button type="button" onClick={() => { setKeputusan(''); setConfirm({ kind: 'kembalikan' }); }} className="btn btn-secondary">Kembalikan</button>
+                <button type="button" onClick={() => { setKeputusan(''); setConfirm({ kind: 'tolak' }); }} className="btn btn-secondary text-rust">Tolak</button>
                 <button type="button" onClick={() => { setKeputusan(''); setConfirm({ kind: 'setujui' }); }} className="btn btn-primary" disabled={!bomBerlaku}>
                   Setujui
                 </button>
@@ -423,17 +437,31 @@ export default function UsulanDetail() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <Panel
-          title="Catatan usulan"
-          hint="Untuk Direksi, mis. alasan pembelian atau pemasok yang disarankan."
+          title="Vendor dan penawaran"
+          hint="Yang dilihat Direksi sebelum memutuskan: vendor yang disarankan, file penawaran, dan alasan pembelian."
           aside={canEdit && info === null && (
-            <button type="button" className="tap text-sm font-medium text-blueprint hover:underline" onClick={() => setInfo(u.catatan || '')}>Ubah</button>
+            <button
+              type="button"
+              className="tap text-sm font-medium text-blueprint hover:underline"
+              onClick={() => setInfo({ vendor: u.vendor || '', tautan_penawaran: u.tautan_penawaran || '', catatan: u.catatan || '' })}
+            >
+              Ubah
+            </button>
           )}
         >
           {info !== null ? (
             <form onSubmit={saveInfo} className="flex flex-col gap-4">
               <label className="flex flex-col gap-1.5 text-sm">
-                <span className="sr-only">Catatan usulan</span>
-                <textarea className="input min-h-[96px]" value={info} onChange={(e) => setInfo(e.target.value)} maxLength={1000} autoFocus />
+                <span className="text-inkmute font-medium">Vendor</span>
+                <input className="input" value={info.vendor} onChange={(e) => setInfo((x) => ({ ...x, vendor: e.target.value }))} maxLength={300} placeholder="mis. PT Membran Indo, CV Vessel Jaya" autoFocus />
+              </label>
+              <label className="flex flex-col gap-1.5 text-sm">
+                <span className="text-inkmute font-medium">Tautan penawaran</span>
+                <input className="input" type="url" inputMode="url" value={info.tautan_penawaran} onChange={(e) => setInfo((x) => ({ ...x, tautan_penawaran: e.target.value }))} maxLength={500} placeholder="https://drive.google.com/..." />
+              </label>
+              <label className="flex flex-col gap-1.5 text-sm">
+                <span className="text-inkmute font-medium">Catatan untuk Direksi</span>
+                <textarea className="input min-h-[80px]" value={info.catatan} onChange={(e) => setInfo((x) => ({ ...x, catatan: e.target.value }))} maxLength={1000} placeholder="mis. dibutuhkan sebelum fabrikasi 10 Nov" />
               </label>
               <div className="flex justify-end gap-3">
                 <button type="button" className="btn btn-ghost" onClick={() => setInfo(null)} disabled={acting}>Batal</button>
@@ -441,7 +469,26 @@ export default function UsulanDetail() {
               </div>
             </form>
           ) : (
-            <p className="text-sm text-ink whitespace-pre-line">{u.catatan || <span className="text-inkmute">Belum ada catatan.</span>}</p>
+            <dl className="flex flex-col gap-3 text-sm">
+              <div>
+                <dt className="text-xs text-inkmute">Vendor</dt>
+                <dd className="text-ink">{u.vendor || <span className="text-amberink">Belum diisi</span>}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-inkmute">Penawaran</dt>
+                <dd>
+                  {u.tautan_penawaran ? (
+                    <a href={u.tautan_penawaran} target="_blank" rel="noopener noreferrer" className="tap text-blueprint hover:underline">Buka file penawaran</a>
+                  ) : (
+                    <span className="text-amberink">Belum dilampirkan</span>
+                  )}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs text-inkmute">Catatan untuk Direksi</dt>
+                <dd className="text-ink whitespace-pre-line">{u.catatan || <span className="text-inkmute">Belum ada catatan.</span>}</dd>
+              </div>
+            </dl>
           )}
         </Panel>
 
@@ -455,6 +502,13 @@ export default function UsulanDetail() {
               <li>
                 <span className="block text-xs text-inkmute">Diajukan ke Direksi</span>
                 <span className="text-ink">{fmtWaktu(u.diajukan_pada)} oleh {u.diajukan_oleh}</span>
+              </li>
+            )}
+            {u.dikembalikan_pada && (
+              <li>
+                <span className="block text-xs text-inkmute">Dikembalikan untuk dilengkapi{u.status !== 'draf' ? ' (sudah diajukan lagi)' : ''}</span>
+                <span className="text-ink">{fmtWaktu(u.dikembalikan_pada)} oleh {u.dikembalikan_oleh}</span>
+                <span className="block text-inkmute whitespace-pre-line mt-0.5">{u.catatan_dikembalikan}</span>
               </li>
             )}
             {u.diputuskan_pada && (
@@ -481,7 +535,7 @@ export default function UsulanDetail() {
       <ConfirmModal
         open={confirm?.kind === 'ajukan'}
         title={`Ajukan ${nomor} ke Direksi?`}
-        description={`${lines.length} barang${sum.estimasi > 0 ? `, estimasi ${fmtRupiah(sum.estimasi)}` : ''}. Sesudah diajukan, isi usulan terkunci sampai Direksi memutuskan.${sum.tanpa_harga ? ` ${sum.tanpa_harga} barang belum punya estimasi harga.` : ''}`}
+        description={`${lines.length} barang${sum.estimasi > 0 ? `, estimasi ${fmtRupiah(sum.estimasi)}` : ''}. Sesudah diajukan, isi usulan terkunci sampai Direksi memutuskan.${sum.tanpa_harga ? ` ${sum.tanpa_harga} barang belum punya estimasi harga.` : ''}${!u.vendor || !u.tautan_penawaran ? ' Vendor atau file penawaran belum diisi.' : ''}`}
         confirmText={acting ? 'Mengajukan...' : 'Ajukan'}
         danger={false}
         onConfirm={runConfirm}
@@ -499,6 +553,21 @@ export default function UsulanDetail() {
         <label className="flex flex-col gap-1.5 text-sm">
           <span className="text-inkmute font-medium">Catatan (opsional)</span>
           <textarea className="input min-h-[72px]" value={keputusan} onChange={(e) => setKeputusan(e.target.value)} maxLength={1000} />
+        </label>
+      </ConfirmModal>
+      <ConfirmModal
+        open={confirm?.kind === 'kembalikan'}
+        title={`Kembalikan ${nomor} untuk dilengkapi?`}
+        description="Usulan kembali menjadi draf supaya pengusul bisa melengkapinya, lalu diajukan lagi. Berbeda dengan tolak, usulan ini tetap dipakai."
+        confirmText={acting ? 'Menyimpan...' : 'Kembalikan'}
+        confirmDisabled={!keputusan.trim()}
+        danger={false}
+        onConfirm={runConfirm}
+        onCancel={() => !acting && setConfirm(null)}
+      >
+        <label className="flex flex-col gap-1.5 text-sm">
+          <span className="text-inkmute font-medium">Yang perlu dilengkapi</span>
+          <textarea className="input min-h-[72px]" value={keputusan} onChange={(e) => setKeputusan(e.target.value)} maxLength={1000} required autoFocus placeholder="mis. lampirkan penawaran dari dua vendor" />
         </label>
       </ConfirmModal>
       <ConfirmModal

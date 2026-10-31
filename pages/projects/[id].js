@@ -759,7 +759,7 @@ export default function ProjectDetailPage() {
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_280px] items-start">
         {/* ===== Kolom utama ===== */}
         <div className="flex flex-col gap-5 min-w-0">
-          <div className="sticky top-[57px] md:top-0 z-10 -mx-1 px-1 py-2 bg-canvas/95 backdrop-blur supports-[backdrop-filter]:bg-canvas/80">
+          <div className="sticky top-[57px] lg:top-0 z-10 -mx-1 px-1 py-2 bg-canvas/95 backdrop-blur supports-[backdrop-filter]:bg-canvas/80">
             <div role="tablist" aria-label="Bagian project" className="flex w-full max-w-full items-center gap-0.5 p-0.5 rounded-lg bg-line/50 border border-line overflow-x-auto">
               {TABS.map((tab) => {
                 const on = activeTab === tab.key;
@@ -883,28 +883,6 @@ export default function ProjectDetailPage() {
             </Panel>
 
             <ProjectBomPanel projectId={project.id} writable={writable} />
-
-            {canDeleteProject && (
-              <details className="group rounded-xl border border-rust/30 bg-panel">
-                <summary className="cursor-pointer select-none list-none px-4 py-3 text-sm font-medium text-rust flex items-center justify-between">
-                  Hapus project
-                  <span className="text-xs text-inkmute group-open:hidden">Klik untuk membuka</span>
-                </summary>
-                <div className="px-4 pb-4 pt-1 flex flex-col sm:flex-row sm:items-center gap-3 border-t border-rust/20">
-                  <p className="text-sm text-inkmute flex-1">
-                    Menghapus project menghapus barisnya dari spreadsheet secara permanen. Hanya admin yang bisa melakukannya.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => setConfirmDeleteOpen(true)}
-                    disabled={saving || deleting}
-                    className="text-sm font-medium text-rust border border-rust/40 hover:bg-rust/10 rounded-md px-3 h-9 max-md:h-10 disabled:opacity-60 transition-colors whitespace-nowrap"
-                  >
-                    Hapus project...
-                  </button>
-                </div>
-              </details>
-            )}
             </>
           )}
 
@@ -1232,11 +1210,35 @@ export default function ProjectDetailPage() {
             </section>
           )}
         </aside>
+
+        {/* Zona hapus di luar kolom utama: di HP tampil paling akhir (sesudah kolom samping), di layar lebar tetap di bawah
+            kolom utama (lg:col-start-1). */}
+        {activeTab === 'ringkasan' && canDeleteProject && (
+          <details className="group rounded-xl border border-rust/30 bg-panel lg:col-start-1 min-w-0">
+            <summary className="cursor-pointer select-none list-none px-4 py-3 text-sm font-medium text-rust flex items-center justify-between">
+              Hapus project
+              <span className="text-xs text-inkmute group-open:hidden">Klik untuk membuka</span>
+            </summary>
+            <div className="px-4 pb-4 pt-1 flex flex-col sm:flex-row sm:items-center gap-3 border-t border-rust/20">
+              <p className="text-sm text-inkmute flex-1">
+                Menghapus project menghapus barisnya dari spreadsheet secara permanen. Hanya admin yang bisa melakukannya.
+              </p>
+              <button
+                type="button"
+                onClick={() => setConfirmDeleteOpen(true)}
+                disabled={saving || deleting}
+                className="text-sm font-medium text-rust border border-rust/40 hover:bg-rust/10 rounded-md px-3 h-9 max-md:h-10 disabled:opacity-60 transition-colors whitespace-nowrap"
+              >
+                Hapus project...
+              </button>
+            </div>
+          </details>
+        )}
       </div>
 
       {/* Bar simpan: hanya muncul kalau ada perubahan, sedang menyimpan, atau ada galat (tidak memakan layar HP saat tak perlu) */}
       {(isDirty || saving || error) && (
-        <div className="fixed bottom-0 left-0 md:left-64 right-0 z-20 bg-panel/95 backdrop-blur border-t border-line shadow-[0_-2px_10px_rgba(0,0,0,0.05)] pb-[env(safe-area-inset-bottom)]">
+        <div className="fixed bottom-0 left-0 lg:left-64 right-0 z-20 bg-panel/95 backdrop-blur border-t border-line shadow-[0_-2px_10px_rgba(0,0,0,0.05)] pb-[env(safe-area-inset-bottom)]">
           <div className="max-w-6xl mx-auto px-5 md:px-10 py-3 flex items-center gap-3">
             <button
               onClick={saveProject}

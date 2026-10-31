@@ -37,10 +37,11 @@ export default function StatStrip({ items, label = 'Ringkasan', className = '' }
           <>
             <dt className="flex items-center gap-2 text-xs font-medium text-inkmute">
               <span className={`w-2 h-2 rounded-full shrink-0 ${t.dot} ${it.dim ? 'opacity-30' : ''}`} aria-hidden="true" />
-              <span className="truncate">{it.label}</span>
+              {/* Di HP (dua kolom sempit) label boleh dua baris, bukan dipotong */}
+              <span className="leading-snug sm:truncate">{it.label}</span>
             </dt>
             <dd className={`font-display text-[28px] leading-none font-semibold tnum mt-2.5 ${it.dim ? 'text-ink' : t.text}`}>{it.value}</dd>
-            {it.hint && <dd className="text-xs text-inkmute mt-2 truncate">{it.hint}</dd>}
+            {it.hint && <dd className="text-xs text-inkmute mt-2 leading-snug sm:truncate">{it.hint}</dd>}
           </>
         );
         const base = `relative bg-panel px-5 py-4 min-w-0 text-left ${span}`;

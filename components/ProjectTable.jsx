@@ -106,8 +106,8 @@ export default function ProjectTable({ projects }) {
 
   return (
     <>
-      {/* Tabel - tablet & desktop */}
-      <div className="hidden md:block overflow-x-auto bg-panel rounded-xl border border-line shadow-sm">
+      {/* Tabel butuh sekitar 1000 px; di bawah layar 1280 px (tablet, laptop kecil dengan sidebar) dipakai kartu. */}
+      <div className="hidden xl:block overflow-x-auto bg-panel rounded-xl border border-line shadow-sm">
         <table className="w-full text-sm text-left">
           <thead className="bg-canvas/60 border-b border-line">
             <tr>
@@ -186,8 +186,8 @@ export default function ProjectTable({ projects }) {
         </table>
       </div>
 
-      {/* Kartu - mobile */}
-      <div className="md:hidden flex flex-col gap-3">
+      {/* Kartu - HP, tablet, laptop kecil */}
+      <div className="xl:hidden grid gap-3 md:grid-cols-2">
         {rows.map((p) => (
           <Link
             key={p.id || p.poNumber}

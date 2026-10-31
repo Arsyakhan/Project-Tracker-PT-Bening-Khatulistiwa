@@ -77,15 +77,17 @@ function FeedGroup({ group }) {
               <span className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${tone.tile}`}>
                 <KindIcon kind={it.kind} />
               </span>
+              {/* Di HP label status naik ke baris jenis item, supaya judul dan keterangan memakai lebar penuh (dua baris). */}
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-semibold text-inkmute">{KIND_LABEL[it.kind]}</span>
                   {it.priority === 'High' && it.kind === 'project' && <span className="text-xs font-semibold text-rust">Prioritas tinggi</span>}
+                  <Pill tone={tone.pill} className="ml-auto flex-shrink-0 sm:hidden">{it.badge}</Pill>
                 </div>
-                <p className="text-sm font-medium text-ink truncate group-hover:text-blueprint">{it.title}</p>
-                <p className="text-xs text-inkmute mt-0.5 truncate">{it.detail}</p>
+                <p className="text-sm font-medium text-ink line-clamp-2 sm:truncate group-hover:text-blueprint">{it.title}</p>
+                <p className="text-xs text-inkmute mt-0.5 line-clamp-2 sm:truncate">{it.detail}</p>
               </div>
-              <Pill tone={tone.pill} className="flex-shrink-0">{it.badge}</Pill>
+              <Pill tone={tone.pill} className="flex-shrink-0 max-sm:hidden">{it.badge}</Pill>
             </Link>
           </li>
         ))}

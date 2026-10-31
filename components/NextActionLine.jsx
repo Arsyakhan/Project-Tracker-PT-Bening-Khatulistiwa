@@ -1,5 +1,5 @@
 import { Pill } from './Badges';
-import { dueText } from '../lib/nextAction';
+import { dueText, sudahMenunggu } from '../lib/nextAction';
 import { fmtShort } from '../lib/meetings';
 
 // Blok kecil: apa yang ditunggu / langkah berikutnya, siapa yang mengerjakan, dan kapan.
@@ -18,7 +18,8 @@ export default function NextActionLine({ info, showEmpty = false, className = ''
     <div className={`flex flex-col gap-1 min-w-0 ${className}`}>
       {info.blocked && (
         <p className="text-xs leading-snug text-rust line-clamp-2" title={info.blocker}>
-          <b className="font-semibold">Menunggu:</b> {info.blocker}
+          {!sudahMenunggu(info.blocker) && <b className="font-semibold">Menunggu: </b>}
+          {info.blocker}
           {info.blockedDays !== null && (
             <span className="whitespace-nowrap"> · {info.blockedDays === 0 ? 'hari ini' : `${info.blockedDays} hari`}</span>
           )}
@@ -32,7 +33,8 @@ export default function NextActionLine({ info, showEmpty = false, className = ''
           </p>
           {(info.owner || info.due) && (
             <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-inkmute">
-              {info.owner && <span className="truncate max-w-full">PIC {info.owner}</span>}
+              {/* "oleh", bukan "PIC": kartu kanban dan tabel juga menampilkan PIC project, jadi dua "PIC" membingungkan */}
+              {info.owner && <span className="truncate max-w-full">oleh {info.owner}</span>}
               {info.due && (
                 <span title={fmtShort(info.due)}>
                   <Pill tone={info.tone}>{dueText(info.dueDays)}</Pill>

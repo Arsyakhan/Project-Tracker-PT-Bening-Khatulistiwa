@@ -386,13 +386,18 @@ usulan kosong atau BOM yang sudah diganti; `putuskan_usulan` mewajibkan alasan p
 BOM sudah diganti. Trigger `cek_usulan_draf` mengunci baris usulan sesudah diajukan. **Yang boleh memutuskan**
 (`bisaMemutuskan` di `lib/gudangServer.js`, dicek di route): pengguna aktif berdivisi `Direksi` / `Marketing & Direksi`
 di tabel `pengguna`; selama tabel itu belum berisi Direksi, Admin yang memutuskan. Aksi `/api/gudang`: GET
-`usulanList`, `usulan&id=` (keduanya membawa `bisaMemutuskan`); POST `buatUsulan`, `updateUsulan` (catatan, hanya draf),
-`deleteUsulan` (hanya draf; penyisihan tetap), `saveUsulanLine` (jumlah beli, harga, catatan; baris tidak ditambah dari
-web), `deleteUsulanLine`, `ajukanUsulan`, `putuskanUsulan`. GET `bom&id=` kini juga membawa `penyisihan` dan `usulan`.
+`usulanList`, `usulan&id=` (keduanya membawa `bisaMemutuskan`); POST `buatUsulan`, `updateUsulan` (vendor, tautan
+penawaran `https://`, catatan; hanya draf), `deleteUsulan` (hanya draf; penyisihan tetap), `saveUsulanLine` (jumlah beli,
+harga, catatan; baris tidak ditambah dari web), `deleteUsulanLine`, `ajukanUsulan`, `putuskanUsulan`, `kembalikanUsulan`
+(keduanya hanya untuk yang `bisaMemutuskan`). GET `bom&id=` kini juga membawa `penyisihan` dan `usulan`.
+**Tiga keputusan Direksi** (migrasi `20261031000300`, pola alur persetujuan pembelian yang umum): Setujui, Tolak (alasan
+wajib, usulan selesai), atau **Kembalikan untuk dilengkapi** (`kembalikan_usulan`: diajukan → draf, catatan wajib, disimpan
+di `dikembalikan_oleh/_pada`, `catatan_dikembalikan` dan tampil sebagai catatan amber sampai diajukan lagi). Kolom
+`vendor` dan `tautan_penawaran` (cek `^https://` di database) diisi pengusul supaya Direksi melihatnya sebelum memutuskan.
 **Revisi BOM tidak mengulang pembelian**: per kode barang, jumlah beli yang sudah `disetujui` di usulan revisi-revisi
 sebelumnya (rantai `revisi_dari`, fungsi `disetujui_revisi_lama`) dianggap akan datang untuk project ini: sisihkan =
 min(kebutuhan - sudah disetujui, stok tersedia), beli = sisanya; dicatat di `qty_disetujui_sebelumnya`. Uji otomatis:
-`supabase/tests/usulan_pembelian.sql` (9 skenario, selalu dibatalkan; jalankan lagi sesudah mengubah fungsi-fungsi ini). **Belum
+`supabase/tests/usulan_pembelian.sql` (10 skenario, selalu dibatalkan; jalankan lagi sesudah mengubah fungsi-fungsi ini). **Belum
 dibuat**: pemesanan oleh W&P, barang masuk (yang seharusnya menambah penyisihan project pemesan), serah terima ke teknisi
 (yang seharusnya mengurangi penyisihan), dan pemberitahuan usulan yang menunggu di halaman Hari Ini.
 
@@ -772,6 +777,17 @@ Cloud) bersamaan. Penyebab lain yang belum tertutup: PWA iOS yang membuka login 
   16px (`.input` sudah otomatis, supaya iOS tidak memperbesar halaman). Tautan/tombol teks kecil diberi
   kelas `.tap` agar area sentuhnya 44px tanpa mengubah tata letak (jangan dipakai pada elemen
   `overflow:hidden`/`line-clamp`). Kolom pencarian dan filter wajib punya `aria-label`.
+- **Ukuran layar (31 Okt 2026, hasil review di 375 / 768 / 1366×768 / 1440):** sidebar tetap baru tampil mulai `lg`
+  (1024 px); HP dan tablet memakai header + menu geser (`pages/_app.js`; bar bawah yang menyisakan tempat sidebar memakai
+  `lg:left-64`, tab lengket detail project `top-[57px] lg:top-0`). Sidebar dibuat ringkas supaya semua menu muat di laptop
+  1366×768: item 36 px (`h-9 max-lg:h-10`), Cari + tombol "+" Project baru satu baris, akun/tema/keluar satu baris, dan
+  `.scroll-shadow` (bayangan tepi yang hanya tampak kalau daftar memang bisa digulir). `ProjectTable` (Dashboard dan
+  Semua Project): tabel baru mulai `xl` (1280 px, tabelnya butuh sekitar 1000 px), di bawahnya kartu dua kolom mulai `md`.
+  Daftar Hari Ini di HP: label status naik ke baris jenis item, judul dan keterangan boleh dua baris; label `StatStrip`
+  boleh dua baris di HP. Titik `StagePipeline` di HP hanya tampilan (26 px terlalu kecil untuk ditekan); tahap diganti lewat
+  pilihan "Stage saat ini". Zona "Hapus project" ada di luar kolom utama supaya di HP tampil paling akhir. Teks hambatan
+  tidak diberi awalan "Menunggu:" kalau sudah diawali kata itu (`sudahMenunggu` di `lib/nextAction.js`), dan pemilik
+  langkah berikutnya ditulis "oleh ..." (bukan "PIC ...") supaya tidak tertukar dengan PIC project.
 - Design system di Claude (artifact "Bening Hub") berisi token & 21 komponen; token-nya masih versi
   lama sebelum PR #1 (kontras) dan perlu disinkronkan ulang.
 
