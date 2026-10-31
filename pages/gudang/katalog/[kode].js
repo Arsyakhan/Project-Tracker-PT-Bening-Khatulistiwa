@@ -277,7 +277,7 @@ export default function BarangDetail() {
         title={[b.nama, b.ukuran, b.material].filter(Boolean).join(' ')}
         meta={
           <>
-            <span className="font-data">{b.kode}</span> · {katNama[b.kategori_kode] || b.kategori_kode}
+            <span className="font-data">{b.kode}</span> · {katNama[b.kategori_kode] || b.kategori_kode}{b.jenis ? ` › ${b.jenis}` : ''}
             {b.diubah_oleh ? <> · diubah {fmtDate(b.diubah_pada)} oleh {b.diubah_oleh}</> : null}
           </>
         }
@@ -328,8 +328,15 @@ export default function BarangDetail() {
                 <input className="input" value={form.nama} onChange={set('nama')} disabled={disabled} />
               </Field>
               <Field label="Kategori">
-                <select className="input" value={form.kategori_kode} onChange={set('kategori_kode')} disabled={disabled}>
+                {/* Jenis milik kategori lama, jadi ikut dikosongkan saat kategori diganti */}
+                <select className="input" value={form.kategori_kode} onChange={(e) => setForm((f) => ({ ...f, kategori_kode: e.target.value, jenis: '' }))} disabled={disabled}>
                   {(data.kategori || []).map((k) => <option key={k.kode} value={k.kode}>{k.nama}</option>)}
+                </select>
+              </Field>
+              <Field label="Jenis" hint="Bentuk fisik barang, bukan fungsinya di project.">
+                <select className="input" value={form.jenis} onChange={set('jenis')} disabled={disabled}>
+                  <option value="">Belum dipilih</option>
+                  {(data.jenis || []).filter((j) => j.kategori_kode === form.kategori_kode).map((j) => <option key={j.nama} value={j.nama}>{j.nama}</option>)}
                 </select>
               </Field>
               <Field label="Satuan">
@@ -401,7 +408,7 @@ export default function BarangDetail() {
           </Panel>
 
           {(b.perlu_dicek || []).length > 0 && (
-            <Panel title="Ditandai saat impor">
+            <Panel title="Perlu dicek">
               <ul className="flex flex-col gap-1 text-sm text-amberink">
                 {b.perlu_dicek.map((f) => <li key={f}>{f}</li>)}
               </ul>
@@ -409,7 +416,7 @@ export default function BarangDetail() {
           )}
 
           {(b.nama_lain || []).length > 0 && (
-            <Panel title="Ejaan lain di BOM" hint="Nama barang ini di file BOM yang berbeda-beda.">
+            <Panel title="Nama lain dan nama lama" hint="Nama barang ini di file BOM yang berbeda-beda, termasuk nama menurut fungsinya (mis. CIP Tank). Ikut dicari.">
               <ul className="flex flex-wrap gap-1.5">
                 {b.nama_lain.map((n) => (
                   <li key={n} className="text-xs rounded-md border border-line bg-canvas/60 px-2 py-1">{n}</li>

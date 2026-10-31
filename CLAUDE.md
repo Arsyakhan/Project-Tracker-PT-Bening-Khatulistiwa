@@ -530,6 +530,14 @@ Cloud) bersamaan. Penyebab lain yang belum tertutup: PWA iOS yang membuka login 
   lembar. Sesudah simpan, data katalog yang tersimpan di browser ikut diperbarui (`patchKatalogCache`). Juga ada pilihan
   "Ada stok", tombol "Tambah barang" (`components/gudang/BarangBaruForm.jsx`: menampilkan barang mirip supaya tidak ada
   kode ganda), serta stok per lokasi dan "Riwayat stok" (50 transaksi terbaru) di detail barang.
+  **Kategori → Jenis (31 Okt 2026, permintaan PM):** katalog dikelompokkan menurut **bentuk fisik** barang, bukan
+  fungsinya; fungsi (CIP, chemical, raw water, booster, RO feed, ...) baru ditentukan di BOM. Tabel `jenis_barang`
+  (kategori + nama + urutan) dan kolom `barang.jenis` (kunci asing gabungan ke `jenis_barang`; ganti kategori =
+  jenis dikosongkan, dicek `cekJenis` di `lib/gudangServer.js`). Daftar: pilih kategori → baris tombol jenis dengan
+  jumlahnya, baris diurutkan per jenis; jenis tampil di keterangan baris. Form tambah barang dan detail barang memilih
+  jenis dari daftar kategorinya (wajib saat tambah). Pencarian ikut mencari `nama_lain` (nama lama), jadi "CIP tank"
+  tetap menemukan tangki yang kini bernama "Tangki PE". Penataan data awal: migrasi `20261031000400_katalog_jenis.sql`
+  (lihat `supabase/README.md`), cadangan tabel sebelum penataan `barang_cadangan_20261031`.
 - **Stock Opname** (`/gudang/opname` + `/gudang/opname/[id]`, 27 Okt 2026): daftar sesi dan form "Mulai opname" (judul,
   lokasi gudang atau lokasi baru, tanggal). Halaman sesi dibuat untuk HP: cari barang dari katalog (`searchKatalog`),
   isi jumlah (angka besar), simpan; barang yang belum ada di katalog bisa ditambah langsung. Setiap baris menampilkan

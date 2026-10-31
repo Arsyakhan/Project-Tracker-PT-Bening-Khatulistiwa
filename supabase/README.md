@@ -21,6 +21,8 @@ Data project tetap di Google Sheet; penghubungnya Project ID `prj_xxxx`.
 | `bom` | BOM per project (`project_id` = `prj_xxxx` di Sheet): judul, revisi, `revisi_dari`, status `draf` / `final` / `diganti`, asal isi awal, siapa yang membuat dan menerbitkan |
 | `bom_baris` | Baris BOM: kode barang katalog, jumlah (boleh kosong selama draf), satuan, bagian, catatan, urutan |
 | `file_bom_lembar` (view) | Lembar per file BOM lama beserta jumlah barisnya (untuk memilih lembar yang disalin) |
+| `jenis_barang` | Daftar jenis per kategori menurut bentuk fisik (mis. Tangki PE / PP / FRP / SS; Pompa vertikal multistage / horizontal multistage / dosing; Ball valve / Check valve; ...), dengan urutan tampil. `barang.jenis` menunjuk ke sini (kunci asing gabungan kategori + jenis) |
+| `barang_cadangan_20261031` | Salinan tabel `barang` sesaat sebelum penataan kategori/jenis 31 Okt 2026 (untuk mengembalikan kalau perlu) |
 | `pengguna` | Email dan divisi (PM, Engineering, Direksi, Warehouse & Purchasing, Technician) untuk hak akses modul gudang. Divisi `Direksi` / `Marketing & Direksi` yang aktif = yang boleh memutuskan usulan pembelian |
 | `penyisihan_stok` | Stok yang disisihkan untuk satu BOM final (satu baris per kode barang). Bukan transaksi stok: hanya mengurangi stok yang tersedia untuk BOM lain |
 | `stok_tersedia` (view) | Per barang: stok fisik semua lokasi, jumlah yang disisihkan BOM **final**, dan sisanya (`tersedia`). Penyisihan BOM yang sudah `diganti` tidak dihitung |
@@ -96,3 +98,23 @@ Halaman Katalog Barang (`/gudang/katalog`) membaca dan mengubah tabel `barang` l
 (lihat CLAUDE.md, "Database Supabase modul gudang"). Pemeriksaan katalog (kolom `status_cek`, `gabung_ke`, `catatan`)
 dilakukan di halaman itu; berkas Excel draf hanya salinan awal. Setiap simpan mengisi `diubah_oleh` (email) dan
 `diubah_pada` (trigger), yang sekaligus dipakai untuk mendeteksi edit bersamaan.
+
+## Penataan katalog menurut jenis (migrasi `20261031000400`, 31 Okt 2026)
+
+Permintaan PM: untuk stok yang penting barangnya apa dan jenisnya apa; fungsinya ditentukan nanti di BOM. Dulu tangki
+dan pompa dinamai menurut fungsinya, sehingga satu barang fisik (mis. tangki PE 1000 L) tercatat dengan banyak kode
+("CIP Tank", "Chemical Tank", "RO CIP Tank", "UF Permeate Tank", ...). Migrasi ini:
+
+1. menyalin tabel `barang` ke `barang_cadangan_20261031`;
+2. menambah `jenis_barang` dan `barang.jenis`, lalu mengisi jenis dari nama, spesifikasi, material, dan model;
+3. memindah barang yang salah kategori (mis. overload/CB di Pompa → Kelistrikan, conductivity meter di Kelistrikan →
+   Instrumen, "FRP Tank" di Filter → Tangki); **kode barang tidak diubah**;
+4. menamai tangki dan pompa menurut bentuk fisiknya ("Tangki PE", "Pompa vertikal multistage"), memindah kapasitas
+   tangki dari spesifikasi ke ukuran, mengisi material/merek yang kosong; nama lama disimpan di `nama_lain`;
+5. menandai tangki/pompa yang identik (jenis, ukuran, material, merek, model sama) **Gabung** ke kode yang paling sering
+   dipakai (bisa dibatalkan per barang di halaman Katalog Barang);
+6. memberi penanda `jenis perlu dicek` (jenis cadangan seperti "Valve lain") dan `kapasitas belum diisi` (tangki).
+
+Pratinjau sebelum dijalankan: 58 barang pindah kategori, 230 tangki/pompa ganti nama, 47 barang digabung ke 14 kode
+(mis. Tangki PE 1000 L: 12 kode menjadi 1). Mengembalikan seluruhnya: salin kolom dari `barang_cadangan_20261031` ke
+`barang` per `kode`, lalu kosongkan `jenis`.
