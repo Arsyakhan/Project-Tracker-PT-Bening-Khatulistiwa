@@ -16,6 +16,7 @@ import Panel from '../../../components/ui/Panel';
 import StatStrip from '../../../components/ui/StatStrip';
 import EmptyState from '../../../components/ui/EmptyState';
 import StatusDot from '../../../components/gudang/StatusDot';
+import PengadaanPanel from '../../../components/gudang/PengadaanPanel';
 
 const hasHarga = (l) => l.harga_satuan !== null && l.harga_satuan !== undefined;
 const subtotal = (l) => (hasHarga(l) ? Number(l.qty_beli) * Number(l.harga_satuan) : null);
@@ -433,6 +434,18 @@ export default function UsulanDetail() {
             )}
           </ul>
         </Panel>
+      )}
+
+      {u.status === 'disetujui' && lines.length > 0 && (
+        <PengadaanPanel
+          usulan={u}
+          baris={lines}
+          lokasi={data.lokasi}
+          penerimaan={data.penerimaan}
+          writable={writable}
+          onChanged={load}
+          showToast={showToast}
+        />
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">

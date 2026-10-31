@@ -14,6 +14,7 @@ const STATIC_ACTIONS = [
   { label: 'BOM project', href: '/gudang/bom', keywords: 'bom bill of material daftar material project cek stok kurang' },
   { label: 'Usulan pembelian', href: '/gudang/usulan', keywords: 'usulan pembelian beli purchase request persetujuan direksi setujui tolak kurang stok sisihkan' },
   { label: 'Katalog barang', href: '/gudang/katalog', keywords: 'katalog barang material gudang stok bom kode fitting valve pompa' },
+  { label: 'Serah terima barang', href: '/gudang/serah-terima', keywords: 'serah terima barang keluar teknisi gudang stok project penyisihan' },
   { label: 'Stock opname', href: '/gudang/opname', keywords: 'stock opname stok gudang hitung saldo awal penyesuaian' },
   { label: 'Arsip project', href: '/arsip', keywords: 'arsip archive selesai teknologi referensi finished' },
   { label: 'Aktivitas', href: '/activity', keywords: 'activity log riwayat perubahan' },

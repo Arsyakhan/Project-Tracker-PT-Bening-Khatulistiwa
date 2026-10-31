@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import useActionItems from '../lib/useActionItems';
+import useCachedResource from '../lib/useCachedResource';
+import { gudangApi } from '../lib/gudang';
 import PageHead from '../components/PageHead';
 import RefreshStatus from '../components/RefreshStatus';
 import { Pill } from '../components/Badges';
@@ -215,6 +217,36 @@ function NextMeeting({ meetings, error }) {
   );
 }
 
+// Usulan pembelian yang perlu ditindaklanjuti (modul gudang, Supabase). Gagal dimuat atau tidak ada yang perlu
+// ditindak = panel tidak tampil, supaya halaman Hari Ini tetap jalan walau database gudang bermasalah.
+function GudangPanel() {
+  const { data } = useCachedResource('gudang-usulan', () => gudangApi.listUsulan());
+  const today = todayIso();
+  const list = data?.usulan || [];
+  const rows = [
+    { key: 'diajukan', n: list.filter((u) => u.status === 'diajukan').length, label: data?.bisaMemutuskan ? 'menunggu keputusan Anda' : 'menunggu persetujuan Direksi', tone: 'text-blueprint' },
+    { key: 'kembali', n: list.filter((u) => u.status === 'draf' && u.dikembalikan_pada).length, label: 'dikembalikan untuk dilengkapi', tone: 'text-amberink' },
+    { key: 'pesan', n: list.filter((u) => u.status === 'disetujui' && !u.no_po && !u.tanggal_pesan).length, label: 'disetujui, belum dipesan', tone: 'text-amberink' },
+    { key: 'eta', n: list.filter((u) => u.status === 'disetujui' && u.eta && u.eta < today && u.baris_lengkap < u.jumlah_barang).length, label: 'pesanan lewat ETA', tone: 'text-rust' },
+  ].filter((r) => r.n > 0);
+  if (!rows.length) return null;
+  return (
+    <section className="bg-panel border border-line rounded-xl p-4 shadow-sm">
+      <h2 className="text-sm font-semibold text-ink">Usulan pembelian</h2>
+      <ul className="mt-2 flex flex-col gap-1.5 text-sm">
+        {rows.map((r) => (
+          <li key={r.key}>
+            <Link href="/gudang/usulan" className="flex items-baseline gap-2 hover:underline">
+              <span className={`font-display text-lg font-semibold tnum ${r.tone}`}>{r.n}</span>
+              <span className="text-ink">{r.label}</span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 export default function TodayPage() {
   // Sumber data dan hitungan yang sama dengan banner di Dashboard (lib/useActionItems.js).
   const { projects, meetings, items: all, missing, error, staleError, refreshing, meetingError } = useActionItems();
@@ -301,6 +333,7 @@ export default function TodayPage() {
 
           <aside className="flex flex-col gap-4">
             <NextMeeting meetings={meetings} error={meetingError} />
+            <GudangPanel />
             <Workload projects={projects} value={division} onPick={setDivision} />
             <Link href="/dashboard" className="text-sm font-medium text-blueprint hover:underline">Buka Dashboard</Link>
           </aside>

@@ -118,7 +118,7 @@ function Shell({ Component, pageProps }) {
       ) : (
         <div className="min-h-screen bg-canvas lg:flex">
           {/* Sidebar - layar >= 1024 px: selalu tampil & fixed; HP dan tablet: panel geser dari kiri (di tablet sidebar tetap menyisakan isi terlalu sempit) */}
-          <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:flex-shrink-0 lg:fixed lg:inset-y-0 lg:left-0 bg-panel border-r border-line z-30">
+          <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:flex-shrink-0 lg:fixed lg:inset-y-0 lg:left-0 bg-panel border-r border-line z-30 print:!hidden">
             {sidebarContent()}
           </aside>
 
@@ -130,7 +130,7 @@ function Shell({ Component, pageProps }) {
           )}
 
           {/* Top bar mobile - cuma logo + tombol hamburger */}
-          <header className="lg:hidden sticky top-0 z-20 bg-panel border-b border-line flex items-center justify-between px-4 py-3">
+          <header className="lg:hidden print:hidden sticky top-0 z-20 bg-panel border-b border-line flex items-center justify-between px-4 py-3">
             <Link href="/" className="flex items-center py-1.5 -my-1.5" aria-label="Bening Hub, ke beranda">
               <BeningLogo height={13} busy={routeBusy} intro />
             </Link>
@@ -141,7 +141,7 @@ function Shell({ Component, pageProps }) {
             </button>
           </header>
 
-          <main id="konten" tabIndex={-1} className="flex-1 lg:pl-64 min-w-0 outline-none">
+          <main id="konten" tabIndex={-1} className="flex-1 lg:pl-64 print:!pl-0 min-w-0 outline-none">
             <div className="max-w-6xl mx-auto px-5 py-6 md:px-10 md:py-10">
               {session?.user?.role === 'viewer' && (
                 <div role="status" className="mb-6 flex items-start gap-3 bg-amber/10 border border-amber/30 border-l-4 border-l-amber rounded-lg px-4 py-3 text-sm text-ink">

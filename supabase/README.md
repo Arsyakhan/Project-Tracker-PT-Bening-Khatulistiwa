@@ -27,7 +27,12 @@ Data project tetap di Google Sheet; penghubungnya Project ID `prj_xxxx`.
 | `penyisihan_stok` | Stok yang disisihkan untuk satu BOM final (satu baris per kode barang). Bukan transaksi stok: hanya mengurangi stok yang tersedia untuk BOM lain |
 | `stok_tersedia` (view) | Per barang: stok fisik semua lokasi, jumlah yang disisihkan BOM **final**, dan sisanya (`tersedia`). Penyisihan BOM yang sudah `diganti` tidak dihitung |
 | `usulan_pembelian` | Usulan pembelian per BOM: status `draf` / `diajukan` / `disetujui` / `ditolak`, siapa dan kapan diajukan dan diputuskan, catatan keputusan. Nomor tampil `UP-0001` = id. Satu BOM hanya punya satu usulan berjalan (unique index parsial) |
-| `usulan_pembelian_baris` | Barang yang diusulkan: kebutuhan BOM, jumlah yang sudah disisihkan, jumlah beli, satuan, estimasi harga satuan (Rupiah), catatan |
+| `usulan_pembelian_baris` | Barang yang diusulkan: kebutuhan BOM, jumlah yang sudah disisihkan, jumlah beli, satuan, estimasi harga satuan (Rupiah), catatan, `qty_diterima` (jumlah yang sudah datang di gudang) |
+| `serah_terima` | Dokumen serah terima barang ke teknisi (1 Nov 2026): project, penerima, tanggal, lokasi asal, catatan, siapa yang mencatat. Nomor tampil `ST-0001` = id. Barisnya adalah transaksi `keluar` di `transaksi_stok` yang menunjuk dokumen ini |
+
+Kolom tambahan 1 Nov 2026: `usulan_pembelian.no_po`, `tanggal_pesan`, `eta`, `dipesan_oleh`, `dipesan_pada` (pemesanan
+oleh W&P); `transaksi_stok.usulan_baris_id` (barang masuk dari usulan), `serah_terima_id` dan `bom_id` (barang keluar ke
+teknisi untuk BOM tertentu).
 
 ## Fungsi dan trigger
 
@@ -72,7 +77,29 @@ Data project tetap di Google Sheet; penghubungnya Project ID `prj_xxxx`.
 - `kembalikan_usulan(p_id, p_email, p_catatan)` (migrasi `20261031000300`): diajukan → draf dengan catatan apa yang perlu
   dilengkapi (wajib); disimpan di `dikembalikan_oleh`, `dikembalikan_pada`, `catatan_dikembalikan`. Kolom baru
   `usulan_pembelian.vendor` dan `tautan_penawaran` (harus `https://`, dicek database) untuk dilihat Direksi.
-- **Uji otomatis**: `tests/usulan_pembelian.sql` (10 skenario termasuk revisi dan pengembalian). Blok `do` yang selalu diakhiri galat:
+- **Pemesanan, penerimaan, dan serah terima** (migrasi `20261101000100`, 1 Nov 2026):
+  - Pemesanan hanya mengisi kolom usulan yang sudah `disetujui` (nomor PO, tanggal pesan, ETA), lewat route server.
+  - `terima_barang(p_usulan_id, p_email, p_lokasi, p_tanggal, p_referensi, p_items)`: `p_items` = `[{baris_id, qty}]`.
+    Usulan harus `disetujui`, jumlah tidak boleh melebihi sisa (`qty_beli - qty_diterima`). Per baris: transaksi `masuk`
+    (dengan `usulan_baris_id`), `qty_diterima` bertambah, dan **penyisihan BOM pemesan bertambah** sebanyak yang diterima,
+    jadi barangnya langsung tercatat milik project itu.
+  - `serahkan_barang(p_project_id, p_project_nama, p_email, p_penerima, p_tanggal, p_lokasi, p_catatan, p_items)`:
+    `p_items` = `[{bom_id, barang_kode, qty}]`, hasilnya id dokumen. Tiap barang harus disisihkan untuk BOM final project
+    itu, jumlahnya tidak boleh melebihi penyisihan maupun stok di lokasi asal. Membuat dokumen `serah_terima`, transaksi
+    `keluar` (referensi `ST-0001`), dan mengurangi penyisihan (baris yang habis dihapus). Memakai advisory lock yang sama
+    dengan `sisihkan_dan_usulkan`. Serah terima tanpa barang ditolak.
+  - `diserahkan_bom(p_bom_id)`: jumlah yang sudah diserahkan per kode barang untuk BOM ini dan semua revisi sebelumnya.
+    `sisihkan_dan_usulkan` kini menghitung kebutuhan = kebutuhan BOM dikurangi yang sudah diserahkan, jadi revisi BOM
+    sesudah sebagian barang diserahkan tidak menyisihkan atau membeli barang itu lagi.
+  - Trigger `cek_usulan_draf` kini membolehkan satu perubahan pada usulan `disetujui`: kolom `qty_diterima` (oleh
+    `terima_barang`); kolom lain tetap terkunci.
+  - Migrasi `20261101000200`: `disetujui_revisi_lama` kini hanya menghitung pembelian yang **belum datang**
+    (`qty_beli - qty_diterima`); yang sudah datang sudah tercatat sebagai stok dan penyisihan.
+  - Ketiga fungsi baru hanya bisa dipanggil `service_role`.
+- **Uji otomatis**: `tests/usulan_pembelian.sql` (10 skenario termasuk revisi dan pengembalian) dan
+  `tests/penerimaan_serah_terima.sql` (8 skenario: terima sebelum disetujui, terima berlebih, kunci baris, serah terima
+  barang yang tidak disisihkan / berlebih / tanpa stok, serah terima kosong, serah bertahap, penyisihan habis, revisi BOM
+  sesudah sebagian diserahkan). Diuji 1 Nov 2026 di database asli: keduanya lulus. Blok `do` yang selalu diakhiri galat:
   "LULUS: ..." berarti semua lulus, galat lain menyebut skenario yang gagal. Tidak ada data yang tersisa, tetapi nomor
   urut BOM/usulan yang terpakai tidak kembali.
 
