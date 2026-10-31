@@ -389,7 +389,10 @@ di tabel `pengguna`; selama tabel itu belum berisi Direksi, Admin yang memutuska
 `usulanList`, `usulan&id=` (keduanya membawa `bisaMemutuskan`); POST `buatUsulan`, `updateUsulan` (catatan, hanya draf),
 `deleteUsulan` (hanya draf; penyisihan tetap), `saveUsulanLine` (jumlah beli, harga, catatan; baris tidak ditambah dari
 web), `deleteUsulanLine`, `ajukanUsulan`, `putuskanUsulan`. GET `bom&id=` kini juga membawa `penyisihan` dan `usulan`.
-Diuji 31 Okt 2026 di database asli dalam transaksi yang dibatalkan (8 skenario, lihat `supabase/README.md`). **Belum
+**Revisi BOM tidak mengulang pembelian**: per kode barang, jumlah beli yang sudah `disetujui` di usulan revisi-revisi
+sebelumnya (rantai `revisi_dari`, fungsi `disetujui_revisi_lama`) dianggap akan datang untuk project ini: sisihkan =
+min(kebutuhan - sudah disetujui, stok tersedia), beli = sisanya; dicatat di `qty_disetujui_sebelumnya`. Uji otomatis:
+`supabase/tests/usulan_pembelian.sql` (9 skenario, selalu dibatalkan; jalankan lagi sesudah mengubah fungsi-fungsi ini). **Belum
 dibuat**: pemesanan oleh W&P, barang masuk (yang seharusnya menambah penyisihan project pemesan), serah terima ke teknisi
 (yang seharusnya mengurangi penyisihan), dan pemberitahuan usulan yang menunggu di halaman Hari Ini.
 

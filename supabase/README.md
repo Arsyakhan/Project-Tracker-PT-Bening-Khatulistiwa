@@ -64,6 +64,12 @@ Data project tetap di Google Sheet; penghubungnya Project ID `prj_xxxx`.
   menghitung ulang penyisihan, setujui draf dan putus ulang ditolak, penyisihan BOM yang diganti tidak dihitung lagi,
   ajukan dan sisihkan dari BOM yang diganti ditolak, ajukan usulan kosong ditolak; tidak ada data uji yang tersisa (nomor
   usulan di-restart ke 1). Keempat fungsi hanya bisa dipanggil `service_role`.
+- Revisi BOM (migrasi `20261031000200`): `disetujui_revisi_lama(p_bom_id)` menjumlahkan jumlah beli usulan `disetujui` di
+  semua revisi sebelumnya. `sisihkan_dan_usulkan` menganggap jumlah itu akan datang: sisihkan = min(kebutuhan - sudah
+  disetujui, stok tersedia), beli = sisanya (kolom `qty_disetujui_sebelumnya`), jadi revisi tidak memicu pembelian ganda.
+- **Uji otomatis**: `tests/usulan_pembelian.sql` (9 skenario termasuk revisi). Blok `do` yang selalu diakhiri galat:
+  "LULUS: ..." berarti semua lulus, galat lain menyebut skenario yang gagal. Tidak ada data yang tersisa, tetapi nomor
+  urut BOM/usulan yang terpakai tidak kembali.
 
 ## Keamanan
 

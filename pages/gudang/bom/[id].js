@@ -181,7 +181,7 @@ export default function BomDetail() {
   const nKosong = lines.filter((l) => l.qty === null || l.qty === undefined).length;
   const nKurang = check.filter((c) => !c.cukup && c.butuh > 0).length;
   const nCukup = check.filter((c) => c.cukup && c.butuh > 0).length;
-  const nAda = check.filter((c) => c.butuh > 0 && (c.tersedia > 0 || c.sisih > 0)).length;
+  const nAda = check.filter((c) => c.butuh > 0 && c.tersedia > 0).length;
 
   function startAdd(b) {
     if (b.status_cek === 'Gabung' && b.gabung_ke && byKode[b.gabung_ke]) {

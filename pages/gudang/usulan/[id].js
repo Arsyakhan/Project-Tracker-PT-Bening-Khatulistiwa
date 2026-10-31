@@ -23,7 +23,8 @@ const fmtHargaInput = (v) => (v === null || v === undefined ? '' : Number(v).toL
 
 function barangSub(l) {
   const b = l.barang || {};
-  return [[b.merek, b.model].filter(Boolean).join(' · '), l.catatan].filter(Boolean).join(' · ');
+  const lama = Number(l.qty_disetujui_sebelumnya) ? `${fmtQty(l.qty_disetujui_sebelumnya)} sudah disetujui di revisi sebelumnya` : '';
+  return [[b.merek, b.model].filter(Boolean).join(' · '), lama, l.catatan].filter(Boolean).join(' · ');
 }
 
 // Form satu baris: jumlah beli, estimasi harga satuan, catatan.
@@ -50,7 +51,9 @@ function LineForm({ line, onSave, onCancel, busy, error }) {
         </label>
       </div>
       <p className="text-xs text-inkmute -mt-2">
-        Kebutuhan BOM {fmtQty(line.qty_butuh)} {line.satuan}, sudah disisihkan dari stok {fmtQty(line.qty_disisihkan)}. Harga boleh dikosongkan jika belum ada penawaran.
+        Kebutuhan BOM {fmtQty(line.qty_butuh)} {line.satuan}, sudah disisihkan dari stok {fmtQty(line.qty_disisihkan)}
+        {Number(line.qty_disetujui_sebelumnya) ? `, sudah disetujui di revisi sebelumnya ${fmtQty(line.qty_disetujui_sebelumnya)}` : ''}. Harga boleh
+        dikosongkan jika belum ada penawaran.
       </p>
       {error && <p className="text-sm text-rust -mt-2" role="alert">{error}</p>}
       <div className="flex flex-wrap justify-end gap-3">
@@ -213,6 +216,7 @@ export default function UsulanDetail() {
       ['Model', (l) => l.barang?.model],
       ['Kebutuhan BOM', (l) => Number(l.qty_butuh)],
       ['Disisihkan dari stok', (l) => Number(l.qty_disisihkan)],
+      ['Sudah disetujui di revisi sebelumnya', (l) => Number(l.qty_disetujui_sebelumnya) || 0],
       ['Jumlah beli', (l) => Number(l.qty_beli)],
       ['Satuan', (l) => l.satuan],
       ['Estimasi harga satuan (Rp)', (l) => (hasHarga(l) ? Number(l.harga_satuan) : '')],
@@ -332,7 +336,7 @@ export default function UsulanDetail() {
       ) : (
         <Panel
           title="Barang yang diusulkan dibeli"
-          hint="Jumlah beli = kebutuhan BOM dikurangi stok yang sudah disisihkan untuk project ini. Sesuaikan jika perlu, mis. kelipatan kemasan."
+          hint="Jumlah beli = kebutuhan BOM dikurangi stok yang disisihkan untuk project ini dan pembelian yang sudah disetujui di revisi BOM sebelumnya. Sesuaikan jika perlu, mis. kelipatan kemasan."
           flush
         >
           <div className="hidden md:block overflow-x-auto">
