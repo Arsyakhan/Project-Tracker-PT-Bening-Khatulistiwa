@@ -12,7 +12,11 @@ import {
   getLokasi, createLokasi,
   listOpname, getOpname, createOpname, deleteOpname, saveOpnameLine, deleteOpnameLine, postOpname,
   listBom, getBom, getBomSumber, createBom, revisiBom, updateBom, deleteBom, saveBomLine, deleteBomLine, terbitkanBom,
+  bisaMemutuskan, listUsulan, getUsulan, buatUsulan, updateUsulan, deleteUsulan, saveUsulanLine, deleteUsulanLine,
+  ajukanUsulan, putuskanUsulan,
 } from '../../lib/gudangServer';
+
+const MSG_BUKAN_DIREKSI = 'Usulan pembelian hanya bisa diputuskan oleh Direksi (atau Admin selama belum ada Direksi yang terdaftar).';
 
 export const config = { maxDuration: 30 };
 
@@ -33,14 +37,31 @@ const POST_ACTIONS = {
   saveBomLine,
   deleteBomLine,
   terbitkanBom,
+  buatUsulan,
+  updateUsulan,
+  deleteUsulan,
+  saveUsulanLine,
+  deleteUsulanLine,
+  ajukanUsulan,
+  putuskanUsulan, // juga wajib lolos bisaMemutuskan (lihat handler)
 };
 
 function fail(res, status, message, code) {
   return res.status(status).json({ ok: false, error: message, ...(code ? { code } : {}) });
 }
 
-async function handleGet(req, res) {
+async function handleGet(req, res, email) {
   const action = String(req.query.action || '');
+  if (action === 'usulanList' || action === 'usulan') {
+    const role = getRoleForEmail(email);
+    const [data, boleh] = await Promise.all([
+      action === 'usulanList' ? listUsulan() : getUsulan(req.query.id),
+      bisaMemutuskan(email, role),
+    ]);
+    if (!data) return fail(res, 404, 'Usulan pembelian tidak ditemukan.');
+    const bisa = { bisaMemutuskan: boleh && canWrite(role) };
+    return res.status(200).json({ ok: true, data: action === 'usulanList' ? { usulan: data, ...bisa } : { ...data, ...bisa } });
+  }
   if (action === 'katalog') return res.status(200).json({ ok: true, data: await getKatalog() });
   if (action === 'barang') {
     const kode = String(req.query.kode || '').toUpperCase();
@@ -79,14 +100,16 @@ export default async function handler(req, res) {
   }
 
   try {
-    if (req.method === 'GET') return await handleGet(req, res);
+    if (req.method === 'GET') return await handleGet(req, res, email);
 
     if (req.method === 'POST') {
       const body = req.body;
       if (!body || typeof body !== 'object') return fail(res, 400, 'Body harus JSON.');
       const fn = POST_ACTIONS[body.action];
       if (!fn) return fail(res, 400, 'Action tidak dikenal.');
-      if (!canWrite(getRoleForEmail(email))) return fail(res, 403, MSG_VIEWER);
+      const role = getRoleForEmail(email);
+      if (!canWrite(role)) return fail(res, 403, MSG_VIEWER);
+      if (body.action === 'putuskanUsulan' && !(await bisaMemutuskan(email, role))) return fail(res, 403, MSG_BUKAN_DIREKSI);
       return res.status(200).json({ ok: true, data: await fn(body.payload || {}, email) });
     }
 

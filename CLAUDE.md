@@ -372,8 +372,26 @@ kosong atau yang masih punya jumlah kosong, lalu menandai revisi sebelumnya `dig
 baris BOM yang sudah diterbitkan. Aksi `/api/gudang`: GET `bomList` (`project=` opsional), `bom&id=`, `bomSumber`;
 POST `createBom`, `revisiBom`, `updateBom` (judul/catatan, hanya draf), `deleteBom` (hanya draf), `saveBomLine`
 (tambah atau ubah satu baris), `deleteBomLine`, `terbitkanBom`. **Cek stok** dihitung di halaman: kebutuhan per kode
-barang (semua barisnya dijumlahkan) dibandingkan stok gudang semua lokasi. Stok **belum disisihkan** per project dan
-usulan pembelian + persetujuan Direksi **belum dibuat** (langkah berikutnya di alur gudang).
+barang (semua barisnya dijumlahkan) dibandingkan **stok tersedia** (lihat di bawah).
+
+**Penyisihan stok dan usulan pembelian (31 Okt 2026):** tabel `penyisihan_stok` (stok yang disisihkan per BOM final,
+satu baris per kode barang), view `stok_tersedia` (stok fisik semua lokasi dikurangi penyisihan BOM **final**; penyisihan
+BOM yang sudah `diganti` otomatis tidak dihitung), `usulan_pembelian` (per BOM; status `draf` → `diajukan` →
+`disetujui` / `ditolak`; nomor tampil `UP-0001` = id) dan `usulan_pembelian_baris` (kebutuhan, disisihkan, jumlah beli,
+satuan, estimasi harga satuan Rupiah, catatan). Fungsi `sisihkan_dan_usulkan` (atomik, advisory lock supaya dua BOM
+tidak menyisihkan stok yang sama): menghitung ulang penyisihan BOM itu dari stok tersedia, lalu kekurangannya menjadi
+draf usulan (tanpa kekurangan = hanya penyisihan); ditolak kalau BOM bukan final atau masih ada usulan berjalan
+(unique index: satu usulan draf/diajukan/disetujui per BOM; yang ditolak boleh dibuat ulang). `ajukan_usulan` menolak
+usulan kosong atau BOM yang sudah diganti; `putuskan_usulan` mewajibkan alasan penolakan dan menolak persetujuan kalau
+BOM sudah diganti. Trigger `cek_usulan_draf` mengunci baris usulan sesudah diajukan. **Yang boleh memutuskan**
+(`bisaMemutuskan` di `lib/gudangServer.js`, dicek di route): pengguna aktif berdivisi `Direksi` / `Marketing & Direksi`
+di tabel `pengguna`; selama tabel itu belum berisi Direksi, Admin yang memutuskan. Aksi `/api/gudang`: GET
+`usulanList`, `usulan&id=` (keduanya membawa `bisaMemutuskan`); POST `buatUsulan`, `updateUsulan` (catatan, hanya draf),
+`deleteUsulan` (hanya draf; penyisihan tetap), `saveUsulanLine` (jumlah beli, harga, catatan; baris tidak ditambah dari
+web), `deleteUsulanLine`, `ajukanUsulan`, `putuskanUsulan`. GET `bom&id=` kini juga membawa `penyisihan` dan `usulan`.
+Diuji 31 Okt 2026 di database asli dalam transaksi yang dibatalkan (8 skenario, lihat `supabase/README.md`). **Belum
+dibuat**: pemesanan oleh W&P, barang masuk (yang seharusnya menambah penyisihan project pemesan), serah terima ke teknisi
+(yang seharusnya mengurangi penyisihan), dan pemberitahuan usulan yang menunggu di halaman Hari Ini.
 
 ## Kontrak yang harus sinkron (sumber bug paling umum)
 
@@ -476,8 +494,15 @@ Cloud) bersamaan. Penyebab lain yang belum tertutup: PWA iOS yang membuka login 
   Kanban), Engineering Docs jadi tab "Checklist engineering" di menu Dokumen (`components/DocsTabs.jsx`: Checklist
   engineering | Buat dokumen), Notulensi jadi menu **Rapat** sendiri, Aktivitas pindah ke bawah menu. Alamat lama
   (`/board`, `/engineering-docs`, `/documents/meetings/...`) dialihkan di `redirects()` `next.config.js`, jadi tautan
-  lama, bookmark, dan PWA tetap jalan. Grup **Material & Gudang** berisi BOM Project, Pengadaan, Katalog Barang, dan Stock
-  Opname; usulan pembelian, barang masuk/keluar, dan serah terima menyusul di grup yang sama.
+  lama, bookmark, dan PWA tetap jalan. Grup **Material & Gudang** berisi BOM Project, Usulan Pembelian, Pengadaan, Katalog
+  Barang, dan Stock Opname; barang masuk/keluar dan serah terima menyusul di grup yang sama.
+- **Usulan Pembelian** (`/gudang/usulan` + `/gudang/usulan/[id]`, 31 Okt 2026): dibuat dari halaman BOM final lewat tombol
+  "Sisihkan stok & usulkan pembelian" (sesudah ada usulan berjalan, tombol itu menjadi tautan ke usulannya). Daftar: angka
+  per status di `StatStrip` sekaligus filter, urutan Menunggu persetujuan → Draf → Disetujui → Ditolak. Detail: tabel
+  kebutuhan / disisihkan / beli / harga / subtotal (kartu di HP), ubah baris di tempat, catatan usulan, riwayat (dibuat,
+  diajukan, diputuskan, usulan lain dari BOM yang sama), Unduh CSV, Ajukan ke Direksi, serta Setujui / Tolak (alasan
+  wajib; `ConfirmModal` kini menerima `children` dan `confirmDisabled`). Cek stok di halaman BOM memakai stok tersedia
+  (`stockCheck`: stok dikurangi penyisihan BOM lain; kolom Disisihkan tampil kalau BOM ini sudah punya penyisihan).
 - **BOM Project** (`/gudang/bom` + `/gudang/bom/[id]`, 27 Okt 2026): daftar BOM dikelompokkan per project (pilihan Aktif /
   Draf / Diterbitkan / Semua revisi; `?project=prj_xxx` menyaring, `?baru=1` membuka form). Form "Buat BOM"
   (`components/gudang/BomCreateForm.jsx`): project dari Sheet (berjalan dan selesai), judul, isi awal = kosong, salinan BOM
@@ -504,7 +529,7 @@ Cloud) bersamaan. Penyebab lain yang belum tertutup: PWA iOS yang membuka login 
   `effectOf`). Beberapa orang boleh menghitung di sesi yang sama ("Muat ulang" untuk melihat hitungan mereka).
   "Posting ke stok" meminta konfirmasi dengan ringkasan; sesudahnya sesi hanya bisa dilihat.
 - Shell: `pages/_app.js` + `components/Sidebar.jsx` (menu `NAV_GROUPS` dikelompokkan Harian (Hari Ini, Dashboard, Rapat) /
-  Project (Project, Dokumen) / Material & Gudang (BOM Project, Pengadaan, Katalog Barang, Stock Opname) / Referensi (Arsip), dan `NAV_FOOTER` (Aktivitas) di bawah; tambah halaman baru
+  Project (Project, Dokumen) / Material & Gudang (BOM Project, Usulan Pembelian, Pengadaan, Katalog Barang, Stock Opname) / Referensi (Arsip), dan `NAV_FOOTER` (Aktivitas) di bawah; tambah halaman baru
   di sana dan di `STATIC_ACTIONS` `components/CommandPalette.jsx`). `pages/login.js` = foto WTP layar penuh di balik permukaan air WebGL (`WaterSurface`) + logo + kartu masuk (lihat "Desain UI").
 - **Tata letak halaman (27 Okt 2026)**: Hari Ini, Dashboard, Semua Project, detail project, Kanban, Pengadaan, Dokumen,
   Notulensi, dan Arsip memakai komponen bersama di `components/ui/` (`PageHeader`, `StatStrip`, `Panel`, `Segmented`,
