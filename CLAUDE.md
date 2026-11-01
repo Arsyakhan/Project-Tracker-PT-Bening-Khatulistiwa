@@ -423,6 +423,15 @@ punya penyisihan, dengan project = barang yang disisihkan + stok per lokasi); PO
 Diterima lengkap) dihitung `tahapPengadaan` di `lib/gudang.js`. Uji otomatis: `supabase/tests/penerimaan_serah_terima.sql`
 (8 skenario). **Belum dibuat**: pengembalian barang dari teknisi (`kembali`) dan stok minimum.
 
+**Status material per project (1 Nov 2026, migrasi `20261101000300`):** fungsi baca `status_material(p_project_id)`
+memberi, untuk tiap BOM final project dan tiap kode barangnya: `butuh`, `diserahkan` (rantai revisi), `disisihkan`,
+`dipesan` (usulan `disetujui` di BOM ini atau revisi sebelumnya yang belum datang) + `eta` terdekat, `diusulkan` (usulan
+draf/diajukan), dan `kurang` (sisanya). GET `/api/gudang?action=statusMaterial&project=prj_xxx` membawa BOM yang berlaku
+dan angka itu plus data barang. Tahap per barang (`tahapMaterial`, `ringkasMaterial`, `TAHAP_MATERIAL` di `lib/gudang.js`):
+Sudah di teknisi / Siap diserahkan / Dipesan, menunggu datang / Menunggu persetujuan / Belum diusulkan; tahap yang
+dipilih adalah tahap paling belakang yang sudah menutup seluruh kebutuhan. Uji: `supabase/tests/status_material.sql`
+(6 skenario).
+
 ## Kontrak yang harus sinkron (sumber bug paling umum)
 
 | Hal | Di sisi backend | Di sisi frontend |
@@ -553,7 +562,10 @@ Cloud) bersamaan. Penyebab lain yang belum tertutup: PWA iOS yang membuka login 
   baru lewat `BarangBaruForm`, `konteks: 'bom'`), jumlah/satuan/bagian/catatan per baris, tampilan "Daftar BOM" per
   bagian dan "Cek stok" (kebutuhan vs stok, kurang di atas; `stockCheck`), Unduh CSV (`downloadCsv` di
   `lib/exportCsv.js`), Terbitkan, Buat revisi, Hapus draf. Tab Ringkasan detail project memuat panel "BOM & material"
-  (`components/gudang/ProjectBomPanel.jsx`, gagal dimuat tidak mengganggu halaman project). Status pakai
+  (`components/gudang/ProjectBomPanel.jsx`, gagal dimuat tidak mengganggu halaman project): daftar BOM yang berlaku dan,
+  sejak 1 Nov 2026, **status material** (berapa barang sudah di tangan teknisi, bar per tahap yang sekaligus filter, daftar
+  barang yang perlu ditindak di atas dengan angka butuh / di teknisi / siap / dipesan + ETA / diusulkan / kurang, dan
+  tombol "Serahkan ke teknisi" kalau ada barang siap). Bisa dilihat semua peran, termasuk teknisi. Status pakai
   `components/gudang/StatusDot.jsx` (juga dipakai `OpnameStatus`).
 - **Katalog Barang** (`/gudang/katalog` + `/gudang/katalog/[kode]`, 27 Okt 2026, data dari Supabase): daftar induk alat
   dan material dari semua BOM lama, diurutkan dari yang paling sering dipakai project. Angka di `StatStrip` menyaring
