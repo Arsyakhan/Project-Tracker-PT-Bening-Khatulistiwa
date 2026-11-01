@@ -96,6 +96,9 @@ teknisi untuk BOM tertentu).
   - Migrasi `20261101000200`: `disetujui_revisi_lama` kini hanya menghitung pembelian yang **belum datang**
     (`qty_beli - qty_diterima`); yang sudah datang sudah tercatat sebagai stok dan penyisihan.
   - Ketiga fungsi baru hanya bisa dipanggil `service_role`.
+- `status_material(p_project_id)` (migrasi `20261101000300`, hanya baca, hanya `service_role`): per BOM final project dan
+  kode barang: butuh, diserahkan, disisihkan, dipesan (disetujui, belum datang, termasuk revisi sebelumnya) + ETA
+  terdekat, diusulkan (draf/diajukan), dan kurang. Uji: `tests/status_material.sql` (6 skenario, lulus 1 Nov 2026).
 - **Uji otomatis**: `tests/usulan_pembelian.sql` (10 skenario termasuk revisi dan pengembalian) dan
   `tests/penerimaan_serah_terima.sql` (8 skenario: terima sebelum disetujui, terima berlebih, kunci baris, serah terima
   barang yang tidak disisihkan / berlebih / tanpa stok, serah terima kosong, serah bertahap, penyisihan habis, revisi BOM
