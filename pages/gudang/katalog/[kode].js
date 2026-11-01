@@ -9,6 +9,7 @@ import { useToast } from '../../../components/Toast';
 import PageHeader from '../../../components/ui/PageHeader';
 import Panel from '../../../components/ui/Panel';
 import Segmented from '../../../components/ui/Segmented';
+import GaleriFoto from '../../../components/gudang/GaleriFoto';
 
 function Field({ label, hint, children, className = '' }) {
   return (
@@ -299,8 +300,38 @@ export default function BarangDetail() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_20rem] gap-6 items-start">
-        <div className="flex flex-col gap-6 min-w-0">
+      {/* Di HP: foto dan stok paling atas, lalu isian, lalu info tambahan. Di layar lebar: isian di kiri, sisanya di kanan. */}
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_20rem] lg:grid-rows-[auto_1fr] gap-6 items-start">
+        <div className="flex flex-col gap-6 lg:col-start-2 lg:row-start-1">
+          <GaleriFoto key={b.kode} kode={b.kode} nama={b.nama} kategori={b.kategori_kode} fotos={data.foto} writable={writable} />
+          <Panel title="Stok gudang">
+            <p className="font-display text-3xl font-semibold text-ink tnum">
+              {fmtQty(data.stok.stok)} <span className="text-base font-medium text-inkmute">{b.satuan}</span>
+            </p>
+            <p className="text-xs text-inkmute mt-1">
+              {data.stok.transaksi_terakhir
+                ? `Transaksi terakhir ${fmtDate(data.stok.transaksi_terakhir)}.`
+                : 'Belum ada transaksi. Stok awal diisi saat stock opname pertama.'}
+            </p>
+            {(data.stok.perLokasi || []).length > 1 && (
+              <ul className="mt-3 flex flex-col gap-1 text-sm">
+                {data.stok.perLokasi.map((p) => (
+                  <li key={p.lokasi_kode} className="flex justify-between gap-3">
+                    <span className="text-inkmute">{lokasiNama[p.lokasi_kode] || p.lokasi_kode}</span>
+                    <span className="tnum text-ink">{fmtQty(p.stok)} {b.satuan}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {b.foto_url && (
+              <a href={b.foto_url} target="_blank" rel="noopener noreferrer" className="tap inline-block mt-3 text-sm font-medium text-blueprint hover:underline">
+                Buka foto di Drive
+              </a>
+            )}
+          </Panel>
+        </div>
+
+        <div className="flex flex-col gap-6 min-w-0 lg:col-start-1 lg:row-start-1 lg:row-span-2">
           <Panel title="Pemeriksaan" hint="Diisi W&P atau Engineering setelah mencocokkan barang ini dengan BOM dan gudang.">
             <div className="flex flex-col gap-4">
               <Segmented
@@ -380,33 +411,7 @@ export default function BarangDetail() {
           <BomUsage baris={data.baris} files={data.files} satuan={b.satuan} />
         </div>
 
-        <aside className="flex flex-col gap-6 lg:sticky lg:top-6">
-          <Panel title="Stok gudang">
-            <p className="font-display text-3xl font-semibold text-ink tnum">
-              {fmtQty(data.stok.stok)} <span className="text-base font-medium text-inkmute">{b.satuan}</span>
-            </p>
-            <p className="text-xs text-inkmute mt-1">
-              {data.stok.transaksi_terakhir
-                ? `Transaksi terakhir ${fmtDate(data.stok.transaksi_terakhir)}.`
-                : 'Belum ada transaksi. Stok awal diisi saat stock opname pertama.'}
-            </p>
-            {(data.stok.perLokasi || []).length > 1 && (
-              <ul className="mt-3 flex flex-col gap-1 text-sm">
-                {data.stok.perLokasi.map((p) => (
-                  <li key={p.lokasi_kode} className="flex justify-between gap-3">
-                    <span className="text-inkmute">{lokasiNama[p.lokasi_kode] || p.lokasi_kode}</span>
-                    <span className="tnum text-ink">{fmtQty(p.stok)} {b.satuan}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-            {b.foto_url && (
-              <a href={b.foto_url} target="_blank" rel="noopener noreferrer" className="tap inline-block mt-3 text-sm font-medium text-blueprint hover:underline">
-                Buka foto barang
-              </a>
-            )}
-          </Panel>
-
+        <aside className="flex flex-col gap-6 lg:col-start-2 lg:row-start-2 empty:hidden">
           {(b.perlu_dicek || []).length > 0 && (
             <Panel title="Perlu dicek">
               <ul className="flex flex-col gap-1 text-sm text-amberink">

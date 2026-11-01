@@ -393,3 +393,12 @@ summary:focus-visible {
 .loading-bar-glow {
   box-shadow: 0 0 8px rgb(var(--color-air) / 0.6);
 }
+
+/* Pengganti foto barang yang belum punya foto: kertas gambar teknik bergaris kisi (components/gudang/FotoBarang.jsx) */
+.kertas-kisi {
+  background-color: rgb(var(--color-canvas));
+  background-image:
+    linear-gradient(rgb(var(--color-blueprint) / 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(var(--color-blueprint) / 0.07) 1px, transparent 1px);
+  background-size: 12px 12px;
+}

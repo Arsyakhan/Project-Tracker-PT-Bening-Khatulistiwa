@@ -1,10 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useSession } from 'next-auth/react';
 import { canWrite } from '../../../lib/roles';
 import useCachedResource from '../../../lib/useCachedResource';
-import { gudangApi, statusCekInfo, barangSearchText, fmtQty, reviewFlags, FLAG_PENAWARAN, addToKatalogCache } from '../../../lib/gudang';
+import { gudangApi, statusCekInfo, barangSearchText, barangLabel, fmtQty, reviewFlags, FLAG_PENAWARAN, addToKatalogCache } from '../../../lib/gudang';
 import PageHead from '../../../components/PageHead';
 import RefreshStatus from '../../../components/RefreshStatus';
 import { SkeletonTable } from '../../../components/Skeleton';
@@ -15,8 +15,11 @@ import Segmented from '../../../components/ui/Segmented';
 import SearchField from '../../../components/ui/SearchField';
 import EmptyState from '../../../components/ui/EmptyState';
 import BarangBaruForm from '../../../components/gudang/BarangBaruForm';
+import { FotoBarang } from '../../../components/gudang/FotoBarang';
 
 const PAGE = 60;
+const TAMPILAN_KEY = 'gudang-katalog-tampilan';
+const TAMPILAN = [{ key: 'kartu', label: 'Kartu' }, { key: 'tabel', label: 'Tabel' }];
 
 const STATUS_FILTERS = [
   { key: 'belum', label: 'Belum dicek', hint: 'Urut dari yang paling sering dipakai', test: (b) => !b.status_cek, tone: 'amber' },
@@ -62,6 +65,32 @@ function subLine(b, katNama) {
   return [kat, detailLine(b), lama].filter(Boolean).join(' · ');
 }
 
+// Kartu bergambar seperti etalase: foto (atau pengganti bergaris kisi), kode dan jenis, nama lengkap, merek/model,
+// status cek, dan stok.
+function KartuBarang({ b }) {
+  return (
+    <li>
+      <Link
+        href={`/gudang/katalog/${b.kode}`}
+        className="flex flex-col h-full rounded-xl border border-line bg-panel overflow-hidden hover:border-ink/25 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blueprint"
+      >
+        <FotoBarang foto={b.foto} kategori={b.kategori_kode} label className="aspect-square border-b border-line" />
+        <span className="flex flex-col gap-1 p-3 flex-1 min-w-0">
+          <span className="text-xs text-inkmute truncate"><span className="font-data">{b.kode}</span>{b.jenis ? ` · ${b.jenis}` : ''}</span>
+          <span className="text-sm font-medium text-ink leading-snug line-clamp-2">{barangLabel(b)}</span>
+          {(b.merek || b.model) && <span className="text-xs text-inkmute truncate">{[b.merek, b.model].filter(Boolean).join(' · ')}</span>}
+          <span className="mt-auto pt-2 flex items-center justify-between gap-2">
+            <StatusCek b={b} />
+            <span className={`text-xs tnum whitespace-nowrap ${b.stok ? 'font-semibold text-ink' : 'text-inkmute'}`}>
+              {b.stok ? `${fmtQty(b.stok)} ${b.satuan}` : 'Stok 0'}
+            </span>
+          </span>
+        </span>
+      </Link>
+    </li>
+  );
+}
+
 // Katalog barang (Supabase): daftar induk alat dan material dari semua BOM lama. Dicek W&P/Engineering lewat kolom
 // "Status cek"; kodenya dipakai untuk BOM, stok, dan pengadaan.
 export default function KatalogBarang() {
@@ -76,6 +105,15 @@ export default function KatalogBarang() {
   const [scope, setScope] = useState('project');
   const [statusFilter, setStatusFilter] = useState('');
   const [limit, setLimit] = useState(PAGE);
+  const [tampilan, setTampilanState] = useState('kartu');
+
+  useEffect(() => {
+    try { const v = window.localStorage.getItem(TAMPILAN_KEY); if (v === 'tabel' || v === 'kartu') setTampilanState(v); } catch { /* abaikan */ }
+  }, []);
+  function setTampilan(v) {
+    setTampilanState(v);
+    try { window.localStorage.setItem(TAMPILAN_KEY, v); } catch { /* hanya kenyamanan */ }
+  }
 
   const barang = data?.barang || [];
   const kategoriList = data?.kategori || [];
@@ -201,9 +239,9 @@ export default function KatalogBarang() {
         ]}
       />
 
-      <div className="flex flex-col lg:flex-row lg:items-center gap-3">
+      <div className="flex flex-col lg:flex-row lg:flex-wrap lg:items-center gap-3">
         <SearchField
-          className="w-full lg:w-80"
+          className="w-full lg:w-72"
           value={query}
           onChange={resetLimit(setQuery)}
           placeholder="Cari kode, nama, ukuran, model..."
@@ -244,10 +282,31 @@ export default function KatalogBarang() {
         />
       )}
 
+      {rows.length > 0 && (
+        <div className="flex items-center justify-between gap-3 -mb-1">
+          <span className="text-sm text-inkmute tnum">{rows.length} barang</span>
+          <Segmented label="Tampilan" size="sm" value={tampilan} onChange={setTampilan} options={TAMPILAN} />
+        </div>
+      )}
+
       {rows.length === 0 ? (
         <EmptyState title="Tidak ada barang yang cocok">
           Ubah pencarian, kategori, atau pilihan di atas. Barang yang hanya muncul di penawaran atau baru ditambahkan ada di pilihan &ldquo;Semua&rdquo;.
         </EmptyState>
+      ) : tampilan === 'kartu' ? (
+        <div className="flex flex-col gap-4">
+          <ul className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 gap-3 md:gap-4">
+            {visible.map((b) => <KartuBarang key={b.kode} b={b} />)}
+          </ul>
+          <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-inkmute">
+            <span className="tnum" aria-live="polite">Menampilkan {visible.length} dari {rows.length} barang</span>
+            {rows.length > limit && (
+              <button type="button" onClick={() => setLimit((l) => l + PAGE)} className="btn btn-secondary">
+                Tampilkan {Math.min(PAGE, rows.length - limit)} lagi
+              </button>
+            )}
+          </div>
+        </div>
       ) : (
         <Panel flush>
           <div className="hidden md:block overflow-x-auto">
@@ -270,11 +329,16 @@ export default function KatalogBarang() {
                   <tr key={b.kode} className="align-top hover:bg-canvas/50 transition-colors">
                     <td className="px-5 py-3 font-data text-xs text-inkmute whitespace-nowrap">{b.kode}</td>
                     <td className="px-3 py-3">
-                      <Link href={`/gudang/katalog/${b.kode}`} className="font-medium text-ink hover:text-blueprint">
-                        {b.nama}
-                      </Link>
-                      <span className="block text-xs text-inkmute mt-0.5 line-clamp-1 max-w-[28rem]">
-                        {subLine(b, katNama)}
+                      <span className="flex items-start gap-3">
+                        <FotoBarang foto={b.foto} kategori={b.kategori_kode} ukuran="kecil" className="w-10 h-10 shrink-0 rounded-md border border-line" />
+                        <span className="min-w-0">
+                          <Link href={`/gudang/katalog/${b.kode}`} className="font-medium text-ink hover:text-blueprint">
+                            {b.nama}
+                          </Link>
+                          <span className="block text-xs text-inkmute mt-0.5 line-clamp-1 max-w-[28rem]">
+                            {subLine(b, katNama)}
+                          </span>
+                        </span>
                       </span>
                     </td>
                     <td className="px-3 py-3 whitespace-nowrap">{b.ukuran || <span className="text-inkmute">-</span>}</td>
@@ -298,7 +362,8 @@ export default function KatalogBarang() {
               <li key={b.kode}>
                 <Link href={`/gudang/katalog/${b.kode}`} className="block px-4 py-3.5 hover:bg-canvas/50">
                   <span className="flex items-start justify-between gap-3">
-                    <span className="min-w-0">
+                    <FotoBarang foto={b.foto} kategori={b.kategori_kode} ukuran="kecil" className="w-12 h-12 shrink-0 rounded-md border border-line" />
+                    <span className="min-w-0 flex-1">
                       <span className="block font-medium text-ink">{b.nama}</span>
                       <span className="block text-xs text-inkmute mt-0.5">
                         <span className="font-data">{b.kode}</span>{b.jenis ? ` · ${b.jenis}` : ''}
