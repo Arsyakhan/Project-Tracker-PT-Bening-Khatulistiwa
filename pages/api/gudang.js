@@ -14,7 +14,7 @@ import {
   listBom, getBom, getBomSumber, createBom, revisiBom, updateBom, deleteBom, saveBomLine, deleteBomLine, terbitkanBom,
   bisaMemutuskan, listUsulan, getUsulan, buatUsulan, updateUsulan, deleteUsulan, saveUsulanLine, deleteUsulanLine,
   ajukanUsulan, putuskanUsulan, kembalikanUsulan,
-  catatPesanan, terimaBarang, listSerahTerima, getSerahTerima, getSerahTerimaSumber, buatSerahTerima,
+  catatPesanan, terimaBarang, listSerahTerima, getSerahTerima, getSerahTerimaSumber, buatSerahTerima, getStatusMaterial,
 } from '../../lib/gudangServer';
 
 const MSG_BUKAN_DIREKSI = 'Usulan pembelian hanya bisa diputuskan oleh Direksi (atau Admin selama belum ada Direksi yang terdaftar).';
@@ -96,6 +96,7 @@ async function handleGet(req, res, email) {
     return res.status(200).json({ ok: true, data });
   }
   if (action === 'serahTerimaSumber') return res.status(200).json({ ok: true, data: await getSerahTerimaSumber({ project: req.query.project }) });
+  if (action === 'statusMaterial') return res.status(200).json({ ok: true, data: await getStatusMaterial({ project: req.query.project }) });
   return fail(res, 400, 'Action tidak dikenal.');
 }
 

@@ -423,6 +423,28 @@ punya penyisihan, dengan project = barang yang disisihkan + stok per lokasi); PO
 Diterima lengkap) dihitung `tahapPengadaan` di `lib/gudang.js`. Uji otomatis: `supabase/tests/penerimaan_serah_terima.sql`
 (8 skenario). **Belum dibuat**: pengembalian barang dari teknisi (`kembali`) dan stok minimum.
 
+**Status material per project (1 Nov 2026, migrasi `20261101000300`):** fungsi baca `status_material(p_project_id)`
+memberi, untuk tiap BOM final project dan tiap kode barangnya: `butuh`, `diserahkan` (rantai revisi), `disisihkan`,
+`dipesan` (usulan `disetujui` di BOM ini atau revisi sebelumnya yang belum datang) + `eta` terdekat, `diusulkan` (usulan
+draf/diajukan), dan `kurang` (sisanya). GET `/api/gudang?action=statusMaterial&project=prj_xxx` membawa BOM yang berlaku
+dan angka itu plus data barang. Tahap per barang (`tahapMaterial`, `ringkasMaterial`, `TAHAP_MATERIAL` di `lib/gudang.js`):
+Sudah di teknisi / Siap diserahkan / Dipesan, menunggu datang / Menunggu persetujuan / Belum diusulkan; tahap yang
+dipilih adalah tahap paling belakang yang sudah menutup seluruh kebutuhan. Uji: `supabase/tests/status_material.sql`
+(6 skenario).
+
+**Foto barang (1 Nov 2026, migrasi `20261101000400`):** tabel `foto_barang` (satu baris per foto; `sumber` =
+`gudang` atau `internet`), view `foto_utama` (foto gudang terbaru, kalau belum ada foto internet terbaru), dan bucket
+Storage **privat** `foto-barang` (JPEG, maks 3 MB). Foto gudang = foto asli yang diambil W&P dari web (kamera HP atau
+galeri), dikompres di browser jadi dua JPEG (`lib/foto.js` `siapkanFoto`: sisi terpanjang 1600 px dan 480 px) lalu
+disimpan lewat **`/api/gudang-foto`** (route terpisah dari `/api/gudang` karena body-nya besar; batas body Vercel 4,5 MB):
+GET `?kode=` daftar foto, POST `{ action: 'unggah' | 'tautkan' | 'hapus', payload }` untuk editor/admin (maks 12 foto per
+barang; barang berstatus Gabung ditolak). Foto gudang disajikan **`/api/gudang-foto/<id>[?ukuran=kecil]`** (sesi wajib,
+cache browser private karena isi satu nomor foto tidak berubah), jadi tetap hanya untuk pengguna yang login. Foto
+internet hanya **tautan** gambar + halaman sumbernya (gambarnya tidak disalin), ditandai "Foto contoh" dan otomatis kalah
+dari foto gudang. Logika server di `lib/fotoServer.js`, Storage lewat `sbStorageUpload/Get/Remove` di
+`lib/supabaseServer.js` (kunci rahasia lewat header `apikey`). GET `katalog` membawa `foto` utama per barang, GET
+`barang&kode=` membawa semua `foto`.
+
 ## Kontrak yang harus sinkron (sumber bug paling umum)
 
 | Hal | Di sisi backend | Di sisi frontend |
@@ -553,7 +575,10 @@ Cloud) bersamaan. Penyebab lain yang belum tertutup: PWA iOS yang membuka login 
   baru lewat `BarangBaruForm`, `konteks: 'bom'`), jumlah/satuan/bagian/catatan per baris, tampilan "Daftar BOM" per
   bagian dan "Cek stok" (kebutuhan vs stok, kurang di atas; `stockCheck`), Unduh CSV (`downloadCsv` di
   `lib/exportCsv.js`), Terbitkan, Buat revisi, Hapus draf. Tab Ringkasan detail project memuat panel "BOM & material"
-  (`components/gudang/ProjectBomPanel.jsx`, gagal dimuat tidak mengganggu halaman project). Status pakai
+  (`components/gudang/ProjectBomPanel.jsx`, gagal dimuat tidak mengganggu halaman project): daftar BOM yang berlaku dan,
+  sejak 1 Nov 2026, **status material** (berapa barang sudah di tangan teknisi, bar per tahap yang sekaligus filter, daftar
+  barang yang perlu ditindak di atas dengan angka butuh / di teknisi / siap / dipesan + ETA / diusulkan / kurang, dan
+  tombol "Serahkan ke teknisi" kalau ada barang siap). Bisa dilihat semua peran, termasuk teknisi. Status pakai
   `components/gudang/StatusDot.jsx` (juga dipakai `OpnameStatus`).
 - **Katalog Barang** (`/gudang/katalog` + `/gudang/katalog/[kode]`, 27 Okt 2026, data dari Supabase): daftar induk alat
   dan material dari semua BOM lama, diurutkan dari yang paling sering dipakai project. Angka di `StatStrip` menyaring
@@ -573,6 +598,14 @@ Cloud) bersamaan. Penyebab lain yang belum tertutup: PWA iOS yang membuka login 
   jenis dari daftar kategorinya (wajib saat tambah). Pencarian ikut mencari `nama_lain` (nama lama), jadi "CIP tank"
   tetap menemukan tangki yang kini bernama "Tangki PE". Penataan data awal: migrasi `20261031000400_katalog_jenis.sql`
   (lihat `supabase/README.md`), cadangan tabel sebelum penataan `barang_cadangan_20261031`.
+- **Foto di halaman gudang (1 Nov 2026):** Katalog Barang punya tampilan **Kartu** (bawaan, seperti etalase: foto di
+  bidang putih tanpa dipotong, kode + jenis, nama lengkap, merek/model, status cek, stok) dan **Tabel** (dengan foto kecil);
+  pilihannya diingat di browser (`gudang-katalog-tampilan`). Detail barang punya panel **Foto** (`components/gudang/GaleriFoto.jsx`:
+  foto utama besar, foto lain, keterangan asal foto, Ambil foto / Pilih dari galeri / Tempel tautan foto dari internet /
+  Hapus); di HP foto dan stok tampil paling atas. Stock opname: foto kecil di hasil pencarian, di form hitung (plus tombol
+  kamera), dan di setiap baris hitungan (tombol kamera; foto tercatat dengan `opname_id`). Komponen: `FotoBarang`/`FotoKosong`
+  (`components/gudang/FotoBarang.jsx`; belum ada foto atau tautan rusak = pengganti bergaris kisi `.kertas-kisi` dengan kode
+  kategori) dan `AmbilFoto` (`capture="environment"` membuka kamera belakang HP).
 - **Stock Opname** (`/gudang/opname` + `/gudang/opname/[id]`, 27 Okt 2026): daftar sesi dan form "Mulai opname" (judul,
   lokasi gudang atau lokasi baru, tanggal). Halaman sesi dibuat untuk HP: cari barang dari katalog (`searchKatalog`),
   isi jumlah (angka besar), simpan; barang yang belum ada di katalog bisa ditambah langsung. Setiap baris menampilkan
@@ -784,7 +817,8 @@ Cloud) bersamaan. Penyebab lain yang belum tertutup: PWA iOS yang membuka login 
   (`PHASE_LABEL` di `lib/projectHelpers.js`, juga di filter Fase); nilai kuncinya tetap Pre-Delivery/Delivered/Completed
   supaya filter yang tersimpan di browser tetap berlaku.
 - API: `pages/api/gas.js` (proxy utama), `docgen.js` (Commissioning/Hand Over + catat ke Document Log
-  + update checklist), `meeting-doc.js` (Notulensi), `gudang.js` (modul gudang, Supabase), `auth/[...nextauth].js`.
+  + update checklist), `meeting-doc.js` (Notulensi), `gudang.js` (modul gudang, Supabase), `gudang-foto/` (foto barang:
+  daftar/unggah/tautkan/hapus dan penyaji gambar), `auth/[...nextauth].js`.
 - Pustaka: `lib/` (`api.js`, `useProjects.js`, `useCachedResource.js`, `persistedCache.js`, `stages.js`,
   `systems.js`, `meetings.js`, `procurement.js`, `roles.js`, `gudang.js`, `supabaseServer.js` dan `gudangServer.js`
   (server saja), `docgen/*`).

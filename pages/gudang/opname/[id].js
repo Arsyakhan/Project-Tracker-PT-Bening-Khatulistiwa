@@ -16,6 +16,8 @@ import SearchField from '../../../components/ui/SearchField';
 import EmptyState from '../../../components/ui/EmptyState';
 import OpnameStatus from '../../../components/gudang/OpnameStatus';
 import BarangBaruForm from '../../../components/gudang/BarangBaruForm';
+import { FotoBarang } from '../../../components/gudang/FotoBarang';
+import AmbilFoto from '../../../components/gudang/AmbilFoto';
 
 const SEARCH_ID = 'opname-cari';
 
@@ -55,7 +57,7 @@ function EffectText({ e, satuan, posted }) {
 }
 
 // Form jumlah untuk satu barang: angka besar supaya nyaman diisi di HP sambil berdiri di gudang.
-function CountForm({ barang, initial, onSave, onCancel, busy }) {
+function CountForm({ barang, initial, onSave, onCancel, busy, media, aksi }) {
   const [qty, setQty] = useState(initial?.qty_hitung !== undefined && initial?.qty_hitung !== null ? String(initial.qty_hitung) : '');
   const [catatan, setCatatan] = useState(initial?.catatan || '');
   const ref = useRef(null);
@@ -68,13 +70,17 @@ function CountForm({ barang, initial, onSave, onCancel, busy }) {
       onSubmit={(e) => { e.preventDefault(); onSave({ qty_hitung: qty, catatan }); }}
       className="flex flex-col gap-4"
     >
-      <div>
-        <p className="font-medium text-ink">{barangLabel(barang)}</p>
-        <p className="text-xs text-inkmute mt-0.5">
-          <span className="font-data">{barang.kode}</span>
-          {[barang.merek, barang.model].filter(Boolean).length ? ` · ${[barang.merek, barang.model].filter(Boolean).join(' · ')}` : ''}
-          {initial ? ` · sudah dihitung ${fmtQty(initial.qty_hitung)} ${barang.satuan} oleh ${initial.dihitung_oleh}` : ''}
-        </p>
+      <div className="flex items-start gap-3">
+        {media}
+        <div className="min-w-0 flex-1">
+          <p className="font-medium text-ink">{barangLabel(barang)}</p>
+          <p className="text-xs text-inkmute mt-0.5">
+            <span className="font-data">{barang.kode}</span>
+            {[barang.merek, barang.model].filter(Boolean).length ? ` · ${[barang.merek, barang.model].filter(Boolean).join(' · ')}` : ''}
+            {initial ? ` · sudah dihitung ${fmtQty(initial.qty_hitung)} ${barang.satuan} oleh ${initial.dihitung_oleh}` : ''}
+          </p>
+        </div>
+        {aksi}
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-[12rem_minmax(0,1fr)] gap-4">
         <label className="flex flex-col gap-1.5 text-sm">
@@ -140,6 +146,11 @@ export default function OpnameDetail() {
   useEffect(() => { load(); }, [load]);
 
   const barangList = katalog.data?.barang || [];
+  const fotoTersimpan = (kode) => (f) => {
+    const foto = { id: f.id, sumber: f.sumber, url: f.url || null };
+    katalog.mutate((d) => (d ? { ...d, barang: d.barang.map((b) => (b.kode === kode ? { ...b, foto } : b)) } : d));
+    showToast('Foto tersimpan');
+  };
   const byKode = useMemo(() => Object.fromEntries(barangList.map((b) => [b.kode, b])), [barangList]);
   const lines = data?.baris || [];
   const lineOf = useMemo(() => Object.fromEntries(lines.map((l) => [l.barang_kode, l])), [lines]);
@@ -320,6 +331,8 @@ export default function OpnameDetail() {
                 onSave={saveLine}
                 onCancel={resetEntry}
                 busy={saving}
+                media={<FotoBarang foto={byKode[selected.kode]?.foto} kategori={selected.kategori_kode} ukuran="kecil" className="w-16 h-16 shrink-0 rounded-lg border border-line" />}
+                aksi={<AmbilFoto varian="ikon" kode={selected.kode} nama={barangLabel(selected)} opnameId={opname.id} onSaved={fotoTersimpan(selected.kode)} />}
               />
               {saveError && <p className="text-sm text-rust mt-3" role="alert">{saveError}</p>}
             </>
@@ -357,15 +370,17 @@ export default function OpnameDetail() {
                     return (
                       <li key={b.kode}>
                         <button type="button" onClick={() => pick(b)} className="w-full text-left px-4 py-3 hover:bg-canvas/60 flex items-start justify-between gap-3">
-                          <span className="min-w-0">
+                          <FotoBarang foto={b.foto} kategori={b.kategori_kode} ukuran="kecil" className="w-12 h-12 shrink-0 rounded-md border border-line" />
+                          <span className="min-w-0 flex-1">
                             <span className="block text-ink">{barangLabel(b)}</span>
                             <span className="block text-xs text-inkmute mt-0.5">
                               <span className="font-data">{b.kode}</span>
                               {[b.merek, b.model].filter(Boolean).length ? ` · ${[b.merek, b.model].filter(Boolean).join(' · ')}` : ''}
                               {b.status_cek === 'Gabung' && b.gabung_ke ? ` · digabung ke ${b.gabung_ke}` : ''}
                             </span>
+                            {done && <span className="sm:hidden block text-xs text-teal mt-0.5">Dihitung {fmtQty(done.qty_hitung)} {b.satuan}</span>}
                           </span>
-                          <span className="text-xs whitespace-nowrap text-right">
+                          <span className="max-sm:hidden text-xs whitespace-nowrap text-right">
                             {done ? <span className="text-teal">Dihitung {fmtQty(done.qty_hitung)} {b.satuan}</span> : <span className="text-inkmute">{b.satuan}</span>}
                           </span>
                         </button>
@@ -419,12 +434,15 @@ export default function OpnameDetail() {
                 const e = effects[l.barang_kode];
                 return (
                   <li key={l.barang_kode} className="px-5 py-3.5 flex flex-col sm:flex-row sm:items-center gap-x-6 gap-y-1.5">
-                    <span className="min-w-0 flex-1">
-                      <Link href={`/gudang/katalog/${l.barang_kode}`} className="text-ink hover:text-blueprint">{barangLabel(b)}</Link>
-                      <span className="block text-xs text-inkmute mt-0.5">
-                        <span className="font-data">{l.barang_kode}</span>
-                        {b.model ? ` · ${b.model}` : ''} · {l.dihitung_oleh}, {fmtWaktu(l.dihitung_pada)}
-                        {l.catatan ? ` · ${l.catatan}` : ''}
+                    <span className="min-w-0 flex-1 flex items-start gap-3">
+                      <FotoBarang foto={byKode[l.barang_kode]?.foto} kategori={b.kategori_kode || l.barang_kode.slice(0, 3)} ukuran="kecil" className="w-12 h-12 shrink-0 rounded-md border border-line" />
+                      <span className="min-w-0">
+                        <Link href={`/gudang/katalog/${l.barang_kode}`} className="text-ink hover:text-blueprint">{barangLabel(b)}</Link>
+                        <span className="block text-xs text-inkmute mt-0.5">
+                          <span className="font-data">{l.barang_kode}</span>
+                          {b.model ? ` · ${b.model}` : ''} · {l.dihitung_oleh}, {fmtWaktu(l.dihitung_pada)}
+                          {l.catatan ? ` · ${l.catatan}` : ''}
+                        </span>
                       </span>
                     </span>
                     <span className="flex items-center justify-between sm:justify-end gap-4 sm:gap-6">
@@ -433,8 +451,12 @@ export default function OpnameDetail() {
                         {fmtQty(l.qty_hitung)} <span className="text-sm font-medium text-inkmute">{b.satuan}</span>
                       </span>
                     </span>
+                    {writable && !canCount && (
+                      <AmbilFoto varian="ikon" kode={l.barang_kode} nama={barangLabel(b)} opnameId={opname.id} onSaved={fotoTersimpan(l.barang_kode)} />
+                    )}
                     {canCount && (
-                      <span className="flex gap-4 sm:gap-3 text-sm">
+                      <span className="flex items-center gap-4 sm:gap-3 text-sm">
+                        <AmbilFoto varian="ikon" kode={l.barang_kode} nama={barangLabel(b)} opnameId={opname.id} onSaved={fotoTersimpan(l.barang_kode)} />
                         <button
                           type="button"
                           className="tap font-medium text-blueprint hover:underline"

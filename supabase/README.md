@@ -30,6 +30,12 @@ Data project tetap di Google Sheet; penghubungnya Project ID `prj_xxxx`.
 | `usulan_pembelian_baris` | Barang yang diusulkan: kebutuhan BOM, jumlah yang sudah disisihkan, jumlah beli, satuan, estimasi harga satuan (Rupiah), catatan, `qty_diterima` (jumlah yang sudah datang di gudang) |
 | `serah_terima` | Dokumen serah terima barang ke teknisi (1 Nov 2026): project, penerima, tanggal, lokasi asal, catatan, siapa yang mencatat. Nomor tampil `ST-0001` = id. Barisnya adalah transaksi `keluar` di `transaksi_stok` yang menunjuk dokumen ini |
 
+| `foto_barang` | Foto barang (1 Nov 2026): `sumber` `gudang` (foto asli dari W&P; `path` dan `path_kecil` di bucket Storage privat `foto-barang`) atau `internet` (hanya `url` gambar + `halaman_sumber`, tidak disalin). `opname_id` kalau diambil saat stock opname |
+| `foto_utama` (view) | Satu foto per barang: foto gudang terbaru, kalau belum ada foto internet terbaru |
+
+Bucket Storage `foto-barang` (migrasi `20261101000400`): privat, JPEG saja, maks 3 MB per berkas; tanpa policy, jadi
+hanya kunci rahasia server yang bisa membaca/menulis (diuji 1 Nov 2026: unggah dengan kunci publik ditolak RLS).
+
 Kolom tambahan 1 Nov 2026: `usulan_pembelian.no_po`, `tanggal_pesan`, `eta`, `dipesan_oleh`, `dipesan_pada` (pemesanan
 oleh W&P); `transaksi_stok.usulan_baris_id` (barang masuk dari usulan), `serah_terima_id` dan `bom_id` (barang keluar ke
 teknisi untuk BOM tertentu).
@@ -96,6 +102,9 @@ teknisi untuk BOM tertentu).
   - Migrasi `20261101000200`: `disetujui_revisi_lama` kini hanya menghitung pembelian yang **belum datang**
     (`qty_beli - qty_diterima`); yang sudah datang sudah tercatat sebagai stok dan penyisihan.
   - Ketiga fungsi baru hanya bisa dipanggil `service_role`.
+- `status_material(p_project_id)` (migrasi `20261101000300`, hanya baca, hanya `service_role`): per BOM final project dan
+  kode barang: butuh, diserahkan, disisihkan, dipesan (disetujui, belum datang, termasuk revisi sebelumnya) + ETA
+  terdekat, diusulkan (draf/diajukan), dan kurang. Uji: `tests/status_material.sql` (6 skenario, lulus 1 Nov 2026).
 - **Uji otomatis**: `tests/usulan_pembelian.sql` (10 skenario termasuk revisi dan pengembalian) dan
   `tests/penerimaan_serah_terima.sql` (8 skenario: terima sebelum disetujui, terima berlebih, kunci baris, serah terima
   barang yang tidak disisihkan / berlebih / tanpa stok, serah terima kosong, serah bertahap, penyisihan habis, revisi BOM

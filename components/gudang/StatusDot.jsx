@@ -1,5 +1,5 @@
-const TONE_TEXT = { amber: 'text-amberink', teal: 'text-teal', rust: 'text-rust', muted: 'text-inkmute', blueprint: 'text-blueprint' };
-const TONE_DOT = { amber: 'bg-amber', teal: 'bg-teal', rust: 'bg-rust', muted: 'bg-inkmute/50', blueprint: 'bg-blueprint' };
+const TONE_TEXT = { amber: 'text-amberink', teal: 'text-teal', rust: 'text-rust', muted: 'text-inkmute', blueprint: 'text-blueprint', blueprintsoft: 'text-blueprint' };
+const TONE_DOT = { amber: 'bg-amber', teal: 'bg-teal', rust: 'bg-rust', muted: 'bg-inkmute/50', blueprint: 'bg-blueprint', blueprintsoft: 'bg-blueprint/40' };
 
 // Status singkat: titik warna + teks (warna tidak pernah berdiri sendiri). status = { label, tone }.
 export default function StatusDot({ status, className = '' }) {
