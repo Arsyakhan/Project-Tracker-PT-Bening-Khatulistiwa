@@ -1,5 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import useLayer from '../lib/useLayer';
 
+// Di HP dialog ini menjadi lembar dari bawah (tombol dalam jangkauan jempol, Batal paling bawah); di layar lebar tetap
+// di tengah. Masuk dan keluar lewat jalur yang sama (lib/useLayer.js + .layer-* di globals.css).
 export default function ConfirmModal({
   open,
   title,
@@ -14,6 +17,9 @@ export default function ConfirmModal({
   children,
 }) {
   const [typed, setTyped] = useState('');
+  const { mounted, state } = useLayer(open, 200);
+  const dialogRef = useRef(null);
+  const cancelRef = useRef(null);
 
   useEffect(() => {
     if (open) setTyped('');
@@ -27,21 +33,30 @@ export default function ConfirmModal({
     return () => window.removeEventListener('keydown', onKey);
   }, [open, onCancel]);
 
-  if (!open) return null;
+  // Fokus pindah ke dalam dialog. Kalau tidak ada isian yang meminta fokus (autoFocus), pilihan aman = Batal,
+  // jadi Enter yang tidak sengaja tidak menjalankan tindakan yang tidak bisa dibatalkan.
+  useEffect(() => {
+    if (open && dialogRef.current && !dialogRef.current.contains(document.activeElement)) cancelRef.current?.focus();
+  }, [open]);
+
+  if (!mounted) return null;
 
   const canConfirm = (!requireText || typed === requireText) && !confirmDisabled;
 
   return (
     <div
-      className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+      data-state={state}
+      className="layer-scrim fixed inset-0 z-[90] flex items-end sm:items-center justify-center sm:p-4"
       onClick={onCancel}
     >
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="confirm-title"
         aria-describedby={description ? 'confirm-desc' : undefined}
-        className="bg-panel rounded-xl border border-line shadow-xl w-full max-w-sm p-6 flex flex-col gap-4"
+        data-state={state}
+        className="layer-sheet bg-panel rounded-t-2xl sm:rounded-xl border border-line shadow-xl w-full sm:max-w-sm p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:pb-6 flex flex-col gap-4"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex flex-col gap-1.5">
@@ -56,7 +71,7 @@ export default function ConfirmModal({
             </label>
             <input
               autoFocus
-              className="border border-line rounded-md px-3 py-2 text-sm outline-none focus:border-blueprint bg-panel text-ink"
+              className="input"
               value={typed}
               onChange={(e) => setTyped(e.target.value)}
             />
@@ -65,15 +80,15 @@ export default function ConfirmModal({
 
         {children /* isian tambahan, mis. alasan penolakan */}
 
-        <div className="flex gap-3 justify-end mt-2">
-          <button type="button" onClick={onCancel} className="btn btn-ghost">
+        <div className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-3 sm:justify-end mt-2">
+          <button ref={cancelRef} type="button" onClick={onCancel} className="btn btn-ghost max-sm:h-11">
             {cancelText}
           </button>
           <button
             type="button"
             onClick={onConfirm}
             disabled={!canConfirm}
-            className={`btn ${danger ? 'btn-danger' : 'btn-primary'}`}
+            className={`btn ${danger ? 'btn-danger' : 'btn-primary'} max-sm:h-11`}
           >
             {confirmText}
           </button>

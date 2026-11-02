@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/router';
 import { api } from '../lib/api';
+import useLayer from '../lib/useLayer';
 
 const STATIC_ACTIONS = [
   { label: 'Hari Ini', href: '/', keywords: 'hari ini beranda home tindak terlambat prioritas' },
@@ -26,6 +27,7 @@ export default function CommandPalette({ open, onClose }) {
   const [query, setQuery] = useState('');
   const [projects, setProjects] = useState(null);
   const [activeIndex, setActiveIndex] = useState(0);
+  const { mounted, state } = useLayer(open, 200);
 
   useEffect(() => {
     if (open) {
@@ -90,15 +92,20 @@ export default function CommandPalette({ open, onClose }) {
     return () => window.removeEventListener('keydown', handleKey);
   }, [open, results, activeIndex, onClose, router]);
 
-  if (!open) return null;
+  if (!mounted) return null;
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-start justify-center pt-24 px-4 bg-black/50 backdrop-blur-sm"
+      data-state={state}
+      className="layer-scrim fixed inset-0 z-[100] flex items-start justify-center pt-24 px-4"
       onClick={onClose}
     >
       <div
-        className="bg-panel rounded-xl border border-line shadow-2xl w-full max-w-lg overflow-hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Cari project atau halaman"
+        data-state={state}
+        className="layer-pop bg-panel rounded-xl border border-line shadow-2xl w-full max-w-lg overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-2.5 px-4 py-3 border-b border-line">

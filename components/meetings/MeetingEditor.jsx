@@ -440,7 +440,7 @@ export default function MeetingEditor({ meetingId, schedule = false }) {
       </Section>
 
       {/* Bar aksi */}
-      <div className="fixed bottom-0 left-0 md:left-60 right-0 z-20 bg-panel/95 backdrop-blur border-t border-line shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
+      <div className="fixed bottom-0 left-0 lg:left-64 right-0 z-20 bg-panel/95 backdrop-blur border-t border-line shadow-[0_-2px_10px_rgba(0,0,0,0.05)] pb-[env(safe-area-inset-bottom)]">
         <div className="max-w-6xl mx-auto px-5 md:px-10 py-3 flex flex-wrap items-center gap-3">
           <button
             onClick={() => save()}

@@ -10,6 +10,7 @@ import TopLoadingBar from '../components/TopLoadingBar';
 import { setStoredTheme } from '../lib/theme';
 import { getRecentProjects } from '../lib/recentlyViewed';
 import Sidebar from '../components/Sidebar';
+import NavDrawer from '../components/NavDrawer';
 import BeningLogo from '../components/brand/BeningLogo';
 import useRouteBusy from '../lib/useRouteBusy';
 
@@ -58,8 +59,17 @@ function Shell({ Component, pageProps }) {
 
   function toggleTheme() {
     const next = isDark ? 'light' : 'dark';
-    setStoredTheme(next);
-    setIsDark(next === 'dark');
+    const apply = () => {
+      setStoredTheme(next);
+      setIsDark(next === 'dark');
+    };
+    // Terang <-> gelap memudar singkat (View Transitions), bukan lompatan kecerahan seketika. Browser tanpa fitur
+    // ini atau pengguna yang mengurangi gerak langsung berganti.
+    if (document.startViewTransition && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      document.startViewTransition(apply);
+    } else {
+      apply();
+    }
   }
 
   // Recently viewed: baca dari localStorage, refresh tiap ada project baru dibuka
@@ -122,12 +132,9 @@ function Shell({ Component, pageProps }) {
             {sidebarContent()}
           </aside>
 
-          {mobileNavOpen && (
-            <div role="dialog" aria-modal="true" aria-label="Menu navigasi" className="lg:hidden fixed inset-0 z-40 flex">
-              <div className="w-72 max-w-[85vw] bg-panel border-r border-line shadow-xl">{sidebarContent(closeNav)}</div>
-              <div className="flex-1 bg-black/50 backdrop-blur-sm" onClick={() => setMobileNavOpen(false)} />
-            </div>
-          )}
+          <NavDrawer open={mobileNavOpen} onClose={closeNav} label="Menu navigasi">
+            {sidebarContent(closeNav)}
+          </NavDrawer>
 
           {/* Top bar mobile - cuma logo + tombol hamburger */}
           <header className="lg:hidden print:hidden sticky top-0 z-20 bg-panel border-b border-line flex items-center justify-between px-4 py-3">

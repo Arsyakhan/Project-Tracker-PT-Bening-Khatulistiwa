@@ -102,8 +102,8 @@ function ItemModal({ initial, projects, saving, canRemove, onRemove, onSave, onC
 
   const isEdit = !!it.id;
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-6" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div role="dialog" aria-modal="true" aria-label={isEdit ? 'Ubah barang' : 'Tambah barang'} className="bg-panel border border-line shadow-xl w-full sm:max-w-2xl max-h-[92vh] overflow-y-auto rounded-t-2xl sm:rounded-lg">
+    <div className="layer-scrim fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div role="dialog" aria-modal="true" aria-label={isEdit ? 'Ubah barang' : 'Tambah barang'} className="layer-sheet bg-panel border border-line shadow-xl w-full sm:max-w-2xl max-h-[92vh] overflow-y-auto rounded-t-2xl sm:rounded-lg pb-[env(safe-area-inset-bottom)] sm:pb-0">
         <div className="px-5 py-4 border-b border-line flex items-center justify-between sticky top-0 bg-panel z-10">
           <h2 className="font-display font-semibold text-ink">{isEdit ? 'Ubah barang' : 'Tambah barang'}</h2>
           <button onClick={onClose} className="text-inkmute hover:text-ink text-sm px-2 h-8 max-md:h-10" aria-label="Tutup">Tutup</button>
