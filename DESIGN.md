@@ -50,6 +50,9 @@ Semua pasangan teks lolos WCAG AA (>= 4,5:1) di `canvas` dan `panel`, di kedua t
   ukuran kecil. Berat 400/500/600/700/800. Judul dibedakan dengan ukuran, berat 600, dan spasi huruf -0,015em.
 - **IBM Plex Mono** hanya untuk kode dan angka teknis (nomor PO, persentase di tabel).
 - Skala: 12 (keterangan) · 13 · 14 (teks UI) · 16 · 20 · 24 (judul halaman, semibold) · 30 · 44.
+- Spasi huruf mengikuti ukuran (`fontSize` di `tailwind.config.js`): 12 px +0,01em, 14-16 px 0, 18 px -0,01em, 20 px
+  -0,012em, 24 px -0,016em, 30 px -0,02em, 36 px ke atas -0,022em sampai -0,025em. Huruf besar dengan spasi tetap tampak
+  renggang, huruf kecil perlu sedikit ruang. Angka mono (`.font-data`) tetap 0.
 - Tidak ada label huruf kapital semua; label kecil memakai huruf kalimat, `text-xs font-semibold text-inkmute`.
 
 ## Ruang, bentuk, bayangan
@@ -63,9 +66,30 @@ Semua pasangan teks lolos WCAG AA (>= 4,5:1) di `canvas` dan `panel`, di kedua t
 
 ## Gerak
 
-Token: `--ease-standard` `cubic-bezier(0.2,0,0,1)`, `--ease-enter`, `--ease-exit`, `--dur-fast` 120 ms,
-`--dur-normal` 200 ms, `--dur-slow` 320 ms. Umpan balik tekan tombol: turun 1 px. `prefers-reduced-motion` dihormati
-(semua gerak berhenti; latar halaman masuk menjadi foto statis dengan duotone yang sama).
+Token: `--ease-standard` `cubic-bezier(0.2,0,0,1)`, `--ease-enter`, `--ease-exit`, `--ease-sheet`
+`cubic-bezier(0.32,0.72,0,1)` (lembar dan menu geser), `--dur-fast` 120 ms, `--dur-normal` 200 ms, `--dur-slow` 320 ms.
+Umpan balik tekan tombol: turun 1 px; ketukan di HP langsung diberi sorotan biru tipis saat jari menekan.
+`prefers-reduced-motion` dihormati (semua gerak berhenti; latar halaman masuk menjadi foto statis dengan duotone yang
+sama). Pengguna dengan `prefers-contrast: more` mendapat garis dan teks kedua yang lebih tegas.
+
+Lapisan (2 Nov 2026, prinsip gerak antarmuka Apple yang sesuai arah ini): gerak hanya untuk menunjukkan dari mana
+sesuatu datang dan ke mana ia pergi, tidak pernah memantul.
+
+- **Jalur yang sama.** Lapisan keluar lewat jalur saat masuk: lembar naik dari bawah lalu turun lagi, menu geser masuk
+  dari kiri lalu kembali ke kiri, toast turun lalu naik, palet perintah turun sedikit dari atas. Popover yang menempel
+  ke tombolnya membesar dari sudut tombol itu (`sm:origin-top-left`).
+- **Bisa dibalik.** Gerak memakai transisi CSS, jadi membuka lagi lapisan yang sedang menutup langsung berbalik dari
+  posisinya saat itu. Kelas: `.layer-scrim`, `.layer-sheet` (HP = lembar dari bawah, layar lebar = dialog di tengah),
+  `.layer-pop`, `.drawer`; masuk lewat `@starting-style`, keluar lewat `data-state="closed"` dari `lib/useLayer.js`
+  (juga mengembalikan fokus ke tombol pembuka).
+- **Mengikuti jari.** Menu geser di HP dan tablet (`components/NavDrawer.jsx`) bisa ditutup dengan mengusap ke kiri:
+  panel mengikuti jari 1:1 setelah ambang 10 px, ditahan makin berat kalau ditarik ke kanan, dan saat dilepas keputusan
+  tutup/buka memakai proyeksi kecepatan (usapan cepat yang pendek tetap menutup); sisa geraknya melanjutkan kecepatan jari.
+- **Latar gelap, bukan kaca.** Latar di belakang dialog = navy 55 % tanpa blur (`.layer-scrim`), sama di kedua tema.
+- **Dialog konfirmasi di HP** menjadi lembar dari bawah dengan tombol selebar layar, Batal paling bawah; fokus awal di
+  Batal kalau tidak ada isian, supaya Enter yang tidak sengaja tidak menghapus.
+- Toast bisa ditutup dengan ketukan; pesan galat tampil 7 detik (berhasil/info 3,5 detik). Ganti tema memudar singkat
+  (View Transitions) alih-alih lompatan terang-gelap seketika.
 
 ## Tata letak halaman
 

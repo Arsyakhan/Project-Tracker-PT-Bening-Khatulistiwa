@@ -74,11 +74,11 @@ function FacetDropdown({ facet, options, selected, open, onToggleOpen, onToggleV
 
       {open && (
         <>
-          <div className="sm:hidden fixed inset-0 z-40 bg-black/40" onClick={onToggleOpen} />
+          <div className="layer-scrim sm:hidden fixed inset-0 z-40" onClick={onToggleOpen} />
           <div
             role="dialog"
             aria-label={`Filter ${facet.label}`}
-            className="fixed inset-x-0 bottom-0 z-50 max-h-[75vh] rounded-t-2xl sm:absolute sm:inset-x-auto sm:bottom-auto sm:left-0 sm:top-full sm:mt-2 sm:w-72 sm:max-h-none sm:rounded-lg bg-panel border border-line shadow-xl flex flex-col"
+            className="layer-sheet sm:origin-top-left fixed inset-x-0 bottom-0 z-50 max-h-[75vh] rounded-t-2xl sm:absolute sm:inset-x-auto sm:bottom-auto sm:left-0 sm:top-full sm:mt-2 sm:w-72 sm:max-h-none sm:rounded-lg bg-panel border border-line shadow-xl flex flex-col"
           >
             <div className="flex items-center justify-between px-3 pt-3 pb-2">
               <span className="text-sm font-semibold text-ink">{facet.label}</span>

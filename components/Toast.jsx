@@ -4,19 +4,25 @@ const ToastContext = createContext(null);
 
 let idCounter = 0;
 
+// Pesan galat berisi apa yang gagal dan apa yang harus dilakukan, jadi tampil lebih lama supaya sempat dibaca.
+const SHOW_MS = { success: 3500, info: 3500, error: 7000 };
+const EXIT_MS = 200; // = --dur-normal
+
 export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([]);
 
-  const removeToast = useCallback((id) => {
-    setToasts((t) => t.filter((toast) => toast.id !== id));
+  // Toast naik lagi ke atas (jalur yang sama dengan saat masuk) sebelum dilepas dari daftar.
+  const dismiss = useCallback((id) => {
+    setToasts((t) => t.map((toast) => (toast.id === id ? { ...toast, leaving: true } : toast)));
+    setTimeout(() => setToasts((t) => t.filter((toast) => toast.id !== id)), EXIT_MS);
   }, []);
 
   // type: 'success' | 'error' | 'info'
   const showToast = useCallback((message, type = 'success') => {
     const id = ++idCounter;
     setToasts((t) => [...t, { id, message, type }]);
-    setTimeout(() => removeToast(id), 3500);
-  }, [removeToast]);
+    setTimeout(() => dismiss(id), SHOW_MS[type] || SHOW_MS.success);
+  }, [dismiss]);
 
   return (
     <ToastContext.Provider value={{ showToast }}>
@@ -25,7 +31,10 @@ export function ToastProvider({ children }) {
         {toasts.map((toast) => (
           <div
             key={toast.id}
-            className={`pointer-events-auto flex items-start gap-2.5 px-4 py-3 rounded-lg shadow-lg border text-sm font-medium animate-toast-in w-full sm:w-auto sm:max-w-sm ${
+            data-state={toast.leaving ? 'closed' : 'open'}
+            title="Ketuk untuk menutup"
+            onClick={() => dismiss(toast.id)}
+            className={`layer-pop pointer-events-auto cursor-pointer flex items-start gap-2.5 px-4 py-3 rounded-lg shadow-lg border text-sm font-medium w-full sm:w-auto sm:max-w-sm ${
               toast.type === 'error'
                 ? 'bg-panel border-rust/30 text-rust'
                 : toast.type === 'info'
@@ -34,11 +43,11 @@ export function ToastProvider({ children }) {
             }`}
           >
             {toast.type === 'error' ? (
-              <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m0 3.75h.007v.008H12v-.008zM21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             ) : (
-              <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             )}

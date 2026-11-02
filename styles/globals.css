@@ -34,6 +34,8 @@
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
   --ease-enter: cubic-bezier(0, 0, 0.2, 1);
   --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+  /* Lembar dan menu geser: kurva lembar iOS (pegas teredam kritis, tanpa memantul) */
+  --ease-sheet: cubic-bezier(0.32, 0.72, 0, 1);
   --dur-fast: 120ms;
   --dur-normal: 200ms;
   --dur-slow: 320ms;
@@ -63,6 +65,18 @@
   --shadow-lift: 0 12px 32px -12px rgb(0 0 0 / 0.6), 0 2px 6px -2px rgb(0 0 0 / 0.4);
 }
 
+/* Pengguna yang meminta kontras lebih (pengaturan aksesibilitas OS): garis dan teks kedua dipertegas */
+@media (prefers-contrast: more) {
+  :root {
+    --color-line: 118 137 156;      /* #76899C, 3,3:1 di canvas */
+    --color-inkmute: 52 71 89;      /* #344759 */
+  }
+  .dark {
+    --color-line: 90 117 144;       /* #5A7590 */
+    --color-inkmute: 190 206 219;   /* #BECEDB */
+  }
+}
+
 html, body {
   background: rgb(var(--color-canvas));
   color: rgb(var(--color-ink));
@@ -74,10 +88,23 @@ html, body {
 }
 
 /* Satu keluarga huruf (Plus Jakarta Sans, buatan Tokotype untuk Jakarta) untuk teks dan judul.
-   Judul dibedakan lewat ukuran, ketebalan, dan spasi huruf yang sedikit dirapatkan. */
+   Judul dibedakan lewat ukuran, ketebalan, dan spasi huruf. Spasi huruf mengikuti ukuran (tailwind.config.js
+   fontSize): makin besar makin rapat, teks 12 px sedikit renggang. Aturan ini hanya cadangan untuk judul tanpa
+   kelas ukuran; kelas ukuran menang karena lebih spesifik. */
 h1, h2, h3, .font-display {
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+}
+h1, h2, h3 {
   letter-spacing: -0.015em;
+}
+
+/* Umpan balik sentuh muncul seketika saat jari menekan (bukan saat dilepas), dengan warna merek alih-alih abu-abu
+   bawaan iOS. touch-action menghapus jeda ketuk ganda supaya ketukan langsung diproses. */
+html {
+  -webkit-tap-highlight-color: rgb(var(--color-blueprint) / 0.12);
+}
+a, button, summary, label, select, [role='button'] {
+  touch-action: manipulation;
 }
 
 .font-data {
@@ -307,13 +334,68 @@ summary:focus-visible {
   .login-card, .login-sub { animation: none; }
 }
 
-/* Toast notification entrance */
-@keyframes toast-in {
-  from { opacity: 0; transform: translateY(-8px) scale(0.98); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+/* ---- Lapisan: dialog, lembar, menu geser, toast ----
+   Setiap lapisan masuk dan keluar lewat jalur yang sama: lembar naik dari bawah lalu turun lagi, menu geser masuk dari
+   kiri lalu kembali ke kiri, toast turun dari atas lalu naik lagi. Gerak memakai transisi CSS (bukan keyframes) supaya
+   bisa dibalik di tengah jalan dari posisi saat itu. Masuk = @starting-style (tanpa JS); keluar = data-state="closed"
+   yang dipasang lib/useLayer.js selama animasi keluar. Tanpa memantul; gerak dikurangi = langsung tampil/hilang. */
+.layer-scrim {
+  background-color: rgb(3 24 46 / 0.55);   /* navy yang sama dengan halaman masuk, di kedua tema */
+  transition: background-color var(--dur-slow) var(--ease-standard);
 }
-.animate-toast-in {
-  animation: toast-in 0.22s ease-out;
+.layer-scrim[data-state='closed'] {
+  background-color: rgb(3 24 46 / 0);
+  transition-duration: var(--dur-normal);
+  pointer-events: none;
+}
+@starting-style {
+  .layer-scrim { background-color: rgb(3 24 46 / 0); }
+}
+
+/* Dialog: di HP menjadi lembar yang naik dari bawah (tombol dalam jangkauan jempol), di layar lebar membesar sedikit
+   dari 97 % di tempatnya. Popover yang menempel ke tombolnya memakai origin di tombol itu (mis. sm:origin-top-left). */
+.layer-sheet {
+  --layer-from: translateY(100%);
+  transition: opacity var(--dur-slow) var(--ease-sheet), transform var(--dur-slow) var(--ease-sheet);
+}
+@media (min-width: 640px) {
+  .layer-sheet { --layer-from: scale(0.97); transition-duration: var(--dur-normal); }
+}
+/* Panel yang turun dari atas (palet perintah, toast) */
+.layer-pop {
+  --layer-from: translateY(-8px) scale(0.98);
+  transform-origin: top center;
+  transition: opacity var(--dur-normal) var(--ease-standard), transform var(--dur-normal) var(--ease-standard);
+}
+.layer-sheet[data-state='closed'],
+.layer-pop[data-state='closed'] {
+  opacity: 0;
+  transform: var(--layer-from);
+  transition-duration: var(--dur-normal);
+  transition-timing-function: var(--ease-exit);
+  pointer-events: none;
+}
+@starting-style {
+  .layer-sheet,
+  .layer-pop { opacity: 0; transform: var(--layer-from); }
+}
+
+/* Menu geser di HP dan tablet (components/NavDrawer.jsx). Selama diseret, posisinya diatur langsung oleh jari
+   (data-dragging), jadi transisinya dimatikan. */
+.drawer { touch-action: pan-y; }
+.drawer-panel { transition: transform var(--dur-slow) var(--ease-sheet); }
+.drawer-scrim {
+  background-color: rgb(3 24 46 / 0.55);
+  transition: opacity var(--dur-slow) var(--ease-sheet);
+}
+.drawer[data-state='closed'] { pointer-events: none; }
+.drawer[data-state='closed'] .drawer-panel { transform: translateX(-100%); }
+.drawer[data-state='closed'] .drawer-scrim { opacity: 0; }
+.drawer[data-dragging] .drawer-panel,
+.drawer[data-dragging] .drawer-scrim { transition: none; }
+@starting-style {
+  .drawer-panel { transform: translateX(-100%); }
+  .drawer-scrim { opacity: 0; }
 }
 
 /* Skeleton loading shimmer */
@@ -328,7 +410,6 @@ summary:focus-visible {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .animate-toast-in,
   .skeleton-shimmer {
     animation: none;
   }

@@ -815,6 +815,11 @@ Cloud) bersamaan. Penyebab lain yang belum tertutup: PWA iOS yang membuka login 
   WebGL, **bukan** `loseContext()` (konteks yang hilang membuat pemasangan kedua jatuh ke fallback). Video uji di
   sandbox (tanpa GPU) direkam dengan waktu halaman diperlambat lalu dipercepat lagi, karena SwiftShader hanya ~5 fps.
 - Target kontras minimal 4,5:1 di kedua tema; hormati `prefers-reduced-motion`.
+- **Lapisan (2 Nov 2026):** dialog, lembar, popover, menu geser HP, palet perintah, dan toast masuk dan keluar lewat jalur
+  yang sama memakai kelas `.layer-scrim` / `.layer-sheet` / `.layer-pop` / `.drawer` di `styles/globals.css` dan hook
+  `lib/useLayer.js` (menahan lapisan selama animasi keluar dan mengembalikan fokus). Overlay baru pakai kelas itu, bukan
+  `bg-black/50 backdrop-blur`. Jangan menambah utilitas `transition-*` di elemen yang sama karena menimpa transisinya.
+  Menu geser = `components/NavDrawer.jsx` (usap ke kiri untuk menutup). Rinciannya di DESIGN.md bagian Gerak.
 - Di HP (lebar < 768px): teks informasi minimal 12px (`text-xs`; jangan `text-[10px]`/`text-[11px]`, kecuali
   glyph dekoratif, petunjuk `kbd`, dan lencana angka), tombol minimal 40px (`h-9 max-md:h-10`), kolom isian
   16px (`.input` sudah otomatis, supaya iOS tidak memperbesar halaman). Tautan/tombol teks kecil diberi

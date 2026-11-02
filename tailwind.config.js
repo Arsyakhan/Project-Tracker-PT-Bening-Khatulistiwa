@@ -27,6 +27,17 @@ module.exports = {
         rustdark: 'rgb(var(--color-rustdark) / <alpha-value>)',
         onaccent: 'rgb(var(--color-onaccent) / <alpha-value>)',
       },
+      // Ukuran dan tinggi baris bawaan Tailwind, ditambah spasi huruf yang mengikuti ukuran: huruf besar tampak
+      // terlalu renggang kalau spasinya tetap, huruf kecil perlu sedikit ruang supaya terbaca (DESIGN.md, Tipografi).
+      fontSize: {
+        xs: ['0.75rem', { lineHeight: '1rem', letterSpacing: '0.01em' }],
+        lg: ['1.125rem', { lineHeight: '1.75rem', letterSpacing: '-0.01em' }],
+        xl: ['1.25rem', { lineHeight: '1.75rem', letterSpacing: '-0.012em' }],
+        '2xl': ['1.5rem', { lineHeight: '2rem', letterSpacing: '-0.016em' }],
+        '3xl': ['1.875rem', { lineHeight: '2.25rem', letterSpacing: '-0.02em' }],
+        '4xl': ['2.25rem', { lineHeight: '2.5rem', letterSpacing: '-0.022em' }],
+        '5xl': ['3rem', { lineHeight: '1', letterSpacing: '-0.025em' }],
+      },
       fontFamily: {
         sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
         display: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],

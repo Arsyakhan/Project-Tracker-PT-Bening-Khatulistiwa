@@ -33,7 +33,8 @@ export default function PageHeader({ crumbs, eyebrow, title, meta, actions, nav,
           )}
           {meta && <div className="text-sm text-inkmute mt-1.5 max-w-3xl">{meta}</div>}
         </div>
-        {actions && <div className="flex flex-wrap items-center gap-2 sm:justify-end shrink-0">{actions}</div>}
+        {/* Label tombol tidak dipatahkan: kalau tidak muat, tombolnya yang turun ke baris berikutnya */}
+        {actions && <div className="flex flex-wrap items-center gap-2 sm:justify-end shrink-0 [&_.btn]:whitespace-nowrap">{actions}</div>}
       </div>
       {nav}
     </header>
